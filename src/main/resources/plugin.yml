@@ -1,0 +1,22 @@
+name: UHC_DBasic
+version: '1.0-SNAPSHOT'
+main: me.dalibex.UHC_DBasic.UHC_DBasic
+api-version: '1.21'
+authors: [ Dalibex ]
+
+commands:
+  uhccommands:
+    description: Muestra lista de comandos del Plugin UHC_DBasic
+    usage: /uhccommands
+  test:
+    description: Comando de prueba
+    usage: /test
+  start:
+    description: Inicia el proceso de UHC (crea muro)
+    usage: /start [size]
+  confirmarstart:
+    description: Comando interno para confirmar (no necesita uso manual)
+    usage: Llamado automáticamente por "/start" para confirmación
+  reset:
+    description: Prepara el mundo y lo pone en espera para usar "/start"
+    usage: /reset
