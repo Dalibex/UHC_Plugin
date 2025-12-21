@@ -1,7 +1,7 @@
 # ⚔️ ELOUD UHC
 
-![Plugin Version](https://img.shields.io/badge/Version-1.0--SNAPSHOT-orange)
-![MC Version](https://img.shields.io/badge/Version-1.21.11-gold)
+![Plugin_Version](https://img.shields.io/badge/Version-1.0--SNAPSHOT-orange)
+![MC_Version](https://img.shields.io/badge/Version-1.21.11-gold)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Platform](https://img.shields.io/badge/Platform-Spigot%20%7C%20Paper-blue)
 
