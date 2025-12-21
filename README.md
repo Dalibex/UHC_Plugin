@@ -30,10 +30,13 @@ Basado en el UHC creado por **ElRichMC** | **UHC ESPAÑA**
 
 ## 🚀 Instalación
 
+* Requiere para esta versión estrictamente **Java 22**
+* Versión de la API de Paper - 1.21
+
 1. Descarga el archivo `.jar` (compilado con `./gradlew build`).
 2. Colócalo en la carpeta `/plugins` de tu servidor.
-3. Reinicia el servidor.
-4. ¡Configura el tamaño del mapa y empieza a jugar!
+3. Reinicia el servidor para que cargue el plugin.
+4. Listo!
 
 ## 💻 Desarrollo
 
