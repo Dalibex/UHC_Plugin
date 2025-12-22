@@ -35,7 +35,7 @@ public class AdminPanel implements Listener {
         mainGui.setItem(3, rulesItem);
         player.openInventory(mainGui);
 
-        ItemStack borderItem = new ItemStack(Material.BARRIER);
+        ItemStack borderItem = new ItemStack(Material.EMERALD_BLOCK);
         ItemMeta bMeta = borderItem.getItemMeta();
         bMeta.setDisplayName("§5Ajustes del Borde");
         bMeta.setLore(Arrays.asList("§7Gestiona el tamaño ", "§7de la zona de juego."));
@@ -49,24 +49,35 @@ public class AdminPanel implements Listener {
         timeItem.setItemMeta(tMeta);
         mainGui.setItem(5, timeItem);
 
-        ItemStack teamItem = new ItemStack(Material.WHITE_BANNER);
+        RightPanelManager rpm = UHC_DBasic.getPlugin(UHC_DBasic.class).getRightPanelManager();
+        boolean partidaEnCurso = rpm.getTiempoTotalSegundos() > 0;
+
+        ItemStack teamItem = new ItemStack(partidaEnCurso ? Material.BARRIER : Material.WHITE_BANNER);
         ItemMeta cMeta = teamItem.getItemMeta();
-        cMeta.setDisplayName("§aConfigurar Equipos");
+        cMeta.setDisplayName(partidaEnCurso ? "§7§mConfigurar Equipos" : "§aConfigurar Equipos");
+
         int numEquipos = (jugadoresOnline == 0) ? 0 : (int) Math.ceil((double) jugadoresOnline / teamSize);
         List<String> lore = new ArrayList<>();
-        lore.add("§7Tamaño actual: §e" + (teamSize == 1 ? "Solos" : "Equipos de " + teamSize));
-        lore.add("");
-        lore.add("§fJugadores online: §b" + jugadoresOnline);
-        lore.add("§fEquipos resultantes: §b" + numEquipos);
-        lore.add("");
-        lore.add("§bClick Izquierdo: §7Aumentar (+1)");
-        lore.add("§bClick Derecho: §7Reducir (-1)");
 
+        if (partidaEnCurso) {
+            lore.add("§c⚠ BLOQUEADO");
+            lore.add("§7No puedes cambiar los equipos");
+            lore.add("§7una vez iniciada la partida.");
+            cMeta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 1, true);
+            cMeta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
+        } else {
+            lore.add("§7Tamaño actual: §e" + (teamSize == 1 ? "Solos" : "Equipos de " + teamSize));
+            lore.add("");
+            lore.add("§fJugadores online: §b" + jugadoresOnline);
+            lore.add("§fEquipos resultantes: §b" + numEquipos);
+            lore.add("");
+            lore.add("§bClick Izquierdo: §7Aumentar (+1)");
+            lore.add("§bClick Derecho: §7Reducir (-1)");
+        }
         if (teamSize > 1 && jugadoresOnline % teamSize != 0 && jugadoresOnline > 0) {
             lore.add("");
             lore.add("§e⚠ §iEl reparto será equilibrado (ej: 3, 2, 2)");
         }
-
         cMeta.setLore(lore);
         teamItem.setItemMeta(cMeta);
         mainGui.setItem(7, teamItem);
@@ -166,33 +177,64 @@ public class AdminPanel implements Listener {
     }
 
     public static void openTimePanel(Player player) {
-        Inventory timeGui = Bukkit.createInventory(null, 9, "§8⏲ Control de Tiempo");
+        Inventory timeGui = Bukkit.createInventory(null, 27, "§8⏲ Control de Tiempo");
 
         RightPanelManager rpm = UHC_DBasic.getPlugin(UHC_DBasic.class).getRightPanelManager();
         boolean estaPausado = rpm.isPausado();
+        boolean partidaEnCurso = rpm.getTiempoTotalSegundos() > 0;
+        int minPorCapitulo = rpm.getSegundosPorCapitulo() / 60;
 
-        // BOTÓN REANUDAR
-        ItemStack resume = new ItemStack(Material.GREEN_WOOL);
-        ItemMeta rMeta = resume.getItemMeta();
-        rMeta.setDisplayName(estaPausado ? "§a▶ Reanudar Cronómetro" : "§7El cronómetro ya está corriendo");
-        resume.setItemMeta(rMeta);
-        timeGui.setItem(3, resume);
+        // INFO CENTRAL (Slot 13)
+        ItemStack info = new ItemStack(Material.CLOCK);
+        ItemMeta iMeta = info.getItemMeta();
+        iMeta.setDisplayName("§eTiempo por Capítulo");
+        iMeta.setLore(Arrays.asList("§fCada parte dura: §b" + minPorCapitulo + " min", "", "§7Ajusta esto antes de empezar."));
+        info.setItemMeta(iMeta);
+        timeGui.setItem(13, info);
 
-        // BOTÓN PAUSAR
-        ItemStack pause = new ItemStack(Material.RED_WOOL);
-        ItemMeta pMeta = pause.getItemMeta();
-        pMeta.setDisplayName(estaPausado ? "§7El cronómetro ya está pausado" : "§c⏸ Pausar Cronómetro");
-        pause.setItemMeta(pMeta);
-        timeGui.setItem(5, pause);
+        /* BOTONES PARA QUITAR */
+        timeGui.setItem(10, createTimeBtn(Material.RED_STAINED_GLASS_PANE, "§c-1 Minuto", -1, partidaEnCurso));
+        timeGui.setItem(11, createTimeBtn(Material.RED_WOOL, "§c-5 Minutos", -5, partidaEnCurso));
+        timeGui.setItem(12, createTimeBtn(Material.RED_CONCRETE, "§c-10 Minutos", -10, partidaEnCurso));
+
+        // BOTONES PARA AÑADIR
+        timeGui.setItem(14, createTimeBtn(Material.GREEN_STAINED_GLASS_PANE, "§a+1 Minuto", 1, partidaEnCurso));
+        timeGui.setItem(15, createTimeBtn(Material.GREEN_WOOL, "§a+5 Minutos", 5, partidaEnCurso));
+        timeGui.setItem(16, createTimeBtn(Material.GREEN_CONCRETE, "§a+10 Minutos", 10, partidaEnCurso));
+
+        // PAUSA / REANUDAR
+        ItemStack pauseBtn = new ItemStack(estaPausado ? Material.LIME_DYE : Material.GRAY_DYE);
+        ItemMeta pMeta = pauseBtn.getItemMeta();
+        pMeta.setDisplayName(estaPausado ? "§a▶ Reanudar Partida" : "§7⏸ Pausar Partida");
+        pauseBtn.setItemMeta(pMeta);
+        timeGui.setItem(21, pauseBtn);
 
         // VOLVER
         ItemStack back = new ItemStack(Material.ARROW);
         ItemMeta bMeta = back.getItemMeta();
         bMeta.setDisplayName("§cVolver");
         back.setItemMeta(bMeta);
-        timeGui.setItem(0, back);
+        timeGui.setItem(18, back);
 
         player.openInventory(timeGui);
+    }
+
+    private static ItemStack createTimeBtn(Material mat, String name, int amount, boolean bloqueado) {
+        ItemStack item = new ItemStack(bloqueado ? Material.BARRIER : mat);
+        ItemMeta meta = item.getItemMeta();
+
+        if (bloqueado) {
+            meta.setDisplayName("§7§m" + name);
+            meta.setLore(Arrays.asList("§c⚠ BLOQUEADO", "§7La partida ya ha comenzado."));
+            meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 1, true);
+            meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
+        } else {
+            meta.setDisplayName(name);
+            meta.setLore(Arrays.asList("§7Cambia la duración en", "§f" + amount + " §7minutos por parte."));
+        }
+
+        item.setItemMeta(meta);
+        return item;
     }
 
     @EventHandler
@@ -200,18 +242,31 @@ public class AdminPanel implements Listener {
         if (event.getView().getTitle().equals("§8⚙ Panel Administración UHC")) {
             event.setCancelled(true);
             Player p = (Player) event.getWhoClicked();
+            ItemStack item = event.getCurrentItem();
+            if (item == null || item.getType() == Material.AIR) return;
 
-            if (event.getCurrentItem() == null) return;
-            if (event.getCurrentItem().getType() == Material.BOOK) {
-                openGameRulesPanel((Player) event.getWhoClicked());
+            int slot = event.getSlot();
+
+            if (slot == 1) {
+                p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
+                openBarrierRulesPanel(p);
             }
-            else if (event.getCurrentItem().getType() == Material.BARRIER) {
-                openBarrierRulesPanel((Player) event.getWhoClicked());
+            else if (slot == 3) {
+                p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
+                openGameRulesPanel(p);
             }
-            else if (event.getCurrentItem().getType() == Material.CLOCK) {
-                openTimePanel((Player) event.getWhoClicked());
+            else if (slot == 5) {
+                p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
+                openTimePanel(p);
             }
-            else if (event.getCurrentItem().getType() == Material.WHITE_BANNER) {
+            else if (slot == 7) {
+                RightPanelManager rpm = UHC_DBasic.getPlugin(UHC_DBasic.class).getRightPanelManager();
+                if (rpm.getTiempoTotalSegundos() > 0) {
+                    p.sendMessage("§c§l⚠ §7Los equipos ya han sido sellados. No puedes cambiarlos ahora.");
+                    p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
+                    return;
+                }
+
                 TeamManager tm = UHC_DBasic.getPlugin(UHC_DBasic.class).getTeamManager();
                 int current = tm.getTeamSize();
                 int jugadoresOnline = Bukkit.getOnlinePlayers().size();
@@ -220,23 +275,23 @@ public class AdminPanel implements Listener {
                     int proximoTamaño = current + 1;
                     if (proximoTamaño <= 4 && jugadoresOnline >= (proximoTamaño * 2)) {
                         tm.setTeamSize(proximoTamaño);
-                        p.playSound(p.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 1, 1);
+                        p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
                     } else if (proximoTamaño > 4) {
                         p.sendMessage("§cEl tamaño máximo de equipo es 4.");
-                        p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_VILLAGER_NO, 1, 1);
+                        p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
                     } else {
                         p.sendMessage("§c¡No hay suficientes jugadores! Necesitas al menos " + (proximoTamaño * 2) + " para equipos de " + proximoTamaño);
-                        p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_VILLAGER_NO, 1, 1);
+                        p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
                     }
-                }
-                else if (event.isRightClick() && current > 1) {
+                } else if (event.isRightClick() && current > 1) {
                     tm.setTeamSize(current - 1);
-                    p.playSound(p.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 1, 1);
+                    p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 1, 1);
                 }
-
                 openMainAdminPanel(p);
             }
         }
+
+        // LÓGICA GAMERULES
         else if (event.getView().getTitle().equals("§8⚖ GameRules del UHC")) {
             event.setCancelled(true);
             if (event.getCurrentItem() == null) return;
@@ -248,29 +303,36 @@ public class AdminPanel implements Listener {
             if (mat == Material.GOLDEN_APPLE) {
                 boolean current = p.getWorld().getGameRuleValue(NATURAL_HEALTH_REGENERATION);
                 p.getWorld().setGameRule(NATURAL_HEALTH_REGENERATION, !current);
+                p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
                 openGameRulesPanel(p);
             } else if (mat == Material.PUFFERFISH) {
                 boolean current = p.getWorld().getGameRuleValue(ADVANCE_TIME);
                 p.getWorld().setGameRule(ADVANCE_TIME, !current);
+                p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
                 openGameRulesPanel(p);
             } else if (mat == Material.ZOMBIE_HEAD) {
                 boolean current = p.getWorld().getGameRuleValue(SPAWN_MONSTERS);
                 p.getWorld().setGameRule(SPAWN_MONSTERS, !current);
+                p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
                 openGameRulesPanel(p);
             } else if (mat == Material.CRAFTING_TABLE) {
                 boolean current = p.getWorld().getGameRuleValue(SHOW_ADVANCEMENT_MESSAGES);
                 p.getWorld().setGameRule(SHOW_ADVANCEMENT_MESSAGES, !current);
+                p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
                 openGameRulesPanel(p);
             } else if (mat == Material.VILLAGER_SPAWN_EGG) {
                 boolean current = p.getWorld().getGameRuleValue(SPAWN_WANDERING_TRADERS);
                 p.getWorld().setGameRule(SPAWN_WANDERING_TRADERS, !current);
+                p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
                 openGameRulesPanel(p);
             } else if (mat == Material.NETHERITE_SWORD) {
                 boolean current = p.getWorld().getGameRuleValue(PVP);
                 p.getWorld().setGameRule(PVP, !current);
+                p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
                 openGameRulesPanel(p);
             }
             else if (mat == Material.ARROW) {
+                p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
                 openMainAdminPanel(p);
             }
         }
@@ -285,12 +347,13 @@ public class AdminPanel implements Listener {
             double newSize = currentSize;
 
             if (event.getCurrentItem().getType() == Material.ARROW) {
+                p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
                 openMainAdminPanel(p);
                 return;
             }
             if (p.getWorld().getWorldBorder().getSize() > 5999980) {
                 p.sendMessage("§c§l⚠ §cNo puedes ajustar el borde porque la partida no ha empezado.");
-                p.closeInventory();
+                p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
                 return;
             }
 
@@ -306,6 +369,7 @@ public class AdminPanel implements Listener {
             if (newSize != currentSize && newSize > 0) {
                 p.getWorld().getWorldBorder().setSize(newSize);
                 p.sendMessage("§7[§bBorde§7] §fNuevo tamaño: §6" + (int)newSize + "x" + (int)newSize);
+                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BIT, 1, 1);
                 openBarrierRulesPanel(p);
             }
         }
@@ -314,25 +378,50 @@ public class AdminPanel implements Listener {
         else if (event.getView().getTitle().equals("§8⏲ Control de Tiempo")) {
             event.setCancelled(true);
             Player p = (Player) event.getWhoClicked();
-            Material mat = event.getCurrentItem().getType();
+            ItemStack item = event.getCurrentItem();
+            if (item == null || item.getType() == Material.AIR) return;
 
             RightPanelManager rpm = UHC_DBasic.getPlugin(UHC_DBasic.class).getRightPanelManager();
 
-            if (mat == Material.GREEN_WOOL) {
-                // REANUDAR
-                rpm.setPausado(false);
-                p.sendMessage("§a§l▶ §fEl cronómetro del UHC ha sido §aREANUDADO§f.");
-                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1, 1.2f);
+            if (item.getType() == Material.BARRIER) {
+                p.sendMessage("§c§l⚠ §7No puedes cambiar la duración con la partida en curso.");
+                p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
+                return;
+            }
+
+            if (item.getType().toString().contains("RED_") || item.getType().toString().contains("GREEN_")) {
+                String name = item.getItemMeta().getDisplayName();
+                int change = 0;
+                if (name.contains("10")) change = 10;
+                else if (name.contains("5")) change = 5;
+                else if (name.contains("1")) change = 1;
+
+                if (name.contains("-")) change *= -1;
+
+                int actualSegundos = rpm.getSegundosPorCapitulo();
+                int nuevoSegundos = actualSegundos + (change * 60);
+
+                // Mínimo 1 minuto por capítulo
+                if (nuevoSegundos < 60) {
+                    p.sendMessage("§cEl tiempo mínimo es 1 minuto.");
+                } else {
+                    rpm.setSegundosPorCapitulo(nuevoSegundos);
+                    p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BIT, 1, 1.2f);
+                    int nuevosMinutos = nuevoSegundos / 60;
+                    Bukkit.broadcastMessage("§e§lUHC ELOUD > §fSe ha ajustado la duración de las partes a: §b" + nuevosMinutos + " minutos§f.");
+                    for (Player all : Bukkit.getOnlinePlayers()) {
+                        all.playSound(all.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.5f, 1.5f);
+                    }
+                }
                 openTimePanel(p);
             }
-            else if (mat == Material.RED_WOOL) {
-                // PAUSAR
-                rpm.setPausado(true);
-                p.sendMessage("§c§l⏸ §fEl cronómetro del UHC ha sido §cPAUSADO§f.");
-                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1, 0.5f);
+            else if (item.getType().toString().contains("DYE")) {
+                rpm.setPausado(!rpm.isPausado());
+                p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 1, 1);
                 openTimePanel(p);
             }
-            else if (mat == Material.ARROW) {
+            else if (item.getType() == Material.ARROW) {
+                p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
                 openMainAdminPanel(p);
             }
         }

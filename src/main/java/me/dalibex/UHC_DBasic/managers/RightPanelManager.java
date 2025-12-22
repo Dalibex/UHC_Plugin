@@ -18,13 +18,13 @@ import org.bukkit.scoreboard.Team;
 import java.util.HashSet;
 import java.util.Set;
 
-public class RightPanelManager implements Listener { // Implementamos Listener
+public class RightPanelManager implements Listener {
 
     private final UHC_DBasic plugin;
     private int cronometroSegundos = 0;
     private int tiempoTotalSegundos = 0;
     private int capitulo = 1;
-    private final int SEGUNDOS_POR_CAPITULO = 1*5;
+    private int segundosPorCapitulo = 20*60;
     private BukkitTask partidaTask;
     boolean equiposFormados = false;
     private boolean pausado = false;
@@ -77,9 +77,9 @@ public class RightPanelManager implements Listener { // Implementamos Listener
                 cronometroSegundos++;
                 tiempoTotalSegundos++;
 
-                int tiempoRestanteEnCapitulo = SEGUNDOS_POR_CAPITULO - (cronometroSegundos % SEGUNDOS_POR_CAPITULO);
+                int tiempoRestanteEnCapitulo = segundosPorCapitulo - (cronometroSegundos % segundosPorCapitulo);
 
-                if (cronometroSegundos % SEGUNDOS_POR_CAPITULO == 0) {
+                if (cronometroSegundos % segundosPorCapitulo == 0) {
                     capitulo++;
                     if (capitulo < 10) {
                         Bukkit.broadcastMessage("§e§lUHC ELOUD > §fHa comenzado la §aParte " + capitulo);
@@ -232,6 +232,10 @@ public class RightPanelManager implements Listener { // Implementamos Listener
         return String.format("%02d:%02d", minutos, segundos);
     }
 
+    // Getters y setters para las actualizaciones del panel de admin
     public void setPausado(boolean estado) { this.pausado = estado; }
     public boolean isPausado() { return pausado; }
+    public int getTiempoTotalSegundos() { return tiempoTotalSegundos; }
+    public int getSegundosPorCapitulo() {return segundosPorCapitulo; }
+    public void setSegundosPorCapitulo(int segundos) {this.segundosPorCapitulo = segundos;}
 }
