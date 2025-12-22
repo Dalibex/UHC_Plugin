@@ -5,6 +5,9 @@ api-version: '1.21'
 authors: [ Dalibex ]
 
 commands:
+  uhcadmin:
+    description: Abre un panel con los ajustes de administración
+    usage: /uhcadmin
   uhccommands:
     description: Muestra lista de comandos del Plugin UHC_DBasic
     usage: /uhccommands

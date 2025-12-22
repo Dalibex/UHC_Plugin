@@ -1,6 +1,7 @@
 package me.dalibex.UHC_DBasic;
 
 import me.dalibex.UHC_DBasic.commands.*;
+import me.dalibex.UHC_DBasic.managers.AdminPanel;
 import me.dalibex.UHC_DBasic.managers.RightPanelManager;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -11,7 +12,6 @@ import java.nio.file.Path;
 public final class UHC_DBasic extends JavaPlugin implements Listener {
 
     private RightPanelManager rightPanelManager;
-    private PrepareWorldCommand prepareWorldCommand;
 
     @Override
     public void onEnable() {
@@ -19,11 +19,13 @@ public final class UHC_DBasic extends JavaPlugin implements Listener {
 
         // Registrar Eventos
         getServer().getPluginManager().registerEvents(this, this);
+        getServer().getPluginManager().registerEvents(new AdminPanel(), this);
 
         // Registrar Managers
         rightPanelManager = new RightPanelManager(this);
 
         // Registrar Comandos
+        getCommand("uhcadmin").setExecutor(new AdminPanelCommand());
         getCommand("start").setExecutor(new StartCommand());
         getCommand("reset").setExecutor(new PrepareWorldCommand(this));
         getCommand("confirmarstart").setExecutor(new ConfirmCommand(this));
@@ -43,10 +45,6 @@ public final class UHC_DBasic extends JavaPlugin implements Listener {
 
     public RightPanelManager getRightPanelManager() {
         return rightPanelManager;
-    }
-
-    public PrepareWorldCommand getPrepareWorldCommand() {
-        return prepareWorldCommand;
     }
 
     @Override

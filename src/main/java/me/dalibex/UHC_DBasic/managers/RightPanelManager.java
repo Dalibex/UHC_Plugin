@@ -20,6 +20,8 @@ public class RightPanelManager {
     private final int SEGUNDOS_POR_CAPITULO = 20 * 60; // 1200 segundos = 20*60 = 20 min por parte
     private BukkitTask partidaTask; // Para poder cancelar el timer
 
+    private boolean pausado = false; // Para gestionar desde el menu de administracion
+
     public RightPanelManager(UHC_DBasic plugin) {
         this.plugin = plugin;
     }
@@ -45,10 +47,13 @@ public class RightPanelManager {
     public void iniciarPartida() {
         // Evitar duplicar tareas si se inicia dos veces
         if (partidaTask != null) partidaTask.cancel();
+        pausado = false;
 
         partidaTask = new BukkitRunnable() {
             @Override
             public void run() {
+                if(pausado) return;
+
                 cronometroSegundos++;
                 tiempoTotalSegundos++;
 
@@ -144,5 +149,14 @@ public class RightPanelManager {
         int minutos = segundosTotales / 60;
         int segundos = segundosTotales % 60;
         return String.format("%02d:%02d", minutos, segundos);
+    }
+
+    // METODOS PARA PAUSA
+    public void setPausado(boolean estado) {
+        this.pausado = estado;
+    }
+
+    public boolean isPausado() {
+        return pausado;
     }
 }

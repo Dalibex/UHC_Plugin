@@ -49,7 +49,7 @@ public class PrepareWorldCommand implements CommandExecutor {
 
         // 5. Resetear el borde (que no moleste)
         world.getWorldBorder().setCenter(0, 0);
-        world.getWorldBorder().setSize(20000);
+        world.getWorldBorder().setSize(5999984);
 
         player.sendMessage("§e§lUHC ELOUD > §fMundo preparado correctamente");
 
