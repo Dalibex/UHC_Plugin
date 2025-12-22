@@ -15,8 +15,8 @@ Basado en el UHC creado por **ElRichMC** | **UHC ESPAÑA**
 
 * 📊 **Scoreboard Dinámico:** Panel lateral que se adapta si la partida está en espera o en curso.
 * ⏳ **Sistema de "Capítulos":** Gestión automática de tiempos y fases del juego.
-* 🛡️ **Pacto de Caballeros:** Sistema que desactiva el PvP durante los primeros capítulos (No como tal, solo para avisar a jugadores).
-* ⚡ **Interfaz por Chat:** Inicio de partida mediante botones interactivos solo para administradores del servidor.
+* 🛡️ **Pacto de Caballeros:** Sistema que desactiva el PvP durante los primeros capítulos (No como tal, solo para avisar a jugadores, pero puede activarse con el panel de administración).
+* ⚡ **Interfaz por Chat:** Inicio de partida solo para administradores del servidor.
 * 🕒 **Cronómetros Duales:** Rastreo del tiempo por capítulo y tiempo total acumulado.
 * 🎯 **Sistema de Scatter:** Teletransporte aleatorio automático de jugadores al inicio de la partida dentro del rango del mapa.
 
@@ -26,8 +26,10 @@ Basado en el UHC creado por **ElRichMC** | **UHC ESPAÑA**
 | :--- | :--- | :--- |
 | `/uhccommands` | Muestra la lista de comandos disponibles. | `user` |
 | `/start <tamaño>` | Abre el menú de confirmación para iniciar el UHC. | `admin` |
-| `/confirmarstart` | Inicia la cuenta atrás final de 10 segundos. | `admin` |
+| `/confirmarstart` | Inicia la cuenta atrás final de 10 segundos. | `auto` |
 | `/reset` | Detiene la partida y limpia los cronómetros. | `admin` |
+| `/uhcadmin` | Panel de administración con ajustes del UHC. | `admin` |
+| `/nequipo` | Permite crear un equipo una vez se formen los equipos en partida por cualquiera de los miembros. | `user` |
 
 ## 🚀 Instalación
 
@@ -55,7 +57,5 @@ git clone [https://github.com/TU_USUARIO/UHC-DBasic.git](https://github.com/Dali
 
 Estas son algunas de las funciones planificadas para futuras versiones:
 
-* 🗣️ **Sistema de Chat Separado:** Implementación de un chat global y un chat privado para equipos para evitar que los enemigos lean las estrategias.
-* 👥 **Gestión de Equipos:** Sistema integrado para crear equipos de forma automática, pudiendo elegir individual, dúos, tríos o cuartetos según los jugadores.
-* ⚙️ **Panel de Configuración:** Gestor avanzado para modificar manualmente los tiempos de cada parte y otros ajustes en tiempo real sin reiniciar el plugin.
+* ⚙️ **Panel de Configuración Avanzado:** Gestor avanzado para modificar manualmente los tiempos de cada parte y otros ajustes en tiempo real sin reiniciar el plugin (por mejorar).
 * ⚡ **Eventos Dinámicos:** Sistemas de juego para diversificar tipos de partidas (ahora mismo básica).
