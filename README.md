@@ -1,6 +1,6 @@
 # ⚔️ ELOUD UHC
 
-![Plugin Version](https://img.shields.io/badge/Plugin_Version-1.0--SNAPSHOT-orange)
+![Plugin Version](https://img.shields.io/badge/Plugin_Version-1.1--SNAPSHOT-orange)
 ![MC Version](https://img.shields.io/badge/MC_Version-1.21.11-gold)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Platform](https://img.shields.io/badge/Platform-Spigot%20%7C%20Paper-blue)
@@ -13,12 +13,15 @@ Basado en el UHC creado por **ElRichMC** | **UHC ESPAÑA**
 
 ## ✨ Características Principales
 
-* 📊 **Scoreboard Dinámico:** Panel lateral que se adapta si la partida está en espera o en curso.
-* ⏳ **Sistema de "Capítulos":** Gestión automática de tiempos y fases del juego.
-* 🛡️ **Pacto de Caballeros:** Sistema que desactiva el PvP durante los primeros capítulos (No como tal, solo para avisar a jugadores, pero puede activarse con el panel de administración).
-* ⚡ **Interfaz por Chat:** Inicio de partida solo para administradores del servidor.
-* 🕒 **Cronómetros Duales:** Rastreo del tiempo por capítulo y tiempo total acumulado.
-* 🎯 **Sistema de Scatter:** Teletransporte aleatorio automático de jugadores al inicio de la partida dentro del rango del mapa.
+* 📊 **Scoreboard Dinámico:** Panel lateral inteligente que muestra fase actual, tiempo del capítulo, tiempo total, jugadores de tu equipo y nombre y estado del PVP.
+* ⚙️ **Panel Admin (GUI):** Interfaz visual avanzada (`/uhcadmin`) para gestionar toda la partida sin comandos complejos, antes y durante la misma.
+* ⏳ **Gestión de Tiempo Flexible:** Configuración de la duración de los capítulos (+1, +5, +10 min) con anuncios globales al servidor.
+* 🔒 **Sistema de Bloqueo Inteligente:** Los ajustes de equipos y tiempos se bloquean automáticamente una vez iniciada la partida para evitar errores.
+* 🌍 **Control de Borde (WorldBorder):** Ajuste dinámico del tamaño del mapa desde el panel con incrementos de 10 a 1000 bloques, puede ser ajustado en mitad de la partida.
+* 🛡️ **GameRules en Vivo:** Activa/Desactiva la regeneración natural, PvP, ciclo día/noche y spawn de mobs desde la interfaz.
+* 🎯 **Sistema de Scatter:** Teletransporte aleatorio automático de jugadores al iniciar la partida, todos equidistantes entre ellos empezando por las esquinas.
+* ⚡ **Efectos Inmersivos:** Sonidos de interfaz personalizados, rayos al morir un jugador y mensajes de broadcast estilizados.
+* 🧑‍🤝‍🧑 **Sistema de Equipos:** Formación de equipos (Seleccionable de 1-4 jugadores) automática en el episodio 4.
 
 ## 🛠️ Comandos
 
@@ -57,5 +60,6 @@ git clone [https://github.com/TU_USUARIO/UHC-DBasic.git](https://github.com/Dali
 
 Estas son algunas de las funciones planificadas para futuras versiones:
 
-* ⚙️ **Panel de Configuración Avanzado:** Gestor avanzado para modificar manualmente los tiempos de cada parte y otros ajustes en tiempo real sin reiniciar el plugin (por mejorar).
+* 🎉 **Finalización de partida:** (IMPORTANTE), todavía por implementar, la idea es anunciar al ganador, para empezar otra partida, usar `/reset`
+* ⚙️ **Panel de Configuración Avanzado:** Añadir más mejoras para mayor personalización y ajustes.
 * ⚡ **Eventos Dinámicos:** Sistemas de juego para diversificar tipos de partidas (ahora mismo básica).
