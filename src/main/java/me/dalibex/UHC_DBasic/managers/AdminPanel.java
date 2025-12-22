@@ -12,7 +12,9 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import static org.bukkit.GameRules.*;
 
@@ -20,6 +22,9 @@ public class AdminPanel implements Listener {
 
     public static void openMainAdminPanel(Player player) {
         Inventory mainGui = Bukkit.createInventory(null, 9, "§8⚙ Panel Administración UHC");
+        TeamManager tm = UHC_DBasic.getPlugin(UHC_DBasic.class).getTeamManager();
+        int teamSize = tm.getTeamSize();
+        int jugadoresOnline = Bukkit.getOnlinePlayers().size();
 
         ItemStack rulesItem = new ItemStack(Material.BOOK);
         ItemMeta meta = rulesItem.getItemMeta();
@@ -27,7 +32,7 @@ public class AdminPanel implements Listener {
         meta.setLore(Arrays.asList("§7Haz click para ver y editar", "§7las reglas del servidor."));
         rulesItem.setItemMeta(meta);
 
-        mainGui.setItem(4, rulesItem);
+        mainGui.setItem(3, rulesItem);
         player.openInventory(mainGui);
 
         ItemStack borderItem = new ItemStack(Material.BARRIER);
@@ -35,14 +40,36 @@ public class AdminPanel implements Listener {
         bMeta.setDisplayName("§5Ajustes del Borde");
         bMeta.setLore(Arrays.asList("§7Gestiona el tamaño ", "§7de la zona de juego."));
         borderItem.setItemMeta(bMeta);
-        mainGui.setItem(2, borderItem);
+        mainGui.setItem(1, borderItem);
 
         ItemStack timeItem = new ItemStack(Material.CLOCK);
         ItemMeta tMeta = timeItem.getItemMeta();
         tMeta.setDisplayName("§6Control de Partida");
         tMeta.setLore(Arrays.asList("§7Pausar, reanudar el cronómetro."));
         timeItem.setItemMeta(tMeta);
-        mainGui.setItem(6, timeItem);
+        mainGui.setItem(5, timeItem);
+
+        ItemStack teamItem = new ItemStack(Material.WHITE_BANNER);
+        ItemMeta cMeta = teamItem.getItemMeta();
+        cMeta.setDisplayName("§aConfigurar Equipos");
+        int numEquipos = (jugadoresOnline == 0) ? 0 : (int) Math.ceil((double) jugadoresOnline / teamSize);
+        List<String> lore = new ArrayList<>();
+        lore.add("§7Tamaño actual: §e" + (teamSize == 1 ? "Solos" : "Equipos de " + teamSize));
+        lore.add("");
+        lore.add("§fJugadores online: §b" + jugadoresOnline);
+        lore.add("§fEquipos resultantes: §b" + numEquipos);
+        lore.add("");
+        lore.add("§bClick Izquierdo: §7Aumentar (+1)");
+        lore.add("§bClick Derecho: §7Reducir (-1)");
+
+        if (teamSize > 1 && jugadoresOnline % teamSize != 0 && jugadoresOnline > 0) {
+            lore.add("");
+            lore.add("§e⚠ §iEl reparto será equilibrado (ej: 3, 2, 2)");
+        }
+
+        cMeta.setLore(lore);
+        teamItem.setItemMeta(cMeta);
+        mainGui.setItem(7, teamItem);
     }
 
     public void openGameRulesPanel(Player player) {
@@ -172,6 +199,8 @@ public class AdminPanel implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getView().getTitle().equals("§8⚙ Panel Administración UHC")) {
             event.setCancelled(true);
+            Player p = (Player) event.getWhoClicked();
+
             if (event.getCurrentItem() == null) return;
             if (event.getCurrentItem().getType() == Material.BOOK) {
                 openGameRulesPanel((Player) event.getWhoClicked());
@@ -181,6 +210,31 @@ public class AdminPanel implements Listener {
             }
             else if (event.getCurrentItem().getType() == Material.CLOCK) {
                 openTimePanel((Player) event.getWhoClicked());
+            }
+            else if (event.getCurrentItem().getType() == Material.WHITE_BANNER) {
+                TeamManager tm = UHC_DBasic.getPlugin(UHC_DBasic.class).getTeamManager();
+                int current = tm.getTeamSize();
+                int jugadoresOnline = Bukkit.getOnlinePlayers().size();
+
+                if (event.isLeftClick()) {
+                    int proximoTamaño = current + 1;
+                    if (proximoTamaño <= 4 && jugadoresOnline >= (proximoTamaño * 2)) {
+                        tm.setTeamSize(proximoTamaño);
+                        p.playSound(p.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 1, 1);
+                    } else if (proximoTamaño > 4) {
+                        p.sendMessage("§cEl tamaño máximo de equipo es 4.");
+                        p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_VILLAGER_NO, 1, 1);
+                    } else {
+                        p.sendMessage("§c¡No hay suficientes jugadores! Necesitas al menos " + (proximoTamaño * 2) + " para equipos de " + proximoTamaño);
+                        p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_VILLAGER_NO, 1, 1);
+                    }
+                }
+                else if (event.isRightClick() && current > 1) {
+                    tm.setTeamSize(current - 1);
+                    p.playSound(p.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 1, 1);
+                }
+
+                openMainAdminPanel(p);
             }
         }
         else if (event.getView().getTitle().equals("§8⚖ GameRules del UHC")) {

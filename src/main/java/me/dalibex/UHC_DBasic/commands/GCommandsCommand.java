@@ -20,6 +20,8 @@ public class GCommandsCommand implements CommandExecutor {
         sender.sendMessage("");
         sender.sendMessage("§e/uhcadmin §7- §fAbre panel de administrador.");
         sender.sendMessage("");
+        sender.sendMessage("§e/nequipo <nombre> §7- §fRenombra o crea el nombre de tu equipo.");
+        sender.sendMessage("");
         sender.sendMessage("§8§m---------------------------------------------------");
 
         return true;

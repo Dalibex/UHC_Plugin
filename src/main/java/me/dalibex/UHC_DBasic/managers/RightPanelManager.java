@@ -5,92 +5,114 @@ import me.dalibex.UHC_DBasic.UHC_DBasic;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
 
-public class RightPanelManager {
+import java.util.HashSet;
+import java.util.Set;
+
+public class RightPanelManager implements Listener { // Implementamos Listener
 
     private final UHC_DBasic plugin;
     private int cronometroSegundos = 0;
     private int tiempoTotalSegundos = 0;
     private int capitulo = 1;
-    private final int SEGUNDOS_POR_CAPITULO = 20 * 60; // 1200 segundos = 20*60 = 20 min por parte
-    private BukkitTask partidaTask; // Para poder cancelar el timer
+    private final int SEGUNDOS_POR_CAPITULO = 1*5;
+    private BukkitTask partidaTask;
+    boolean equiposFormados = false;
+    private boolean pausado = false;
 
-    private boolean pausado = false; // Para gestionar desde el menu de administracion
+    private final Set<String> jugadoresEliminados = new HashSet<>();
 
     public RightPanelManager(UHC_DBasic plugin) {
         this.plugin = plugin;
     }
 
+    // Evento para muerte y guardarla en la lista negra
+    @EventHandler
+    public void onPlayerDeath(PlayerDeathEvent event) {
+        jugadoresEliminados.add(event.getEntity().getName());
+    }
+
     public void setStandBy() {
-        // 1. Cancelamos la tarea si estaba corriendo
         if (partidaTask != null) {
             partidaTask.cancel();
             partidaTask = null;
         }
-
-        // 2. Reseteamos valores
         cronometroSegundos = 0;
         tiempoTotalSegundos = 0;
         capitulo = 1;
+        equiposFormados = false;
+        jugadoresEliminados.clear();
 
-        // 3. Ponemos el panel estático para todos
         for (Player p : Bukkit.getOnlinePlayers()) {
-            actualizarScoreboard(p, "§eEsperando...", "",false);
+            actualizarScoreboard(p, "§eEsperando...", "", false);
         }
     }
 
     public void iniciarPartida() {
-        // Evitar duplicar tareas si se inicia dos veces
         if (partidaTask != null) partidaTask.cancel();
         pausado = false;
+        equiposFormados = false;
+        jugadoresEliminados.clear();
 
         partidaTask = new BukkitRunnable() {
             @Override
             public void run() {
-                if(pausado) return;
+                TeamManager tm = plugin.getTeamManager();
+                if (pausado) return;
+
+                if (cronometroSegundos == 1 && tm.getTeamSize() == 1 && !equiposFormados) {
+                    tm.shuffleTeams();
+                    equiposFormados = true;
+                }
 
                 cronometroSegundos++;
                 tiempoTotalSegundos++;
 
                 int tiempoRestanteEnCapitulo = SEGUNDOS_POR_CAPITULO - (cronometroSegundos % SEGUNDOS_POR_CAPITULO);
 
-                // Detectar cambio de capítulo
                 if (cronometroSegundos % SEGUNDOS_POR_CAPITULO == 0) {
                     capitulo++;
-
-                    // AVISAR INICIO DE NUEVA PARTE
-                    if(capitulo < 10) {
+                    if (capitulo < 10) {
                         Bukkit.broadcastMessage("§e§lUHC ELOUD > §fHa comenzado la §aParte " + capitulo);
                         for (Player p : Bukkit.getOnlinePlayers()) {
                             p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
                         }
                     }
 
-                    // AVISAR DE PVP TERMINADO
-                    if (capitulo == 4) {
-                        // Aviso de PVP Activo
+                    if (capitulo == 10) {
                         Bukkit.broadcastMessage("");
                         Bukkit.broadcastMessage("§8§m------------------------------------");
-                        Bukkit.broadcastMessage("§c§l¡EL PVP SE HA ACTIVADO! §c⚔");
-                        Bukkit.broadcastMessage("§fEl pacto de caballeros ha finalizado");
+                        Bukkit.broadcastMessage("§c§l¡EL TIEMPO A TERMINADO! §c⚔");
+                        Bukkit.broadcastMessage("§fDirígete a X=0 Z=0 para la pelea final");
                         Bukkit.broadcastMessage("§8§m------------------------------------");
-
                         for (Player p : Bukkit.getOnlinePlayers()) {
                             p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
                         }
                     }
 
-                    // AVISAR DE DIRIGIRSE A 0 0
-                    if (capitulo == 10) {
-                        Bukkit.broadcastMessage("§e§lEl tiempo ha terminado!");
-                        Bukkit.broadcastMessage("§fDirígete a las coordenadas X=0 Z=0");
+                    if (capitulo == 4 && tm.getTeamSize() > 1 && !equiposFormados) {
+                        tm.shuffleTeams();
+                        equiposFormados = true;
+                        Bukkit.broadcastMessage("§6§l¡LOS EQUIPOS HAN SIDO FORMADOS! ⚔");
+                    }
+
+                    if (capitulo == 5) {
+                        Bukkit.broadcastMessage("");
+                        Bukkit.broadcastMessage("§8§m------------------------------------");
+                        Bukkit.broadcastMessage("§c§l¡EL PVP SE HA ACTIVADO! §c⚔");
+                        Bukkit.broadcastMessage("§fEl pacto de caballeros ha finalizado");
+                        Bukkit.broadcastMessage("§8§m------------------------------------");
                         for (Player p : Bukkit.getOnlinePlayers()) {
-                            p.playSound(p.getLocation(), Sound.BLOCK_ANVIL_LAND, 1f, 1f);
+                            p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
                         }
                     }
                 }
@@ -112,33 +134,92 @@ public class RightPanelManager {
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
 
         if (!partidaActiva) {
-            // DISEÑO MODO ESPERA
             obj.getScore("§1 ").setScore(5);
             obj.getScore(" §6>> §8Esperando... ").setScore(4);
             obj.getScore("§2 ").setScore(3);
             obj.getScore(" §fJugadores: §b" + Bukkit.getOnlinePlayers().size() + " §7👥 ").setScore(2);
             obj.getScore("§3 ").setScore(1);
         } else {
-            // DISEÑO MODO PARTIDA
-            String pvpStatus = (capitulo < 4) ? "§ePacto de caballeros " : "§4§lACTIVO §4⚔ ";
-            if(capitulo < 10) {
-                obj.getScore("§4 ").setScore(11);
-                obj.getScore(" §fParte actual: §a" + capitulo).setScore(10);
+            int teamSize = plugin.getTeamManager().getTeamSize();
+            Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(player.getName());
+            String pvpStatus = (capitulo < 5) ? "§ePacto de caballeros " : "§4§lACTIVO §4⚔ ";
+
+            obj.getScore("§4 ").setScore(23);
+            if (capitulo < 10) {
+                obj.getScore(" §fParte actual: §a" + capitulo).setScore(22);
             } else {
-                obj.getScore("§4 ").setScore(12);
-                obj.getScore(" §6§lTiempo finalizado!").setScore(11);
-                obj.getScore(" §fDiríjete a X=0 Z=0").setScore(10);
+                obj.getScore(" §6§lFINALIZADO!").setScore(21);
+                obj.getScore(" §fDirígete a X=0 Z=0").setScore(20);
+                obj.getScore("§5 ").setScore(19);
             }
-            obj.getScore("§5 ").setScore(9);
-            obj.getScore(" §fPVP: " + pvpStatus).setScore(8);
-            obj.getScore("§6 ").setScore(7);
-            obj.getScore(" §4⏳ §lTiempo Acumulado ").setScore(6);
-            obj.getScore("§6> §f" + tiempoTotal).setScore(5);
-            obj.getScore("§7 ").setScore(4);
-            if(capitulo < 10) {
-                obj.getScore(" §5⌚ §lSiguiente parte ").setScore(3);
-                obj.getScore("§6> §f" + tiempo).setScore(2);
-                obj.getScore("§8 ").setScore(1);
+            obj.getScore(" §fPVP: " + pvpStatus).setScore(18);
+            obj.getScore("§6 ").setScore(17);
+
+            int nextScore = 16;
+            if (teamSize == 1) {
+                String lineaSolos = (team != null && !team.getPrefix().contains("team_"))
+                        ? " §b🛡 §fEquipo: " + team.getColor() + team.getDisplayName()
+                        : " §c⚠ §7Usa /nequipo";
+                obj.getScore(lineaSolos).setScore(nextScore--);
+            } else {
+                if (capitulo < 4) {
+                    for (int i = 1; i <= (teamSize - 1); i++) {
+                        obj.getScore(" §d👥 §f: §k??????" + (new String(new char[i]).replace("\0", " "))).setScore(nextScore--);
+                    }
+                } else {
+                    String lineaNombre;
+                    if (team != null && !team.getPrefix().contains("team_")) {
+                        lineaNombre = " §d👥 §fEquipo: " + team.getColor() + team.getDisplayName();
+                    } else if (team != null) {
+                        lineaNombre = " §c⚠ §7Usa /nequipo";
+                    } else {
+                        lineaNombre = " §d👥 §7Asignando...";
+                    }
+
+                    obj.getScore(lineaNombre).setScore(nextScore--);
+
+                    if (team != null) {
+                        boolean tieneCompañerosVivos = false;
+                        for (String entry : team.getEntries()) {
+                            if (entry.equals(player.getName())) continue;
+
+                            String textoVida;
+                            String prefixColor = "§f";
+
+                            // LÓGICA DE MUERTE PERSISTENTE
+                            if (jugadoresEliminados.contains(entry)) {
+                                prefixColor = "§7§m";
+                                textoVida = " §c✘";
+                            } else {
+                                Player member = Bukkit.getPlayer(entry);
+                                if (member != null && member.isOnline()) {
+                                    tieneCompañerosVivos = true;
+                                    double salud = member.getHealth();
+                                    String colorS = (salud > 15) ? "§a" : (salud > 10) ? "§2" : (salud > 5) ? "§e" : "§c";
+                                    textoVida = " " + colorS + (int)salud + "§4❤";
+                                } else {
+                                    textoVida = " §7[OFF]";
+                                }
+                            }
+                            obj.getScore(" §8> " + prefixColor + entry + textoVida).setScore(nextScore--);
+                        }
+
+                        if (!tieneCompañerosVivos && teamSize > 1) {
+                            obj.getScore(" §7§oCompañeros: §c✘").setScore(nextScore--);
+                        }
+                    }
+                }
+            }
+
+            obj.getScore("§6 ").setScore(nextScore--);
+            obj.getScore(" §4⏳ §lTiempo Acumulado").setScore(nextScore--);
+            obj.getScore("§6> §f" + tiempoTotal).setScore(nextScore--);
+            obj.getScore("§7 ").setScore(nextScore--);
+
+            if (capitulo < 10) {
+                obj.getScore(" §5⌚ §lSiguiente parte").setScore(nextScore--);
+                obj.getScore("§6> §f" + tiempo).setScore(nextScore--);
+                obj.getScore("§8 ").setScore(nextScore--);
             }
         }
 
@@ -151,12 +232,6 @@ public class RightPanelManager {
         return String.format("%02d:%02d", minutos, segundos);
     }
 
-    // METODOS PARA PAUSA
-    public void setPausado(boolean estado) {
-        this.pausado = estado;
-    }
-
-    public boolean isPausado() {
-        return pausado;
-    }
+    public void setPausado(boolean estado) { this.pausado = estado; }
+    public boolean isPausado() { return pausado; }
 }

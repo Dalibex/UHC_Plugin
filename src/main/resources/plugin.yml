@@ -23,3 +23,6 @@ commands:
   reset:
     description: Prepara el mundo y lo pone en espera para usar "/start"
     usage: /reset
+  nequipo:
+    description: Crea o renombra a tu equipo, sea de 1, 2, 3 o 4 jugadores
+    usage: /nequipo

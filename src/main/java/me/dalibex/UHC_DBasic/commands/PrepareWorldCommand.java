@@ -34,6 +34,8 @@ public class PrepareWorldCommand implements CommandExecutor {
 
         plugin.getRightPanelManager().setStandBy();
 
+        plugin.getTeamManager().borrarTodosLosEquipos();
+
         // 1. Ciclo de dia noche desactivado
         world.setTime(0L);
         world.setGameRule(ADVANCE_TIME, false);
@@ -51,7 +53,7 @@ public class PrepareWorldCommand implements CommandExecutor {
         world.getWorldBorder().setCenter(0, 0);
         world.getWorldBorder().setSize(5999984);
 
-        player.sendMessage("§e§lUHC ELOUD > §fMundo preparado correctamente");
+        player.sendMessage("§e§lUHC ELOUD > §fMundo preparado/reseteado correctamente");
 
         return true;
     }
