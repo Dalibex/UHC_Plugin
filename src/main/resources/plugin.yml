@@ -1,5 +1,5 @@
 name: UHC_DBasic
-version: '1.1-SNAPSHOT'
+version: '1.1.0-SNAPSHOT'
 main: me.dalibex.UHC_DBasic.UHC_DBasic
 api-version: '1.21'
 authors: [ Dalibex ]
