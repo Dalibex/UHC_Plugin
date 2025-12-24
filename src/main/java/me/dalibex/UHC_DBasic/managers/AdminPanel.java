@@ -8,6 +8,7 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -489,9 +490,22 @@ public class AdminPanel implements Listener {
         }
     }
     @EventHandler
-    public void onInventoryOffhandClick(InventoryClickEvent event) {
-        if (bloquearManoSecundaria && event.getRawSlot() == 45 || event.getSlot() == 40) {
-            if (event.getWhoClicked().getGameMode() != org.bukkit.GameMode.CREATIVE) {
+    public void onOffhandBlock(InventoryClickEvent event) {
+        if (!bloquearManoSecundaria) return;
+        if (event.getWhoClicked().getGameMode() == org.bukkit.GameMode.CREATIVE) return;
+        if (event.getView().getTitle().contains("Panel Administración UHC")) return;
+
+        if (event.getSlot() == 40 || event.getRawSlot() == 45) {
+            event.setCancelled(true);
+            return;
+        }
+        if (event.getClick() == org.bukkit.event.inventory.ClickType.SWAP_OFFHAND) {
+            event.setCancelled(true);
+            return;
+        }
+        if (event.getAction() == InventoryAction.HOTBAR_SWAP) {
+            ItemStack affected = event.getCurrentItem();
+            if (affected != null && affected.getType() == Material.SHIELD) {
                 event.setCancelled(true);
             }
         }
@@ -508,6 +522,14 @@ public class AdminPanel implements Listener {
                     event.setCancelled(true);
                 }
             }
+        }
+    }
+    @EventHandler
+    public void onInventoryDrag(org.bukkit.event.inventory.InventoryDragEvent event) {
+        if (!bloquearManoSecundaria) return;
+        if (event.getWhoClicked().getGameMode() == org.bukkit.GameMode.CREATIVE) return;
+        if (event.getInventorySlots().contains(40) || event.getRawSlots().contains(45)) {
+            event.setCancelled(true);
         }
     }
     @EventHandler
