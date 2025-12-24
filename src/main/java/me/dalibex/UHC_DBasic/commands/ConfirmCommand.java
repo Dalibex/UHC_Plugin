@@ -86,25 +86,18 @@ public class ConfirmCommand implements CommandExecutor {
         int cantidad = jugadores.size();
         double radio = size / 2.0;
 
-        // CREAMOS UNA LISTA DE "ÍNDICES" (Posiciones 0, 1, 2, 3...)
-        // o tantas posiciones como jugadores haya si son más de 4
         int numPosiciones = Math.max(4, cantidad);
         List<Integer> indicesAleatorios = new ArrayList<>();
         for (int i = 0; i < numPosiciones; i++) {
             indicesAleatorios.add(i);
         }
-        // BARAJAMOS LOS ÍNDICES
         java.util.Collections.shuffle(indicesAleatorios);
 
-        // ASIGNAR JUGADORES AL ÍNDICE Y CALCULAR SOBRE EL RESULTADO
         for (int j = 0; j < cantidad; j++) {
             Player p = jugadores.get(j);
+            int i = indicesAleatorios.get(j);
 
-            int i = indicesAleatorios.get(j); // Tomar índice de la lista
-
-            // Añadimos Math.PI / 4 (45 grados) para que el primer jugador vaya a una ESQUINA
             double angulo = (2 * Math.PI * i / numPosiciones) + (Math.PI / 4);
-
             double xCircular = Math.cos(angulo);
             double zCircular = Math.sin(angulo);
 
@@ -117,30 +110,31 @@ public class ConfirmCommand implements CommandExecutor {
                 xFinal = radio * (xCircular / Math.abs(zCircular));
             }
 
-            // AJUSTE DE PRECISIÓN:
-            // Margen para que el centro del bloque sea 499.5
             if (xFinal > 0) xFinal -= 0.5; else xFinal += 0.5;
             if (zFinal > 0) zFinal -= 0.5; else zFinal += 0.5;
+            int blockX = (int) Math.floor(xFinal);
+            int blockZ = (int) Math.floor(zFinal);
+            double spawnX = blockX + 0.5;
+            double spawnZ = blockZ + 0.5;
 
-            int y = world.getHighestBlockYAt((int) xFinal, (int) zFinal);
-
-            // CHECK POR SI EL JUGADOR SPAWNEA EN AGUA O LAVA PONER BLOQUE
-            org.bukkit.block.Block bloqueSuelo = world.getBlockAt((int) xFinal, y, (int) zFinal);
-            if (bloqueSuelo.isLiquid()) {
-                y += 1;
-                world.getBlockAt((int) xFinal, y, (int) zFinal).setType(org.bukkit.Material.GLASS);
+            int blockY = world.getHighestBlockYAt(blockX, blockZ);
+            org.bukkit.block.Block bloqueSuelo = world.getBlockAt(blockX, blockY, blockZ);
+            if (bloqueSuelo.isLiquid() || bloqueSuelo.getType().toString().contains("AIR")) {
+                if (bloqueSuelo.isLiquid()) {
+                    blockY += 1;
+                    world.getBlockAt(blockX, blockY, blockZ).setType(org.bukkit.Material.GLASS);
+                }
             }
 
-            Location loc = new Location(world, Math.floor(xFinal) + 0.5, y + 1, Math.floor(zFinal) + 0.5);
+            Location loc = new Location(world, spawnX, blockY + 1.5, spawnZ);
             p.teleport(loc);
 
-            // Aplicar efectos: Ceguera + Resitencia, Saturación, Regeneración 10 + Slowness 100
-            // 220 ticks son 11 segundos, la cuenta atrás son 10
-            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.BLINDNESS, 220, 1, false, false));
-            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.RESISTANCE, 220, 10, false, false));
-            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.REGENERATION, 220, 10, false, false));
-            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.SATURATION, 220, 10, false, false));
-            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.SLOWNESS, 220, 20, false, false));
+            // Efectos
+            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.BLINDNESS, 180, 1, false, false));
+            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.RESISTANCE, 320, 10, false, false));
+            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.REGENERATION, 320, 10, false, false));
+            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.SATURATION, 320, 10, false, false));
+            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.SLOWNESS, 220, 99, false, false));
             p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.JUMP_BOOST, 220, 99, false, false));
         }
     }

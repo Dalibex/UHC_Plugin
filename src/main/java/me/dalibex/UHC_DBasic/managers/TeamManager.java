@@ -15,11 +15,7 @@ public class TeamManager {
     private final Scoreboard board;
     private int teamSize = 1;
 
-    private final ChatColor[] colores = {
-            ChatColor.RED, ChatColor.BLUE, ChatColor.GREEN, ChatColor.YELLOW,
-            ChatColor.AQUA, ChatColor.DARK_PURPLE, ChatColor.GOLD, ChatColor.LIGHT_PURPLE,
-            ChatColor.DARK_AQUA, ChatColor.DARK_GREEN, ChatColor.DARK_RED, ChatColor.DARK_BLUE
-    };
+    private final ChatColor COLOR_UNICO = ChatColor.AQUA;
 
     public TeamManager() {
         this.board = Bukkit.getScoreboardManager().getMainScoreboard();
@@ -51,12 +47,11 @@ public class TeamManager {
             String idEquipo = "team_" + i;
             Team team = board.registerNewTeam(idEquipo);
 
-            ChatColor colorAsignado = colores[i % colores.length];
-            team.setColor(colorAsignado);
+            team.setColor(COLOR_UNICO);
 
             String nombreInicial = "team_" + i;
             team.setDisplayName(nombreInicial);
-            team.setPrefix(colorAsignado + "[" + nombreInicial + "] ");
+            team.setPrefix(COLOR_UNICO + "[" + nombreInicial + "] ");
 
             team.setAllowFriendlyFire(false);
             team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
@@ -82,6 +77,7 @@ public class TeamManager {
 
         String nombreAnterior = team.getDisplayName();
         team.setDisplayName(nuevoNombre);
+
         team.setPrefix(team.getColor() + "[" + nuevoNombre + "] ");
 
         for (String entry : team.getEntries()) {

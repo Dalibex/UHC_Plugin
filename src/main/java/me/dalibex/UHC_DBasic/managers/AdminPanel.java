@@ -4,6 +4,7 @@ import me.dalibex.UHC_DBasic.UHC_DBasic;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -26,13 +27,25 @@ public class AdminPanel implements Listener {
         int teamSize = tm.getTeamSize();
         int jugadoresOnline = Bukkit.getOnlinePlayers().size();
 
+        ItemStack pvpItem = new ItemStack(Material.IRON_SWORD);
+        ItemMeta ameta = pvpItem.getItemMeta();
+        ameta.setDisplayName("§bAjustes de Combate Clásico");
+        List<String> pvpLore = new ArrayList<>();
+        pvpLore.add("§7Combate 1.8: " + (combate18 ? "§aActivado" : "§cDesactivado"));
+        pvpLore.add("§7Escudos, Mano Secundaria: " + (bloquearManoSecundaria ? "§cBloqueados" : "§aPermitidos"));
+        pvpLore.add("");
+        pvpLore.add("§eClick Izquierdo: §7Toggle Cooldown 1.8");
+        pvpLore.add("§bClick Derecho: §7Toggle Mano Secundaria/Escudos");
+        ameta.setLore(pvpLore);
+        pvpItem.setItemMeta(ameta);
+        mainGui.setItem(0, pvpItem);
+
         ItemStack rulesItem = new ItemStack(Material.BOOK);
         ItemMeta meta = rulesItem.getItemMeta();
         meta.setDisplayName("§bAjustes de GameRules");
         meta.setLore(Arrays.asList("§7Haz click para ver y editar", "§7las reglas del servidor."));
         rulesItem.setItemMeta(meta);
-
-        mainGui.setItem(3, rulesItem);
+        mainGui.setItem(2, rulesItem);
         player.openInventory(mainGui);
 
         ItemStack borderItem = new ItemStack(Material.EMERALD_BLOCK);
@@ -40,14 +53,14 @@ public class AdminPanel implements Listener {
         bMeta.setDisplayName("§5Ajustes del Borde");
         bMeta.setLore(Arrays.asList("§7Gestiona el tamaño ", "§7de la zona de juego."));
         borderItem.setItemMeta(bMeta);
-        mainGui.setItem(1, borderItem);
+        mainGui.setItem(4, borderItem);
 
         ItemStack timeItem = new ItemStack(Material.CLOCK);
         ItemMeta tMeta = timeItem.getItemMeta();
         tMeta.setDisplayName("§6Control de Partida");
         tMeta.setLore(Arrays.asList("§7Pausar, reanudar el cronómetro."));
         timeItem.setItemMeta(tMeta);
-        mainGui.setItem(5, timeItem);
+        mainGui.setItem(6, timeItem);
 
         RightPanelManager rpm = UHC_DBasic.getPlugin(UHC_DBasic.class).getRightPanelManager();
         boolean partidaEnCurso = rpm.getTiempoTotalSegundos() > 0;
@@ -80,7 +93,7 @@ public class AdminPanel implements Listener {
         }
         cMeta.setLore(lore);
         teamItem.setItemMeta(cMeta);
-        mainGui.setItem(7, teamItem);
+        mainGui.setItem(8, teamItem);
     }
 
     public void openGameRulesPanel(Player player) {
@@ -247,19 +260,28 @@ public class AdminPanel implements Listener {
 
             int slot = event.getSlot();
 
-            if (slot == 1) {
+            if (slot == 4) {
                 p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
                 openBarrierRulesPanel(p);
             }
-            else if (slot == 3) {
+            else if (slot == 2) {
                 p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
                 openGameRulesPanel(p);
             }
-            else if (slot == 5) {
+            else if (slot == 6) {
                 p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
                 openTimePanel(p);
             }
-            else if (slot == 7) {
+            else if (slot == 0) {
+                if (event.isLeftClick()) {
+                    toggleCombate18(p);
+                } else if (event.isRightClick()) {
+                    toggleManoSecundaria(p);
+                }
+                p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
+                openMainAdminPanel(p);
+            }
+            else if (slot == 8) {
                 RightPanelManager rpm = UHC_DBasic.getPlugin(UHC_DBasic.class).getRightPanelManager();
                 if (rpm.getTiempoTotalSegundos() > 0) {
                     p.sendMessage("§c§l⚠ §7Los equipos ya han sido sellados. No puedes cambiarlos ahora.");
@@ -290,6 +312,7 @@ public class AdminPanel implements Listener {
                 openMainAdminPanel(p);
             }
         }
+
 
         // LÓGICA GAMERULES
         else if (event.getView().getTitle().equals("§8⚖ GameRules del UHC")) {
@@ -426,6 +449,101 @@ public class AdminPanel implements Listener {
             }
         }
     }
+
+    // ------------------------------ AJUSTES DE COMBATE CLASICO ------------------------------
+    public static boolean combate18 = false;
+    private static void toggleCombate18(Player admin) {
+        combate18 = !combate18;
+        double speedValue = combate18 ? 100.0 : 4.0;
+
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            org.bukkit.attribute.AttributeInstance attr = p.getAttribute(Attribute.ATTACK_SPEED);
+            if (attr != null) {
+                attr.setBaseValue(speedValue);
+            }
+        }
+
+        String estado = combate18 ? "§aACTIVADO" : "§cDESACTIVADO";
+        Bukkit.broadcastMessage("§e§lUHC ELOUD > §fEl combate 1.8 ha sido " + estado);
+    }
+
+    public static boolean bloquearManoSecundaria = false;
+    private static void toggleManoSecundaria(Player admin) {
+        bloquearManoSecundaria = !bloquearManoSecundaria;
+        String estado = bloquearManoSecundaria ? "§cBLOQUEADOS" : "§aHABILITADOS";
+        Bukkit.broadcastMessage("§e§lUHC ELOUD > §fLa mano secundaria y escudos han sido " + estado);
+    }
+
+    @EventHandler
+    public void onOffhandSwap(org.bukkit.event.player.PlayerSwapHandItemsEvent event) {
+        if (bloquearManoSecundaria) {
+            event.setCancelled(true);
+        }
+    }
+    @EventHandler
+    public void onSweepAttack(org.bukkit.event.entity.EntityDamageByEntityEvent event) {
+        if (!combate18) return;
+
+        if (event.getCause() == org.bukkit.event.entity.EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) {
+            event.setCancelled(true);
+        }
+    }
+    @EventHandler
+    public void onInventoryOffhandClick(InventoryClickEvent event) {
+        if (bloquearManoSecundaria && event.getRawSlot() == 45 || event.getSlot() == 40) {
+            if (event.getWhoClicked().getGameMode() != org.bukkit.GameMode.CREATIVE) {
+                event.setCancelled(true);
+            }
+        }
+    }
+    @EventHandler
+    public void onShieldUse(org.bukkit.event.player.PlayerInteractEvent event) {
+        if (bloquearManoSecundaria) {
+            Player p = event.getPlayer();
+            boolean tieneEscudoManoPrincipal = p.getInventory().getItemInMainHand().getType() == Material.SHIELD;
+            boolean tieneEscudoManoSecundaria = p.getInventory().getItemInOffHand().getType() == Material.SHIELD;
+            if (tieneEscudoManoPrincipal || tieneEscudoManoSecundaria) {
+                if (event.getAction() == org.bukkit.event.block.Action.RIGHT_CLICK_AIR ||
+                        event.getAction() == org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) {
+                    event.setCancelled(true);
+                }
+            }
+        }
+    }
+    @EventHandler
+    public void onAxeDamage(org.bukkit.event.entity.EntityDamageByEntityEvent event) {
+        if (!combate18) return;
+
+        if (!(event.getDamager() instanceof Player)) return;
+
+        Player attacker = (Player) event.getDamager();
+        org.bukkit.inventory.ItemStack item = attacker.getInventory().getItemInMainHand();
+        Material weapon = item.getType();
+        String name = weapon.toString();
+
+        if (name.endsWith("_AXE")) {
+            double damageReduction = 0.0;
+
+            if (name.contains("WOODEN") || name.contains("GOLDEN")) {
+                damageReduction = 4.0;
+            } else if (name.contains("STONE")) {
+                damageReduction = 5.0;
+            } else if (name.contains("IRON")) {
+                damageReduction = 4.0;
+            } else if (name.contains("DIAMOND")) {
+                damageReduction = 3.0;
+            } else if (name.contains("NETHERITE")) {
+                damageReduction = 4.0;
+            } // Para conseguir valores originales de la 1.8 en hachas
+
+            // Daño total actual (Base + Fuerza + Sharpness + Crítico)
+            double currentDamage = event.getDamage();
+            double finalDamage = Math.max(0, currentDamage - damageReduction);
+            event.setDamage(finalDamage);
+        }
+    }
+    // ----------------------------------------------------------------------------------------
+
 
     @EventHandler // MUERTE DE JUGADOR, PARA NO CREAR OTRA CLASE LISTENER LO PONGO AQUI
     public void onPlayerDeath(org.bukkit.event.entity.PlayerDeathEvent event) {

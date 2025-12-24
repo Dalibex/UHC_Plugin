@@ -2,12 +2,13 @@ package me.dalibex.UHC_DBasic.managers;
 
 import io.papermc.paper.scoreboard.numbers.NumberFormat;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
-import org.bukkit.Bukkit;
-import org.bukkit.Sound;
+import org.bukkit.*;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scoreboard.DisplaySlot;
@@ -15,8 +16,11 @@ import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class RightPanelManager implements Listener {
 
@@ -35,11 +39,136 @@ public class RightPanelManager implements Listener {
         this.plugin = plugin;
     }
 
-    // Evento para muerte y guardarla en la lista negra
+    // --- EVENTO DE MUERTE Y DETECCIÓN DE VICTORIA ---
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
-        jugadoresEliminados.add(event.getEntity().getName());
+        Player muerto = event.getEntity();
+        jugadoresEliminados.add(muerto.getName());
+
+        // Mensaje de muerte más limpio (opcional)
+        event.setDeathMessage("§c☠ §7" + muerto.getName() + " ha sido eliminado.");
+
+        // Sonido de rayo (efecto dramático)
+        muerto.getWorld().strikeLightningEffect(muerto.getLocation());
+
+        // Comprobamos si hay ganador con un pequeño retraso (1 tick)
+        // para asegurar que el servidor ha procesado la muerte actual
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                comprobarVictoria();
+            }
+        }.runTaskLater(plugin, 1L);
     }
+    private void comprobarVictoria() {
+        if (tiempoTotalSegundos <= 0 || partidaTask == null) return;
+
+        Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
+        List<Team> equiposVivos = new ArrayList<>();
+
+        for (Team team : board.getTeams()) {
+            boolean tieneVivos = false;
+            for (String entry : team.getEntries()) {
+                if (!jugadoresEliminados.contains(entry)) {
+                    tieneVivos = true;
+                    break;
+                }
+            }
+            if (tieneVivos) {
+                equiposVivos.add(team);
+            }
+        }
+
+        if (equiposVivos.size() == 1) {
+            Team ganador = equiposVivos.get(0);
+            finalizarPartida(ganador);
+        }
+        else if (equiposVivos.isEmpty()) {
+            finalizarPartida(null);
+        }
+    }
+    private void finalizarPartida(Team ganador) {
+        if (partidaTask != null) {
+            partidaTask.cancel();
+            partidaTask = null;
+        }
+
+        if (ganador != null) {
+            List<String> nombresGanadores = new ArrayList<>();
+            List<Player> jugadoresGanadores = new ArrayList<>();
+
+            for (String entry : ganador.getEntries()) {
+                if (!jugadoresEliminados.contains(entry)) {
+                    nombresGanadores.add(entry);
+                    Player p = Bukkit.getPlayer(entry);
+                    if (p != null) jugadoresGanadores.add(p);
+                }
+            }
+
+            String listaNombres = String.join(", ", nombresGanadores);
+            ChatColor colorTeam = ganador.getColor();
+            String nombreEquipo = ganador.getDisplayName();
+
+            Bukkit.broadcastMessage("");
+            Bukkit.broadcastMessage("§e§l🎉 FELICIDADES, " + colorTeam + nombreEquipo + "§e:");
+            Bukkit.broadcastMessage("§f" + listaNombres);
+            Bukkit.broadcastMessage("§6§l¡Han sido los ganadores del UHC!");
+            Bukkit.broadcastMessage("");
+
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                p.sendTitle("§6🏆 ¡VICTORIA! 🏆", colorTeam + nombreEquipo + " ha ganado", 10, 100, 20);
+                p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+                mostrarScoreboardVictoria(p, ganador);
+            }
+
+            new BukkitRunnable() {
+                int segundos = 0;
+                @Override
+                public void run() {
+                    if (segundos >= 10) {
+                        this.cancel();
+                        return;
+                    }
+                    for (Player winner : jugadoresGanadores) {
+                        if (winner.isOnline()) {
+                            lanzarCohete(winner.getLocation());
+                        }
+                    }
+                    segundos++;
+                }
+            }.runTaskTimer(plugin, 0L, 20L);
+
+        } else {
+            Bukkit.broadcastMessage("§c☠ La partida ha terminado sin supervivientes.");
+        }
+    }
+    private void lanzarCohete(Location loc) {
+        Firework fw = loc.getWorld().spawn(loc, Firework.class);
+        FireworkMeta fwm = fw.getFireworkMeta();
+
+        fwm.addEffect(FireworkEffect.builder()
+                .withColor(Color.GREEN)
+                .withFade(Color.YELLOW)
+                .with(FireworkEffect.Type.BALL_LARGE)
+                .withTrail()
+                .build());
+        fwm.setPower(1);
+        fw.setFireworkMeta(fwm);
+    }
+    private void mostrarScoreboardVictoria(Player player, Team ganador) {
+        Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
+        Objective obj = board.registerNewObjective("victoria", "dummy", "§6§l!VICTORIA!");
+        obj.setDisplaySlot(DisplaySlot.SIDEBAR);
+
+        obj.numberFormat(NumberFormat.blank());
+        obj.getScore("§1 ").setScore(2);
+
+        String textoGanador = "§fEquipo ganador: " + ganador.getColor() + ganador.getDisplayName();
+        obj.getScore(textoGanador).setScore(1);
+
+        player.setScoreboard(board);
+    }
+    // ------------------------------------------------
 
     public void setStandBy() {
         if (partidaTask != null) {
@@ -91,7 +220,7 @@ public class RightPanelManager implements Listener {
                     if (capitulo == 10) {
                         Bukkit.broadcastMessage("");
                         Bukkit.broadcastMessage("§8§m------------------------------------");
-                        Bukkit.broadcastMessage("§c§l¡EL TIEMPO A TERMINADO! §c⚔");
+                        Bukkit.broadcastMessage("§c§l¡EL TIEMPO HA TERMINADO! §c⚔");
                         Bukkit.broadcastMessage("§fDirígete a X=0 Z=0 para la pelea final");
                         Bukkit.broadcastMessage("§8§m------------------------------------");
                         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -203,7 +332,6 @@ public class RightPanelManager implements Listener {
                             }
                             obj.getScore(" §8> " + prefixColor + entry + textoVida).setScore(nextScore--);
                         }
-
                         if (!tieneCompañerosVivos && teamSize > 1) {
                             obj.getScore(" §7§oCompañeros: §c✘").setScore(nextScore--);
                         }
@@ -232,7 +360,7 @@ public class RightPanelManager implements Listener {
         return String.format("%02d:%02d", minutos, segundos);
     }
 
-    // Getters y setters para las actualizaciones del panel de admin
+    // Getters y setters
     public void setPausado(boolean estado) { this.pausado = estado; }
     public boolean isPausado() { return pausado; }
     public int getTiempoTotalSegundos() { return tiempoTotalSegundos; }

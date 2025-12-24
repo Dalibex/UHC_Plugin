@@ -20,14 +20,15 @@ public final class UHC_DBasic extends JavaPlugin implements Listener {
     public void onEnable() {
         getLogger().info("UHC_DBasic Plugin Enabled");
 
+        // Registrar Managers
+        rightPanelManager = new RightPanelManager(this);
+        teamManager = new TeamManager();
+
         // Registrar Eventos
         getServer().getPluginManager().registerEvents(this, this);
         getServer().getPluginManager().registerEvents(new AdminPanel(), this);
         getServer().getPluginManager().registerEvents(new ChatManager(), this);
-
-        // Registrar Managers
-        rightPanelManager = new RightPanelManager(this);
-        teamManager = new TeamManager();
+        getServer().getPluginManager().registerEvents(rightPanelManager, this);
 
         // Registrar Comandos
         getCommand("uhcadmin").setExecutor(new AdminPanelCommand());
