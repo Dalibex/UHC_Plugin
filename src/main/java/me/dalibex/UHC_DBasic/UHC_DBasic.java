@@ -1,20 +1,20 @@
 package me.dalibex.UHC_DBasic;
 
 import me.dalibex.UHC_DBasic.commands.*;
-import me.dalibex.UHC_DBasic.managers.AdminPanel;
-import me.dalibex.UHC_DBasic.managers.ChatManager;
-import me.dalibex.UHC_DBasic.managers.RightPanelManager;
-import me.dalibex.UHC_DBasic.managers.TeamManager;
-import org.bukkit.event.Listener;
+import me.dalibex.UHC_DBasic.managers.*;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 
-public final class UHC_DBasic extends JavaPlugin implements Listener {
+public final class UHC_DBasic extends JavaPlugin {
 
     private RightPanelManager rightPanelManager;
     private TeamManager teamManager;
+    private AdminPanel adminPanel;
+    private ChatManager chatManager;
+    private UHC_EventManager eventHandler;
+    private SpecialCraftsManager specialCraftsManager;
 
     @Override
     public void onEnable() {
@@ -23,12 +23,14 @@ public final class UHC_DBasic extends JavaPlugin implements Listener {
         // Registrar Managers
         rightPanelManager = new RightPanelManager(this);
         teamManager = new TeamManager();
+        adminPanel = new AdminPanel();
+        chatManager = new ChatManager();
+        eventHandler = new UHC_EventManager(this);
+        specialCraftsManager = new SpecialCraftsManager(this);
 
         // Registrar Eventos
-        getServer().getPluginManager().registerEvents(this, this);
-        getServer().getPluginManager().registerEvents(new AdminPanel(), this);
-        getServer().getPluginManager().registerEvents(new ChatManager(), this);
-        getServer().getPluginManager().registerEvents(rightPanelManager, this);
+        getServer().getPluginManager().registerEvents(eventHandler, this);
+        getServer().getPluginManager().registerEvents(chatManager, this);
 
         // Registrar Comandos
         getCommand("uhcadmin").setExecutor(new AdminPanelCommand());
@@ -37,6 +39,7 @@ public final class UHC_DBasic extends JavaPlugin implements Listener {
         getCommand("confirmarstart").setExecutor(new ConfirmCommand(this));
         getCommand("uhccommands").setExecutor(new GCommandsCommand());
         getCommand("nequipo").setExecutor(new NEquipoCommand());
+        getCommand("tpartes").setExecutor(new TiempoPartesCommand(this));
 
         // Comando de prueba TEST
         getCommand("test").setExecutor(((sender, command, s, strings) -> {
@@ -54,13 +57,29 @@ public final class UHC_DBasic extends JavaPlugin implements Listener {
         return rightPanelManager;
     }
 
+    public TeamManager getTeamManager() {
+        return teamManager;
+    }
+
+    public AdminPanel getAdminPanel() {
+        return adminPanel;
+    }
+
+    public ChatManager getChatManager() {
+        return chatManager;
+    }
+
+    public SpecialCraftsManager getSpecialCraftsManager() {
+        return specialCraftsManager;
+    }
+
+    public UHC_EventManager getEventHandler() {
+        return eventHandler;
+    }
+
     @Override
     public void onDisable() {
         // Plugin shutdown logic
         getLogger().info("UHC_DBasic Plugin Disabled");
-    }
-
-    public TeamManager getTeamManager() {
-        return teamManager;
     }
 }

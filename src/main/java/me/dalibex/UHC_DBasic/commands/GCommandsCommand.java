@@ -14,13 +14,15 @@ public class GCommandsCommand implements CommandExecutor {
         sender.sendMessage("");
         sender.sendMessage("§e/reset §7- §fPrepara el mundo, reglas y panel. (Usa esto al iniciar el servidor)");
         sender.sendMessage("");
-        sender.sendMessage("§e/start <tamaño> §7- §fInicia la cuenta atrás tras una confirmación, teletransporta a los jugadores ya ajusta las reglas para iniciar la partida");
+        sender.sendMessage("§e/start <tamaño> §7- §fCuenta atrás tras confirmar, teletransporta a los jugadores y ajusta las reglas básicas para iniciar la partida");
         sender.sendMessage("");
         sender.sendMessage("§e/test §7- §fVerifica si el plugin responde correctamente.");
         sender.sendMessage("");
         sender.sendMessage("§e/uhcadmin §7- §fAbre panel de administrador.");
         sender.sendMessage("");
         sender.sendMessage("§e/nequipo <nombre> §7- §fRenombra o crea el nombre de tu equipo.");
+        sender.sendMessage("");
+        sender.sendMessage("§e/tpartes <H> <M> <S> §7- §fAjusta el tiempo de las partes de la partida manualmente.");
         sender.sendMessage("");
         sender.sendMessage("§8§m---------------------------------------------------");
 

@@ -8,7 +8,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scoreboard.DisplaySlot;
@@ -16,13 +18,10 @@ import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
-public class RightPanelManager implements Listener {
+public class RightPanelManager {
 
     private final UHC_DBasic plugin;
     private int cronometroSegundos = 0;
@@ -40,27 +39,7 @@ public class RightPanelManager implements Listener {
     }
 
     // --- EVENTO DE MUERTE Y DETECCIÓN DE VICTORIA ---
-    @EventHandler
-    public void onPlayerDeath(PlayerDeathEvent event) {
-        Player muerto = event.getEntity();
-        jugadoresEliminados.add(muerto.getName());
-
-        // Mensaje de muerte más limpio (opcional)
-        event.setDeathMessage("§c☠ §7" + muerto.getName() + " ha sido eliminado.");
-
-        // Sonido de rayo (efecto dramático)
-        muerto.getWorld().strikeLightningEffect(muerto.getLocation());
-
-        // Comprobamos si hay ganador con un pequeño retraso (1 tick)
-        // para asegurar que el servidor ha procesado la muerte actual
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                comprobarVictoria();
-            }
-        }.runTaskLater(plugin, 1L);
-    }
-    private void comprobarVictoria() {
+    public void comprobarVictoria() {
         if (tiempoTotalSegundos <= 0 || partidaTask == null) return;
 
         Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
@@ -170,6 +149,7 @@ public class RightPanelManager implements Listener {
     }
     // ------------------------------------------------
 
+    // --- CONTROL DE PARTIDA Y REINICIO, TIMERS ---
     public void setStandBy() {
         if (partidaTask != null) {
             partidaTask.cancel();
@@ -230,8 +210,10 @@ public class RightPanelManager implements Listener {
 
                     if (capitulo == 4 && tm.getTeamSize() > 1 && !equiposFormados) {
                         tm.shuffleTeams();
+                        entregarBrujulasDeSeguimiento();
                         equiposFormados = true;
                         Bukkit.broadcastMessage("§6§l¡LOS EQUIPOS HAN SIDO FORMADOS! ⚔");
+
                     }
 
                     if (capitulo == 5) {
@@ -254,6 +236,36 @@ public class RightPanelManager implements Listener {
                 }
             }
         }.runTaskTimer(plugin, 0L, 20L);
+    }
+
+    private void entregarBrujulasDeSeguimiento() {
+        ItemStack trackingCompass = new ItemStack(Material.COMPASS);
+        ItemMeta meta = trackingCompass.getItemMeta();
+
+        meta.setDisplayName("§b§lLocalizador de Compañeros");
+        meta.setLore(Arrays.asList("§7Apunta hacia el aliado más cercano.", "§e¡No la pierdas!"));
+
+        meta.addEnchant(org.bukkit.enchantments.Enchantment.LUCK_OF_THE_SEA, 1, true);
+        meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
+
+        trackingCompass.setItemMeta(meta);
+
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (!jugadoresEliminados.contains(p.getName())) {
+
+                java.util.Map<Integer, ItemStack> sobrantes = p.getInventory().addItem(trackingCompass);
+                if (!sobrantes.isEmpty()) {
+                    for (ItemStack item : sobrantes.values()) {
+                        p.getWorld().dropItemNaturally(p.getLocation(), item);
+                    }
+                    p.sendMessage("§b§l» §c¡Inventario lleno! §fTu localizador ha caído al suelo.");
+                } else {
+                    p.sendMessage("§b§l» §fHas recibido un §bLocalizador §fde equipo.");
+                }
+
+                p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, 1f, 1f);
+            }
+        }
     }
 
     private void actualizarScoreboard(Player player, String tiempo, String tiempoTotal, boolean partidaActiva) {
@@ -353,12 +365,18 @@ public class RightPanelManager implements Listener {
 
         player.setScoreboard(board);
     }
-
     private String formatTime(int segundosTotales) {
-        int minutos = segundosTotales / 60;
-        int segundos = segundosTotales % 60;
-        return String.format("%02d:%02d", minutos, segundos);
+        int h = segundosTotales / 3600;
+        int m = (segundosTotales % 3600) / 60;
+        int s = segundosTotales % 60;
+
+        if (h > 0) {
+            return String.format("%02d:%02d:%02d", h, m, s);
+        } else {
+            return String.format("%02d:%02d", m, s);
+        }
     }
+    // ------------------------------------------------
 
     // Getters y setters
     public void setPausado(boolean estado) { this.pausado = estado; }
@@ -366,4 +384,5 @@ public class RightPanelManager implements Listener {
     public int getTiempoTotalSegundos() { return tiempoTotalSegundos; }
     public int getSegundosPorCapitulo() {return segundosPorCapitulo; }
     public void setSegundosPorCapitulo(int segundos) {this.segundosPorCapitulo = segundos;}
+    public Set<String> getJugadoresEliminados() { return jugadoresEliminados; }
 }
