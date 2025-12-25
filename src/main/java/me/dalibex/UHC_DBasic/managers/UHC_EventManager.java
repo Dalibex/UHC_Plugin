@@ -2,6 +2,7 @@ package me.dalibex.UHC_DBasic.managers;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -12,6 +13,7 @@ import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scoreboard.Team;
 
 import static me.dalibex.UHC_DBasic.managers.AdminPanel.*;
 import static org.bukkit.GameRules.*;
@@ -253,6 +255,11 @@ public class UHC_EventManager implements Listener {
                     p.getWorld().setGameRule(PVP, !current);
                     p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
                     plugin.getAdminPanel().openGameRulesPanel(p);
+                } else if (mat == Material.COMPASS) {
+                    boolean current = p.getWorld().getGameRuleValue(LOCATOR_BAR);
+                    p.getWorld().setGameRule(LOCATOR_BAR, !current);
+                    p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
+                    plugin.getAdminPanel().openGameRulesPanel(p);
                 }
                 else if (mat == Material.ARROW) {
                     p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
@@ -369,19 +376,15 @@ public class UHC_EventManager implements Listener {
         }
 
         // ---- TRACKING DE BRÚJULAS DE SEGUIMIENTO
-        @EventHandler
-        public void onCompassTrack(org.bukkit.event.player.PlayerInteractEvent event) {
-            Player p = event.getPlayer();
-            ItemStack item = p.getInventory().getItemInMainHand();
+        public void onCompassTrack() {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (plugin.getRightPanelManager().getJugadoresEliminados().contains(p.getName())) continue;
 
-            if (item.getType() == Material.COMPASS && item.hasItemMeta() &&
-                    item.getItemMeta().getDisplayName().equals("§b§lLocalizador de Compañeros")) {
-
-                org.bukkit.scoreboard.Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
+                Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
 
                 if (team == null || team.getEntries().size() <= 1) {
-                    p.sendMessage("§cNo tienes compañeros a los que rastrear.");
-                    return;
+                    p.setCompassTarget(new Location(p.getWorld(), 0, p.getLocation().getY(), 0));
+                    continue;
                 }
 
                 Player cercano = null;
@@ -389,10 +392,11 @@ public class UHC_EventManager implements Listener {
 
                 for (String entry : team.getEntries()) {
                     if (entry.equals(p.getName())) continue;
+
                     Player compañero = Bukkit.getPlayer(entry);
                     if (compañero != null && compañero.isOnline() &&
-                            compañero.getWorld().equals(p.getWorld()) &&
-                            !plugin.getRightPanelManager().getJugadoresEliminados().contains(entry)) {
+                            !plugin.getRightPanelManager().getJugadoresEliminados().contains(entry) &&
+                            compañero.getWorld().equals(p.getWorld())) {
 
                         double dist = p.getLocation().distance(compañero.getLocation());
                         if (dist < distanciaMinima) {
@@ -401,12 +405,16 @@ public class UHC_EventManager implements Listener {
                         }
                     }
                 }
-
                 if (cercano != null) {
                     p.setCompassTarget(cercano.getLocation());
-                    p.sendActionBar("§bRastreando a: §f" + cercano.getName() + " §7(§a" + (int)distanciaMinima + "m§7)");
+                    ItemStack itemMano = p.getInventory().getItemInMainHand();
+                    if (itemMano.getType() == Material.COMPASS && itemMano.hasItemMeta() &&
+                            itemMano.getItemMeta().getDisplayName().contains("Localizador")) {
+
+                        p.sendActionBar("§bRastreando a: §f" + cercano.getName() + " §7(§a" + (int)distanciaMinima + "m§7)");
+                    }
                 } else {
-                    p.sendActionBar("§cNo hay compañeros cerca o están en otra dimension.");
+                    p.setCompassTarget(new Location(p.getWorld(), 0, 100, 0));
                 }
             }
         }

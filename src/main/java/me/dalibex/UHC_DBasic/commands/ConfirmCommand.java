@@ -6,6 +6,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
@@ -64,6 +65,9 @@ public class ConfirmCommand implements CommandExecutor {
                     world.setGameRule(NATURAL_HEALTH_REGENERATION, false);
                     world.setGameRule(SPAWN_MONSTERS, true);
                     world.setDifficulty(Difficulty.HARD);
+                    for (Player p : Bukkit.getOnlinePlayers()) {
+                        p.setGameMode(GameMode.SURVIVAL);
+                    }
 
                     for (Player p : Bukkit.getOnlinePlayers()) {
                         p.sendTitle("§a§l¡UHC HA COMENZADO!", "§7¡Buena suerte!", 10, 40, 20);
@@ -130,6 +134,9 @@ public class ConfirmCommand implements CommandExecutor {
             p.teleport(loc);
 
             // Efectos
+            for (PotionEffect effect : p.getActivePotionEffects()) {
+                p.removePotionEffect(effect.getType()); // Limpiar antiguos
+            }
             p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.BLINDNESS, 180, 1, false, false));
             p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.RESISTANCE, 320, 10, false, false));
             p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.REGENERATION, 320, 10, false, false));

@@ -53,7 +53,6 @@ public class TeamManager {
             team.setDisplayName(nombreInicial);
             team.setPrefix(COLOR_UNICO + "[" + nombreInicial + "] ");
 
-            team.setAllowFriendlyFire(false);
             team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
 
             listaEquipos.add(team);
@@ -83,7 +82,6 @@ public class TeamManager {
         for (String entry : team.getEntries()) {
             Player member = Bukkit.getPlayer(entry);
             if (member != null) {
-                member.sendMessage("§a§lEQUIPO §7» §fTu equipo ahora se llama: " + team.getColor() + nuevoNombre);
                 member.playSound(member.getLocation(), org.bukkit.Sound.ENTITY_VILLAGER_YES, 1, 1);
             }
         }

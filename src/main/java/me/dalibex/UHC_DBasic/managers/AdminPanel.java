@@ -97,6 +97,7 @@ public class AdminPanel {
         teamItem.setItemMeta(cMeta);
         mainGui.setItem(8, teamItem);
     }
+
     public void openGameRulesPanel(Player player) {
         Inventory rulesGui = Bukkit.createInventory(null, 36, "§8⚖ GameRules del UHC");
 
@@ -135,6 +136,11 @@ public class AdminPanel {
                 Material.VILLAGER_SPAWN_EGG,
                 "§aSpawn del Wandering Trader",
                 player.getWorld().getGameRuleValue(SPAWN_WANDERING_TRADERS)
+        ));
+        rulesGui.setItem(16, createRuleItem(
+                Material.COMPASS,
+                "§bBarra de Localización",
+                player.getWorld().getGameRuleValue(LOCATOR_BAR)
         ));
         // VOLVER
         ItemStack back = new ItemStack(Material.ARROW);

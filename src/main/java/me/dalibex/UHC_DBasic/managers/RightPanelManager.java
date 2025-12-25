@@ -208,7 +208,7 @@ public class RightPanelManager {
                         }
                     }
 
-                    if (capitulo == 4 && tm.getTeamSize() > 1 && !equiposFormados) {
+                    if (capitulo == 3 && tm.getTeamSize() > 1 && !equiposFormados) {
                         tm.shuffleTeams();
                         entregarBrujulasDeSeguimiento();
                         equiposFormados = true;
@@ -216,7 +216,7 @@ public class RightPanelManager {
 
                     }
 
-                    if (capitulo == 5) {
+                    if (capitulo == 4) {
                         Bukkit.broadcastMessage("");
                         Bukkit.broadcastMessage("§8§m------------------------------------");
                         Bukkit.broadcastMessage("§c§l¡EL PVP SE HA ACTIVADO! §c⚔");
@@ -234,6 +234,8 @@ public class RightPanelManager {
                 for (Player p : Bukkit.getOnlinePlayers()) {
                     actualizarScoreboard(p, tiempoFormateado, tiempoTotal, true);
                 }
+
+                plugin.getEventHandler().onCompassTrack();
             }
         }.runTaskTimer(plugin, 0L, 20L);
     }
@@ -283,7 +285,7 @@ public class RightPanelManager {
         } else {
             int teamSize = plugin.getTeamManager().getTeamSize();
             Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(player.getName());
-            String pvpStatus = (capitulo < 5) ? "§ePacto de caballeros " : "§4§lACTIVO §4⚔ ";
+            String pvpStatus = (capitulo < 4) ? "§ePacto de caballeros " : "§4§lACTIVO §4⚔ ";
 
             obj.getScore("§4 ").setScore(23);
             if (capitulo < 10) {
@@ -303,7 +305,7 @@ public class RightPanelManager {
                         : " §c⚠ §7Usa /nequipo";
                 obj.getScore(lineaSolos).setScore(nextScore--);
             } else {
-                if (capitulo < 4) {
+                if (capitulo < 3) {
                     for (int i = 1; i <= (teamSize - 1); i++) {
                         obj.getScore(" §d👥 §f: §k??????" + (new String(new char[i]).replace("\0", " "))).setScore(nextScore--);
                     }
