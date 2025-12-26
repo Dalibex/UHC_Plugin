@@ -1,4 +1,4 @@
-# ⚔️ ELOUD UHC
+# ⚔️ UHC ELOUD
 
 ![Plugin Version](https://img.shields.io/badge/Plugin_Version-1.3.1-orange)
 ![Minecraft Version](https://img.shields.io/badge/Minecraft_Version-1.21.11-gold)
