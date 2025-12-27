@@ -20,6 +20,8 @@ public class AdminPanel {
 
     public static boolean combate18 = false;
     public static boolean bloquearManoSecundaria = false;
+    private boolean shulkerOneEnabled = true;
+    private boolean shulkerTwoEnabled = true;
 
     // ------------------------------ DISEÑO PANELES ------------------------------
     public static void openMainAdminPanel(Player player) {
@@ -51,6 +53,13 @@ public class AdminPanel {
         meta.setLore(lang.getList("menus.main-admin.rules-item.lore"));
         rulesItem.setItemMeta(meta);
         mainGui.setItem(2, rulesItem);
+
+        ItemStack generalRulesItem = new ItemStack(Material.BELL);
+        ItemMeta xmeta = generalRulesItem.getItemMeta();
+        xmeta.setDisplayName(lang.get("menus.main-admin.general-rules-item.name"));
+        xmeta.setLore(lang.getList("menus.main-admin.general-rules-item.lore"));
+        generalRulesItem.setItemMeta(xmeta);
+        mainGui.setItem(1, generalRulesItem);
 
         ItemStack borderItem = new ItemStack(Material.EMERALD_BLOCK);
         ItemMeta bMeta = borderItem.getItemMeta();
@@ -100,6 +109,49 @@ public class AdminPanel {
         mainGui.setItem(8, teamItem);
 
         player.openInventory(mainGui);
+    }
+    public void openGeneralRulesPanel(Player player) {
+        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
+        LanguageManager lang = plugin.getLang();
+        Inventory inv = Bukkit.createInventory(null, 27, lang.get("menus.generalrules.title"));
+
+        // Item Pouch
+        ItemStack pouch = new ItemStack(Material.ORANGE_SHULKER_BOX);
+        ItemMeta pMeta = pouch.getItemMeta();
+        pMeta.setDisplayName(lang.get("menus.generalrules.settings.shulker-item-1.name"));
+
+        List<String> pLore = new ArrayList<>();
+        String statusP = isShulkerOneEnabled() ? lang.get("menus.common.enabled") : lang.get("menus.common.disabled");
+        for(String s : lang.getList("menus.generalrules.settings.shulker-item-1.lore")) {
+            pLore.add(s.replace("%status%", statusP));
+        }
+        pMeta.setLore(pLore);
+        pouch.setItemMeta(pMeta);
+
+        // Item Shulker
+        ItemStack shulker = new ItemStack(Material.LIGHT_BLUE_SHULKER_BOX);
+        ItemMeta sMeta = shulker.getItemMeta();
+        sMeta.setDisplayName(lang.get("menus.generalrules.settings.shulker-item-2.name"));
+
+        List<String> sLore = new ArrayList<>();
+        String statusS = isShulkerTwoEnabled() ? lang.get("menus.common.enabled") : lang.get("menus.common.disabled");
+        for(String s : lang.getList("menus.generalrules.settings.shulker-item-2.lore")) {
+            sLore.add(s.replace("%status%", statusS));
+        }
+        sMeta.setLore(sLore);
+        shulker.setItemMeta(sMeta);
+
+        inv.setItem(11, pouch);
+        inv.setItem(15, shulker);
+
+        // Botón Volver
+        ItemStack back = new ItemStack(Material.ARROW);
+        ItemMeta bMeta = back.getItemMeta();
+        bMeta.setDisplayName(lang.get("menus.common.back"));
+        back.setItemMeta(bMeta);
+        inv.setItem(18, back);
+
+        player.openInventory(inv);
     }
     public void openGameRulesPanel(Player player) {
         UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
@@ -260,6 +312,21 @@ public class AdminPanel {
         Bukkit.broadcastMessage(plugin.getLang().get("admin-messages.offhand-toggle").replace("%prefix%", plugin.getLang().get("general.prefix")).replace("%state%", estado));
     }
     // --------------------------------------------------------------------------
+    public boolean isShulkerOneEnabled() {
+        return shulkerOneEnabled;
+    }
+    public void setShulkerOneEnabled(boolean shulkerOEnabled) {
+        this.shulkerOneEnabled = shulkerOEnabled;
+    }
+    public boolean isShulkerTwoEnabled() {
+        return shulkerTwoEnabled;
+    }
+    public void setShulkerTwoEnabled(boolean shulkerTEnabled) {
+        this.shulkerTwoEnabled = shulkerTEnabled;
+    }
+    // ------------------------------ AJUSTES GENERALES   ------------------------------
+
+    // ---------------------------------------------------------------------------------
 
     private ItemStack createRuleItem(Material mat, String name, Boolean state, LanguageManager lang) {
         ItemStack item = new ItemStack(mat);

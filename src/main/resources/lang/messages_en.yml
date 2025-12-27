@@ -3,7 +3,7 @@ general:
   prefix: "&e&lUHC ELOUD > &f"
   error-prefix: "&c&lERROR > &7"
   no-permission: "&cThis command is for administrators only."
-  only-players: "&cThis command is for players only."
+  inv-full: "&cInventory full! The item has dropped at your feet."
 
 # Game, start and confirmation commands
 game:
@@ -119,6 +119,9 @@ menus:
         - ""
         - "&bLeft Click: &7Toggle 1.8 Cooldown"
         - "&bRight Click: &7Toggle Offhand/Shields"
+    general-rules-item:
+      name: "&bGlobal Settings"
+      lore: [ "&7Click to view and edit", "&7global settings." ]
     rules-item:
       name: "&bChange GameRules"
       lore: ["&7Click to view and edit", "&7server rules."]
@@ -142,6 +145,26 @@ menus:
         - "&bLeft Click: &7Increase (+1)"
         - "&bRight Click: &7Decrease (-1)"
       balance-warning: "&e⚠ &iDistribution will be balanced (ex: 3, 2, 2)"
+
+  generalrules:
+    title: "&8⚙ Global Settings"
+    settings:
+      shulker-item-1:
+        name: "&6Episode 1 Shulker"
+        lore:
+          - "&7Gives a shulker to everyone when game starts."
+          - ""
+          - "&fCurrent status: %status%"
+          - ""
+          - "&eClick to toggle"
+      shulker-item-2:
+        name: "&dEpisode 8 Shulker"
+        lore:
+          - "&7Gives a shulker when game is ending."
+          - ""
+          - "&fCurrent status: %status%"
+          - ""
+          - "&eClick to toggle"
 
   gamerules:
     title: "&8⚙ Change GameRules"
@@ -228,6 +251,10 @@ tracking-compass:
   lore: ["&7Points towards the nearest ally.", "&eDon't lose it!"]
   inv-full: "&b&l» &cInventory full! &fYour tracker dropped on the ground."
   received: "&b&l» &fYou received a team &bTracker&f."
+
+items:
+  shulker:
+    name: "&d&lTeam Supply Box"
 
 crafts:
   golden-head:

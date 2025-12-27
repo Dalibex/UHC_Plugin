@@ -161,7 +161,8 @@ public class UHC_EventManager implements Listener {
             event.setCancelled(true);
             int slot = event.getSlot();
 
-            if (slot == 4) { p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1); plugin.getAdminPanel().openBarrierRulesPanel(p); }
+            if (slot == 1) { p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1); plugin.getAdminPanel().openGeneralRulesPanel(p); }
+            else if (slot == 4) { p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1); plugin.getAdminPanel().openBarrierRulesPanel(p); }
             else if (slot == 2) { p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1); plugin.getAdminPanel().openGameRulesPanel(p); }
             else if (slot == 6) { p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1); openTimePanel(p); }
             else if (slot == 0) {
@@ -195,6 +196,27 @@ public class UHC_EventManager implements Listener {
                 } else if (event.isRightClick() && current > 1) {
                     tm.setTeamSize(current - 1); p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 1, 1);
                 }
+                openMainAdminPanel(p);
+            }
+        }
+
+        // PANEL AJUSTES GENERALES
+        else if (title.equals(lang.get("menus.generalrules.title"))) {
+            event.setCancelled(true);
+            int slot = event.getSlot();
+
+            if (slot == 11) { // Shulker 1
+                plugin.getAdminPanel().setShulkerOneEnabled(!plugin.getAdminPanel().isShulkerOneEnabled());
+                p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
+                plugin.getAdminPanel().openGeneralRulesPanel(p);
+            }
+            else if (slot == 15) { // Shulker 2
+                plugin.getAdminPanel().setShulkerTwoEnabled(!plugin.getAdminPanel().isShulkerTwoEnabled());
+                p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
+                plugin.getAdminPanel().openGeneralRulesPanel(p);
+            }
+            else if (slot == 18) { // Volver
+                p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
                 openMainAdminPanel(p);
             }
         }

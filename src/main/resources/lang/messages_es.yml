@@ -4,6 +4,7 @@ general:
   error-prefix: "&c&lERROR > &7"
   no-permission: "&cEste comando es solo para administradores."
   only-players: "&cEste comando es solo para jugadores."
+  inv-full: "&c¡Inventario lleno! El objeto ha caído al suelo."
 
 # Comandos de inicio y confirmación, juego
 game:
@@ -118,6 +119,9 @@ menus:
         - ""
         - "&bClick Izquierdo: &7Toggle Cooldown 1.8"
         - "&bClick Derecho: &7Toggle Mano Secundaria/Escudos"
+    general-rules-item:
+      name: "&bAjustes Generales"
+      lore: ["&7Haz click para ver y editar ajustes", "&7generales de la partida."]
     rules-item:
       name: "&bCambiar GameRules"
       lore: ["&7Haz click para ver y editar", "&7las reglas del servidor."]
@@ -141,6 +145,26 @@ menus:
         - "&bClick Izquierdo: &7Aumentar (+1)"
         - "&bClick Derecho: &7Reducir (-1)"
       balance-warning: "&e⚠ &iEl reparto será equilibrado (ej: 3, 2, 2)"
+
+  generalrules:
+    title: "&8⚙ Ajustes Generales"
+    settings:
+      shulker-item-1:
+        name: "&6Shulker de Episodio 1"
+        lore:
+          - "&7Entrega una shulker a todos al iniciar partida."
+          - ""
+          - "&fEstado actual: %status%"
+          - ""
+          - "&eClick para cambiar"
+      shulker-item-2:
+        name: "&dShulker de Episodio 8"
+        lore:
+          - "&7Entrega una shulker cerca del final de partida."
+          - ""
+          - "&fEstado actual: %status%"
+          - ""
+          - "&eClick para cambiar"
 
   gamerules:
     title: "&8⚙ Cambiar GameRules"
@@ -227,6 +251,10 @@ tracking-compass:
   lore: ["&7Apunta hacia el aliado más cercano.", "&e¡No la pierdas!"]
   inv-full: "&b&l» &c¡Inventario lleno! &fTu localizador ha caído al suelo."
   received: "&b&l» &fHas recibido un &bLocalizador &fde equipo."
+
+items:
+  shulker:
+    name: "&d&lCaja de Equipo"
 
 crafts:
   golden-head:

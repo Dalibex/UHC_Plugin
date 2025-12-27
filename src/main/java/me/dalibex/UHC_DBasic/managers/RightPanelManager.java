@@ -27,6 +27,7 @@ public class RightPanelManager {
     private BukkitTask partidaTask;
     boolean equiposFormados = false;
     private boolean pausado = false;
+    private boolean shulkerEntregado = false;
 
     private final Set<String> jugadoresEliminados = new HashSet<>();
 
@@ -129,12 +130,17 @@ public class RightPanelManager {
                 if (pausado) return;
                 TeamManager tm = plugin.getTeamManager();
                 if (cronometroSegundos == 1 && tm.getTeamSize() == 1 && !equiposFormados) { tm.shuffleTeams(); equiposFormados = true; }
+                if (plugin.getAdminPanel().isShulkerOneEnabled() && !shulkerEntregado) {
+                    entregarObjetoGlobal(lang.get("items.shulker.name"), Material.ORANGE_SHULKER_BOX);
+                    shulkerEntregado = true;
+                }
 
                 cronometroSegundos++; tiempoTotalSegundos++;
                 int restante = segundosPorCapitulo - (cronometroSegundos % segundosPorCapitulo);
 
                 if (cronometroSegundos % segundosPorCapitulo == 0) {
                     capitulo++;
+
                     if (capitulo < 10) {
                         Bukkit.broadcastMessage(lang.get("game-events.chapter-start").replace("%prefix%", lang.get("general.prefix")).replace("%chapter%", String.valueOf(capitulo)));
                         for (Player p : Bukkit.getOnlinePlayers()) p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
@@ -142,6 +148,11 @@ public class RightPanelManager {
                     if (capitulo == 10) {
                         for (String s : lang.getList("game-events.final-phase")) Bukkit.broadcastMessage(s);
                         for (Player p : Bukkit.getOnlinePlayers()) p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
+                    }
+                    if(capitulo == 8 && plugin.getAdminPanel().isShulkerTwoEnabled()) {
+                        if (plugin.getAdminPanel().isShulkerTwoEnabled()) {
+                            entregarObjetoGlobal(lang.get("items.shulker.name"), Material.LIGHT_BLUE_SHULKER_BOX);
+                        }
                     }
                     if (capitulo == 3 && tm.getTeamSize() > 1 && !equiposFormados) {
                         tm.shuffleTeams(); entregarBrujulasDeSeguimiento(lang);
@@ -259,6 +270,30 @@ public class RightPanelManager {
         Firework fw = loc.getWorld().spawn(loc, Firework.class); FireworkMeta fwm = fw.getFireworkMeta();
         fwm.addEffect(FireworkEffect.builder().withColor(Color.GREEN).withFade(Color.YELLOW).with(FireworkEffect.Type.BALL_LARGE).withTrail().build());
         fwm.setPower(1); fw.setFireworkMeta(fwm);
+    }
+
+    private void entregarObjetoGlobal(String nombre, Material material) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', nombre));
+            item.setItemMeta(meta);
+        }
+
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (plugin.getRightPanelManager().getJugadoresEliminados().contains(p.getName())) continue;
+
+            HashMap<Integer, ItemStack> leftovers = p.getInventory().addItem(item);
+
+            if (!leftovers.isEmpty()) {
+                for (ItemStack leftover : leftovers.values()) {
+                    p.getWorld().dropItemNaturally(p.getLocation(), leftover);
+                }
+                p.sendMessage(plugin.getLang().get("general.prefix") + plugin.getLang().get("general.inv-full"));
+            }
+
+            p.playSound(p.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 1f);
+        }
     }
 
     public void setPausado(boolean e) { this.pausado = e; }
