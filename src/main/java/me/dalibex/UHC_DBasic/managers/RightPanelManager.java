@@ -8,6 +8,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scoreboard.DisplaySlot;
@@ -114,7 +116,18 @@ public class RightPanelManager {
         if (partidaTask != null) { partidaTask.cancel(); partidaTask = null; }
         cronometroSegundos = 0; tiempoTotalSegundos = 0; capitulo = 1;
         equiposFormados = false; jugadoresEliminados.clear();
+
+        Scoreboard managerBoard = Bukkit.getScoreboardManager().getMainScoreboard();
+
+        if (managerBoard.getObjective("uhc") != null) managerBoard.getObjective("uhc").unregister();
+        if (managerBoard.getObjective("vida_tab") != null) managerBoard.getObjective("vida_tab").unregister();
+
+        for (Team team : new HashSet<>(managerBoard.getTeams())) {
+            if (team.getName().startsWith("h_")) team.unregister();
+        }
+
         for (Player p : Bukkit.getOnlinePlayers()) {
+            p.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
             actualizarScoreboard(p, "00:00", "00:00", false);
         }
     }
@@ -124,19 +137,26 @@ public class RightPanelManager {
         pausado = false; equiposFormados = false; jugadoresEliminados.clear();
         LanguageManager lang = plugin.getLang();
 
+        // Actualizar scoreboard de vida
+        for(Player p : Bukkit.getOnlinePlayers()) {
+            p.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_DAMAGE, 1, 0, false, false, false));
+            p.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_HEALTH, 1, 0, false, false, false));
+        }
+
         partidaTask = new BukkitRunnable() {
             @Override
             public void run() {
                 if (pausado) return;
                 TeamManager tm = plugin.getTeamManager();
                 if (cronometroSegundos == 1 && tm.getTeamSize() == 1 && !equiposFormados) { tm.shuffleTeams(); equiposFormados = true; }
+
+                cronometroSegundos++; tiempoTotalSegundos++;
+                int restante = segundosPorCapitulo - (cronometroSegundos % segundosPorCapitulo);
+
                 if (plugin.getAdminPanel().isShulkerOneEnabled() && !shulkerEntregado) {
                     entregarObjetoGlobal(lang.get("items.shulker.name"), Material.ORANGE_SHULKER_BOX);
                     shulkerEntregado = true;
                 }
-
-                cronometroSegundos++; tiempoTotalSegundos++;
-                int restante = segundosPorCapitulo - (cronometroSegundos % segundosPorCapitulo);
 
                 if (cronometroSegundos % segundosPorCapitulo == 0) {
                     capitulo++;
@@ -191,10 +211,34 @@ public class RightPanelManager {
 
     private void actualizarScoreboard(Player player, String tiempo, String tiempoTotal, boolean partidaActiva) {
         LanguageManager lang = plugin.getLang();
-        Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
-        Objective obj = board.registerNewObjective("uhc", "dummy", lang.get("scoreboard.title"));
+
+        Scoreboard board = player.getScoreboard();
+
+        if (board == Bukkit.getScoreboardManager().getMainScoreboard()) {
+            board = Bukkit.getScoreboardManager().getNewScoreboard();
+            player.setScoreboard(board);
+        }
+
+        // ACTUALIZAR SIDEBAR (UHC)
+        Objective obj = board.getObjective("uhc");
+        if (obj != null) obj.unregister();
+
+        obj = board.registerNewObjective("uhc", "dummy", ChatColor.translateAlternateColorCodes('&', lang.get("scoreboard.title")));
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
         obj.numberFormat(NumberFormat.blank());
+
+        // ACTUALIZAR TAB (VIDA)
+        Objective objVida = board.getObjective("vida_tab");
+        if (partidaActiva) {
+            if (objVida == null) {
+                objVida = board.registerNewObjective("vida_tab", "health",
+                        ChatColor.translateAlternateColorCodes('&', lang.get("scoreboard.health-icon")),
+                        org.bukkit.scoreboard.RenderType.HEARTS);
+                objVida.setDisplaySlot(DisplaySlot.PLAYER_LIST);
+            }
+        } else {
+            if (objVida != null) objVida.unregister();
+        }
 
         if (!partidaActiva) {
             obj.getScore("§1 ").setScore(5);
@@ -203,6 +247,7 @@ public class RightPanelManager {
             obj.getScore(lang.get("scoreboard.players").replace("%online%", String.valueOf(Bukkit.getOnlinePlayers().size()))).setScore(2);
             obj.getScore("§3 ").setScore(1);
         } else {
+            // --- TODA TU LÓGICA DE SIDEBAR (INTACTA) ---
             int teamSize = plugin.getTeamManager().getTeamSize();
             Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(player.getName());
             String pvpStatus = (capitulo < 4) ? lang.get("scoreboard.pvp-pact") : lang.get("scoreboard.pvp-active");
@@ -230,7 +275,6 @@ public class RightPanelManager {
                             (team != null ? lang.get("scoreboard.team-rename-warn") : lang.get("scoreboard.team-assigning"));
                     obj.getScore(line).setScore(next--);
                     if (team != null) {
-                        boolean survivors = false;
                         for (String entry : team.getEntries()) {
                             if (entry.equals(player.getName())) continue;
                             String healthText; String colorPrefix = "§f";
@@ -238,14 +282,13 @@ public class RightPanelManager {
                             else {
                                 Player m = Bukkit.getPlayer(entry);
                                 if (m != null && m.isOnline()) {
-                                    survivors = true; double h = m.getHealth();
+                                    double h = m.getHealth();
                                     String c = (h > 15) ? "§a" : (h > 10) ? "§2" : (h > 5) ? "§e" : "§c";
                                     healthText = " " + c + (int)h + "§4❤";
                                 } else healthText = lang.get("scoreboard.mate-offline");
                             }
                             obj.getScore(" §8> " + colorPrefix + entry + healthText).setScore(next--);
                         }
-                        if (!survivors && teamSize > 1) obj.getScore(lang.get("scoreboard.no-mates")).setScore(next--);
                     }
                 }
             }
@@ -257,8 +300,39 @@ public class RightPanelManager {
                 obj.getScore(lang.get("scoreboard.time-next-label")).setScore(next--);
                 obj.getScore("§6> §f" + tiempo).setScore(next--);
             }
+
+            // --- LÓGICA DE ANONIMATO (REUTILIZANDO EQUIPOS) ---
+            Team mainBoardTeam = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(player.getName());
+
+            for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+                String teamKey = "h_" + onlinePlayer.getName();
+                Team t = board.getTeam(teamKey);
+
+                if (t == null) {
+                    t = board.registerNewTeam(teamKey);
+                    t.addEntry(onlinePlayer.getName());
+                }
+
+                t.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
+
+                boolean esCompanero = (mainBoardTeam != null && mainBoardTeam.hasEntry(onlinePlayer.getName()));
+                boolean soyYo = onlinePlayer.equals(player);
+
+                if (soyYo || esCompanero) {
+                    t.setPrefix("");
+                    t.setSuffix("");
+                    t.setColor(ChatColor.WHITE);
+                } else {
+                    int fakeId = Math.abs(onlinePlayer.getName().hashCode() % 100);
+                    String prefix = lang.get("scoreboard.anonymous-prefix").replace("%id%", String.valueOf(fakeId));
+                    String suffix = lang.get("scoreboard.anonymous-suffix") + " " + ChatColor.translateAlternateColorCodes('&', lang.get("scoreboard.health-icon"));
+
+                    t.setPrefix(prefix);
+                    t.setSuffix(suffix);
+                    t.setColor(ChatColor.RED);
+                }
+            }
         }
-        player.setScoreboard(board);
     }
 
     private String formatTime(int s) {

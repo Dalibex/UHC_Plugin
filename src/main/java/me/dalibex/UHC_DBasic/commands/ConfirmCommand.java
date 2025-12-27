@@ -140,11 +140,10 @@ public class ConfirmCommand implements CommandExecutor {
                 p.removePotionEffect(effect.getType()); // Limpiar antiguos
             }
             p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.BLINDNESS, 180, 1, false, false));
-            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.RESISTANCE, 320, 10, false, false));
-            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.REGENERATION, 320, 10, false, false));
-            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.SATURATION, 320, 10, false, false));
-            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.SLOWNESS, 220, 99, false, false));
-            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.JUMP_BOOST, 220, 99, false, false));
+            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.REGENERATION, 320, 255, false, false));
+            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.SATURATION, 320, 255, false, false));
+            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.SLOWNESS, 220, 255, false, false));
+            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.JUMP_BOOST, 220, 255, false, false));
         }
     }
 }

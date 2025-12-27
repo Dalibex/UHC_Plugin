@@ -234,7 +234,7 @@ scoreboard:
   go-center: " &fDirígete a X=0 Z=0"
   pvp-label: " &fPVP: %status%"
   pvp-pact: "&ePacto de caballeros "
-  pvp-active: "&c&lACTIVO &4⚔ "
+  pvp-active: "&c&lACTIVO ⚔ "
   team-label: " &b🛡 &fEquipo: %color%%name%"
   team-rename-warn: " &c⚠ &7Usa /nequipo"
   team-assigning: " &d👥 &7Asignando..."
@@ -244,6 +244,9 @@ scoreboard:
   no-mates: " &7&oCompañeros: &c✘"
   time-total-label: " &c⏳ &lTiempo Acumulado"
   time-next-label: " &d⌚ &lSiguiente parte"
+  anonymous-prefix: "&7Jugador %id% &8["
+  anonymous-suffix: "&8]"
+  health-icon: "&c❤"
 
 # Ítems especiales
 tracking-compass:
