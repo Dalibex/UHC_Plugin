@@ -1,5 +1,6 @@
 package me.dalibex.UHC_DBasic.managers;
 
+import me.dalibex.UHC_DBasic.UHC_DBasic;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -12,6 +13,9 @@ public class ChatManager implements Listener {
 
     @EventHandler
     public void onChat(AsyncPlayerChatEvent event) {
+        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
+        LanguageManager lang = plugin.getLang();
+
         Player p = event.getPlayer();
         String mensaje = event.getMessage();
         Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
@@ -23,18 +27,20 @@ public class ChatManager implements Listener {
             String mensajeLimpio = mensaje.substring(1).trim();
 
             if (mensajeLimpio.isEmpty()) {
-                p.sendMessage(ChatColor.RED + "Debes escribir un mensaje después del !");
+                p.sendMessage(lang.get("chat.empty-global-error"));
                 return;
             }
 
-            enviarMensajeGlobal(p, team, mensajeLimpio);
+            enviarMensajeGlobal(p, team, mensajeLimpio, lang);
             return;
         }
 
         // 2. LOGICA DE CHAT PRIVADO / EQUIPO
         if (team != null) {
-            String formatoTeam = ChatColor.GRAY + "[" + ChatColor.AQUA + team.getDisplayName() + ChatColor.GRAY + "] "
-                    + ChatColor.WHITE + p.getName() + ": " + ChatColor.WHITE + mensaje;
+            String formatoTeam = lang.get("chat.format-team")
+                    .replace("%team%", team.getDisplayName())
+                    .replace("%player%", p.getName())
+                    .replace("%msg%", mensaje);
 
             for (String entry : team.getEntries()) {
                 Player member = Bukkit.getPlayer(entry);
@@ -45,19 +51,25 @@ public class ChatManager implements Listener {
             Bukkit.getConsoleSender().sendMessage("[TeamChat] " + p.getName() + ": " + mensaje);
 
         } else {
-            String formatoPrivado = ChatColor.GRAY + "[" + ChatColor.GREEN + "PRIVADO" + ChatColor.GRAY + "] "
-                    + ChatColor.WHITE + p.getName() + ": " + ChatColor.WHITE + mensaje;
+            String formatoPrivado = lang.get("chat.format-private")
+                    .replace("%tag%", lang.get("chat.private-tag"))
+                    .replace("%player%", p.getName())
+                    .replace("%msg%", mensaje);
 
             p.sendMessage(formatoPrivado);
         }
     }
 
-    private void enviarMensajeGlobal(Player p, Team team, String msg) {
-        String prefix = (team != null) ? team.getDisplayName() : "";
+    private void enviarMensajeGlobal(Player p, Team team, String msg, LanguageManager lang) {
+        String teamName = (team != null) ? team.getDisplayName() : "";
         ChatColor colorName = (team != null) ? team.getColor() : ChatColor.GRAY;
 
-        String formatoGlobal = ChatColor.GRAY + "[" + ChatColor.RED + "GLOBAL" + ChatColor.GRAY + "] "
-                + "[" + colorName + prefix + ChatColor.GRAY + "] " + ChatColor.WHITE + p.getName() + ": " + ChatColor.GRAY + msg;
+        String formatoGlobal = lang.get("chat.format-global")
+                .replace("%tag%", lang.get("chat.global-tag"))
+                .replace("%color%", colorName.toString())
+                .replace("%team%", teamName)
+                .replace("%player%", p.getName())
+                .replace("%msg%", msg);
 
         Bukkit.broadcastMessage(formatoGlobal);
     }

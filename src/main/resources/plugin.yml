@@ -25,7 +25,10 @@ commands:
     usage: /reset
   nequipo:
     description: Crea o renombra a tu equipo, sea de 1, 2, 3 o 4 jugadores
-    usage: /nequipo
+    usage: /nequipo [nombre
   tpartes:
     description: Ajusta el tiempo manualmente
     usage: /tpartes
+  lang:
+    description: Cambia el idioma
+    usage: /lang [idioma]

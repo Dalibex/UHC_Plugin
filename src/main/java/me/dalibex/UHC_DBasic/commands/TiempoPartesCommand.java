@@ -8,6 +8,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
+
 public class TiempoPartesCommand implements CommandExecutor {
 
     private final UHC_DBasic plugin;
@@ -20,21 +22,22 @@ public class TiempoPartesCommand implements CommandExecutor {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
 
         if (!sender.hasPermission("uhc.admin")) {
-            sender.sendMessage("§cNo tienes permiso.");
+            sender.sendMessage(plugin.getLang().get("general.no-permission"));
             return true;
         }
 
         if (args.length != 3) {
-            sender.sendMessage("§cUso correcto: /tpartes <horas> <minutos> <segundos>");
-            sender.sendMessage("§7Ejemplo para 10 seg: §f/tpartes 0 0 10");
-            sender.sendMessage("§7Ejemplo para 20 min: §f/tpartes 0 20 0");
+            List<String> usage = plugin.getLang().getList("timer.usage");
+            for (String line : usage) {
+                sender.sendMessage(line);
+            }
             return true;
         }
 
         RightPanelManager rpm = plugin.getRightPanelManager();
 
         if (rpm.getTiempoTotalSegundos() > 0) {
-            sender.sendMessage("§cLa partida ya ha comenzado, no puedes cambiar esto ahora.");
+            sender.sendMessage(plugin.getLang().get("timer.already-started"));
             return true;
         }
 
@@ -46,22 +49,26 @@ public class TiempoPartesCommand implements CommandExecutor {
             int totalSegundos = (h * 3600) + (m * 60) + s;
 
             if (totalSegundos <= 0) {
-                sender.sendMessage("§cEl tiempo total debe ser mayor a 0 segundos.");
+                sender.sendMessage(plugin.getLang().get("timer.too-short"));
                 return true;
             }
 
             rpm.setSegundosPorCapitulo(totalSegundos);
 
             String tiempoFormateado = String.format("%02dh %02dm %02ds", h, m, s);
-            sender.sendMessage("§e§lUHC ELOUD> §fDuración de cada parte ajustada a: §e" + tiempoFormateado);
 
-            if (sender instanceof Player) {
-                Player p = (Player) sender;
+            String successMsg = plugin.getLang().get("timer.success")
+                    .replace("%prefix%", plugin.getLang().get("general.prefix"))
+                    .replace("%time%", tiempoFormateado);
+
+            sender.sendMessage(successMsg);
+
+            if (sender instanceof Player p) {
                 p.playSound(p.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_CHIME, 1f, 1.2f);
             }
 
         } catch (NumberFormatException e) {
-            sender.sendMessage("§cError: Debes introducir números enteros.");
+            sender.sendMessage(plugin.getLang().get("timer.invalid-number"));
         }
 
         return true;

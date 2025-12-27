@@ -1,5 +1,6 @@
 package me.dalibex.UHC_DBasic.managers;
 
+import me.dalibex.UHC_DBasic.UHC_DBasic;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -14,7 +15,6 @@ public class TeamManager {
 
     private final Scoreboard board;
     private int teamSize = 1;
-
     private final ChatColor COLOR_UNICO = ChatColor.AQUA;
 
     public TeamManager() {
@@ -30,6 +30,9 @@ public class TeamManager {
     }
 
     public void shuffleTeams() {
+        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
+        LanguageManager lang = plugin.getLang();
+
         for (Team team : board.getTeams()) {
             team.unregister();
         }
@@ -48,13 +51,14 @@ public class TeamManager {
             Team team = board.registerNewTeam(idEquipo);
 
             team.setColor(COLOR_UNICO);
+            team.setDisplayName(idEquipo);
 
-            String nombreInicial = "team_" + i;
-            team.setDisplayName(nombreInicial);
-            team.setPrefix(COLOR_UNICO + "[" + nombreInicial + "] ");
+            String prefix = lang.get("teams.prefix-format")
+                    .replace("%color%", COLOR_UNICO.toString())
+                    .replace("%name%", idEquipo);
+            team.setPrefix(prefix);
 
             team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
-
             listaEquipos.add(team);
         }
 
@@ -63,11 +67,18 @@ public class TeamManager {
             Player p = jugadores.get(i);
 
             teamAsignado.addEntry(p.getName());
-            p.sendMessage("§e§lUHC ELOUD §e§l> §fHas sido asignado al " + teamAsignado.getColor() + teamAsignado.getDisplayName());
+
+            String msg = lang.get("teams.assigned")
+                    .replace("%prefix%", lang.get("general.prefix"))
+                    .replace("%color%", teamAsignado.getColor().toString())
+                    .replace("%name%", teamAsignado.getDisplayName());
+            p.sendMessage(msg);
         }
     }
 
     public boolean renombrarEquipo(Player player, String nuevoNombre) {
+        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
+        LanguageManager lang = plugin.getLang();
         Team team = board.getEntryTeam(player.getName());
 
         if (team == null) return false;
@@ -77,7 +88,10 @@ public class TeamManager {
         String nombreAnterior = team.getDisplayName();
         team.setDisplayName(nuevoNombre);
 
-        team.setPrefix(team.getColor() + "[" + nuevoNombre + "] ");
+        String prefix = lang.get("teams.prefix-format")
+                .replace("%color%", team.getColor().toString())
+                .replace("%name%", nuevoNombre);
+        team.setPrefix(prefix);
 
         for (String entry : team.getEntries()) {
             Player member = Bukkit.getPlayer(entry);
@@ -87,9 +101,18 @@ public class TeamManager {
         }
 
         if (nombreAnterior.contains("team_")) {
-            Bukkit.broadcastMessage("§e§lUHC ELOUD §e§l> §fSe ha fundado el equipo: " + team.getColor() + nuevoNombre);
+            String foundedMsg = lang.get("teams.founded")
+                    .replace("%prefix%", lang.get("general.prefix"))
+                    .replace("%color%", team.getColor().toString())
+                    .replace("%name%", nuevoNombre);
+            Bukkit.broadcastMessage(foundedMsg);
         } else {
-            Bukkit.broadcastMessage("§e§lUHC ELOUD §e§l> §fEl equipo " + team.getColor() + nombreAnterior + " §fahora se conoce como: " + team.getColor() + nuevoNombre);
+            String renamedMsg = lang.get("teams.renamed")
+                    .replace("%prefix%", lang.get("general.prefix"))
+                    .replace("%color%", team.getColor().toString())
+                    .replace("%old%", nombreAnterior)
+                    .replace("%new%", nuevoNombre);
+            Bukkit.broadcastMessage(renamedMsg);
         }
 
         for (Player all : Bukkit.getOnlinePlayers()) {

@@ -1,0 +1,246 @@
+# Mensajes generales del sistema
+general:
+  prefix: "&e&lUHC ELOUD > &f"
+  error-prefix: "&c&lERROR > &7"
+  no-permission: "&cEste comando es solo para administradores."
+  only-players: "&cEste comando es solo para jugadores."
+
+# Comandos de inicio y confirmación, juego
+game:
+  countdown-title: "&6%time%"
+  countdown-subtitle: "&ePreparándote..."
+  started-title: "&a&l¡UHC HA COMENZADO!"
+  started-subtitle: "&7¡Buena suerte!"
+  player-head-name: "&eCabeza de &6%player%"
+  border-not-started: "&c&l⚠ &cNo puedes ajustar el borde porque la partida no ha empezado."
+  border-update: "&7[&bBorde&7] &fNuevo tamaño: &6%size%x%size%"
+  team-size-max: "&cEl tamaño máximo de equipo es 4."
+  team-size-error: "&c¡No hay suficientes jugadores! Necesitas al menos %min% para equipos de %n%"
+  time-min-error: "&cEl tiempo mínimo es 1 segundo."
+  time-update: "%prefix%&fSe ha ajustado la duración de las partes a: &b%time% minutos&f."
+  time-button-name: "%prefix%%amount% Minuto"
+  time-button-name-plural: "%prefix%%amount% Minutos"
+  border-button-name: "%prefix%%amount% Bloques"
+
+# Texto mostrado al enseñar la lista de comandos
+help:
+  header: "&8&m--------------&r &6&lCOMANDOS UHC ELOUD &8&m--------------"
+  footer: "&8&m---------------------------------------------------"
+  commands_list:
+    - ""
+    - "&e/reset &7- &fPrepara el mundo, reglas y panel. (Usa esto al iniciar el servidor)"
+    - ""
+    - "&e/start <tamaño> &7- &fCuenta atrás tras confirmar, teletransporta y ajusta reglas."
+    - ""
+    - "&e/test &7- &fVerifica si el plugin responde correctamente."
+    - ""
+    - "&e/uhcadmin &7- &fAbre panel de administrador."
+    - ""
+    - "&e/nequipo <nombre> &7- &fRenombra o crea el nombre de tu equipo."
+    - ""
+    - "&e/tpartes <H> <M> <S> &7- &fAjusta el tiempo de las partes manualmente."
+    - ""
+    - "&e/lang <idioma> &7- &fCambia el idioma."
+    - ""
+
+# Crear y renombrar equipos
+teams:
+  name-required: "&c¡Debes escribir un nombre! /nequipo <nombre>"
+  no-team: "&cNo puedes renombrar un equipo si no estás en uno."
+  rename-success: "&a¡El nombre de tu equipo ahora es: &e%name%&a!"
+  prefix-format: "&f[%color%%name%&f] "
+  assigned: "%prefix%&fHas sido asignado al %color%%name%"
+  founded: "%prefix%&fSe ha fundado el equipo: %color%%name%"
+  renamed: "%prefix%&fEl equipo %color%%old% &fahora se conoce como: %color%%new%"
+
+# Uso de /reset
+lobby:
+  reset-success: "%prefix%Mundo preparado/reseteado correctamente"
+
+# Sección para el menú de inicio
+start-menu:
+  usage: "%error-prefix%Uso correcto: /start <tamaño>"
+  buttons:
+    confirm:
+      text: "&a[EMPEZAR UHC]"
+      hover: "&7EMPEZAR e iniciar la cuenta atrás"
+    cancel:
+      text: "&c[CANCELAR]"
+      hover: "&7No hacer nada, cancela la acción"
+
+# Sección de game
+timer:
+  usage:
+    - "&c&lERROR &8> &fUso correcto: /tpartes <horas> <minutos> <segundos>"
+    - "&7Ejemplo para 10 seg: &f/tpartes 0 0 10"
+    - "&7Ejemplo para 20 min: &f/tpartes 0 20 0"
+  already-started: "&cLa partida ya ha comenzado, no puedes cambiar esto ahora."
+  invalid-number: "&cError: Debes introducir números enteros."
+  too-short: "&cEl tiempo total debe ser mayor a 0 segundos."
+  success: "%prefix%&fDuración de cada parte ajustada a: &e%time%"
+
+### ---------- SECCION MANAGERS ---------- ###
+
+# Mensajes de chat del panel
+admin-messages:
+  combat-toggle: "%prefix%El combate 1.8 ha sido %state%"
+  offhand-toggle: "%prefix%La mano secundaria y escudos han sido %state%"
+  state-enabled: "&aACTIVADO"
+  state-disabled: "&cDESACTIVADO"
+  state-blocked: "&cBLOQUEADOS"
+  state-allowed: "&aHABILITADOS"
+
+# Traducciones de los Menús (GUIs)
+menus:
+  common:
+    back: "&cVolver"
+    status: "&7Estado: "
+    enabled: "&aActivado"
+    disabled: "&cDesactivado"
+    click-to-toggle: "&eClick para cambiar"
+    locked: "&c⚠ BLOQUEADO"
+    locked-lore: "&7No puedes cambiar esto una vez iniciada la partida."
+  rules:
+    nat-regen: "&bRegeneración Natural"
+    pvp: "&bPVP"
+    day-night: "&bCiclo día/noche"
+    monsters: "&bSpawn de Enemigos"
+    advancements: "&bAnuncio de Logros"
+    trader: "&bSpawn del Wandering Trader"
+    locator: "&bBarra de Localización"
+  main-admin:
+    title: "&8⚙ Panel Administración UHC"
+    combat-item:
+      name: "&bAjustes de Combate Clásico"
+      lore:
+        - "&7Combate 1.8: %status18%"
+        - "&7Escudos, Mano Secundaria: %statusOffhand%"
+        - ""
+        - "&bClick Izquierdo: &7Toggle Cooldown 1.8"
+        - "&bClick Derecho: &7Toggle Mano Secundaria/Escudos"
+    rules-item:
+      name: "&bCambiar GameRules"
+      lore: ["&7Haz click para ver y editar", "&7las reglas del servidor."]
+    border-item:
+      name: "&5Ajustes del Borde"
+      lore: ["&7Gestiona el tamaño ", "&7de la zona de juego."]
+    time-item:
+      name: "&6Control de Partida"
+      lore: ["&7Pausar, reanudar el cronómetro."]
+    teams-item:
+      name: "&aConfigurar Equipos"
+      name-locked: "&7&mConfigurar Equipos"
+      size-solos: "Solos"
+      size-teams: "Equipos de %n%"
+      lore:
+        - "&7Tamaño actual: &e%size%"
+        - ""
+        - "&fJugadores online: &b%online%"
+        - "&fEquipos resultantes: &b%total%"
+        - ""
+        - "&bClick Izquierdo: &7Aumentar (+1)"
+        - "&bClick Derecho: &7Reducir (-1)"
+      balance-warning: "&e⚠ &iEl reparto será equilibrado (ej: 3, 2, 2)"
+
+  gamerules:
+    title: "&8⚙ Cambiar GameRules"
+
+  barrier:
+    title: "&8⚖ Ajustar tamaño de barrera"
+    current-size:
+      name: "&bTamaño Actual"
+      lore: "&fEl borde mide: &6%size%x%size%"
+    change-lore: "&7Cambiar el borde en &f%amount% &7bloques."
+
+  time:
+    title: "&8⏲ Control de Tiempo"
+    info-item:
+      name: "&eTiempo por Capítulo"
+      lore:
+        - "&fDuración actual: &b%time%"
+        - ""
+        - "&7Puedes usar &f/tpartes H M S"
+        - "&7para un ajuste preciso."
+    change-lore: "&7Cambia la duración en &f%amount% &7minutos por parte."
+    pause: "&7⏸ Pausar Partida"
+    resume: "&a▶ Reanudar Partida"
+
+chat:
+  global-tag: "&cGLOBAL"
+  private-tag: "&aPRIVADO"
+  empty-global-error: "&cDebes escribir un mensaje después del !"
+  format-global: "&8[&r%tag%&8] &8[&r%color%%team%&8] &f%player%: &7%msg%"
+  format-team: "&8[&b%team%&8] &f%player%: &f%msg%"
+  format-private: "&8[&r%tag%&8] &f%player%: &f%msg%"
+
+# Anuncios de victoria y fin de partida
+victory:
+  broadcast-header: "&e&l🎉 FELICIDADES, %color%%team%&e:"
+  broadcast-footer: "&6&l¡Han sido los ganadores del UHC!"
+  title: "&6🏆 ¡VICTORIA! 🏆"
+  subtitle: "%color%%team% &fha ganado"
+  no-survivors: "&c☠ La partida ha terminado sin supervivientes."
+  scoreboard-title: "&6&l!VICTORIA!"
+  scoreboard-winner: "&fEquipo ganador: %color%%team%"
+
+# Anuncios de capítulos y eventos
+game-events:
+  chapter-start: "%prefix%&fHa comenzado la &aParte %chapter%"
+  final-phase:
+    - ""
+    - "&8&m------------------------------------"
+    - "&c&l¡EL TIEMPO HA TERMINADO! &c⚔"
+    - "&fDirígete a X=0 Z=0 para la pelea final"
+    - "&8&m------------------------------------"
+  teams-formed: "&6&l¡LOS EQUIPOS HAN SIDO FORMADOS! ⚔"
+  pvp-enabled:
+    - ""
+    - "&8&m------------------------------------"
+    - "&c&l¡EL PVP SE HA ACTIVADO! &c⚔"
+    - "&fEl pacto de caballeros ha finalizado"
+    - "&8&m------------------------------------"
+
+# Scoreboard (Panel lateral derecho)
+scoreboard:
+  title: "&6&lELOUD UHC"
+  waiting: " &6>> &7Esperando... "
+  players: " &fJugadores: &b%online% &d👥 "
+  phase: " &fParte actual: &a%chapter%"
+  finalized: " &6&lFINALIZADO!"
+  go-center: " &fDirígete a X=0 Z=0"
+  pvp-label: " &fPVP: %status%"
+  pvp-pact: "&ePacto de caballeros "
+  pvp-active: "&c&lACTIVO &4⚔ "
+  team-label: " &b🛡 &fEquipo: %color%%name%"
+  team-rename-warn: " &c⚠ &7Usa /nequipo"
+  team-assigning: " &d👥 &7Asignando..."
+  team-mates-label: " &d👥 &fEquipo: %color%%name%"
+  mate-offline: " &7[OFF]"
+  mate-dead: " &c✘"
+  no-mates: " &7&oCompañeros: &c✘"
+  time-total-label: " &c⏳ &lTiempo Acumulado"
+  time-next-label: " &d⌚ &lSiguiente parte"
+
+# Ítems especiales
+tracking-compass:
+  name: "&b&lLocalizador de Compañeros"
+  lore: ["&7Apunta hacia el aliado más cercano.", "&e¡No la pierdas!"]
+  inv-full: "&b&l» &c¡Inventario lleno! &fTu localizador ha caído al suelo."
+  received: "&b&l» &fHas recibido un &bLocalizador &fde equipo."
+
+crafts:
+  golden-head:
+    name: "&6&l&k! &e&lCABEZA DE ORO &6&l&k!"
+    lore:
+      - "&7&m-----------------------"
+      - "&6&lArtefacto Legendario"
+      - "&7Contiene la esencia de un caído."
+      - ""
+      - "&6Efectos de Consumo:"
+      - " &8» &fRegeneración &eII &7(12s)"
+      - " &8» &fAbsorción &6II &7(5min)"
+      - "&7&m-----------------------"
+
+# Acción de la brújula
+compass:
+  tracking-actionbar: "&bRastreando a: &f%player% &7(&a%dist%m&7)"

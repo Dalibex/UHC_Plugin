@@ -26,11 +26,12 @@ public class PrepareWorldCommand implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("§cEste comando solo puede ser usado por jugadores.");
+            sender.sendMessage(plugin.getLang().get("general.only-players"));
             return true;
         }
+
         if (!player.isOp()) {
-            player.sendMessage("§cNo tienes permisos para ejecutar este comando.");
+            player.sendMessage(plugin.getLang().get("general.no-permission"));
             return true;
         }
 
@@ -38,30 +39,27 @@ public class PrepareWorldCommand implements CommandExecutor {
 
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.clearActivePotionEffects();
+            p.getInventory().clear();
             p.setGameMode(GameMode.ADVENTURE);
             p.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 999999, 255, false, false, false));
             p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 999999, 255, false, false, false));
             p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 200, 255, false, false, false));
-            world.setDifficulty(Difficulty.HARD);
         }
 
+        world.setDifficulty(Difficulty.HARD);
         plugin.getRightPanelManager().setStandBy();
         plugin.getTeamManager().borrarTodosLosEquipos();
 
-        // 1. Ciclo de dia noche desactivado
         world.setTime(0L);
         world.setGameRule(ADVANCE_TIME, false);
-        // 2. Pparar el ciclo de clima
         world.setGameRule(ADVANCE_WEATHER, false);
-        // 3. Habilitar Regeneración Natural (Para el lobby/espera)
         world.setGameRule(NATURAL_HEALTH_REGENERATION, true);
-        // 4. No spawnear mobs hostiles hasta que empiece la partida
         world.setGameRule(SPAWN_MONSTERS, false);
-        // 5. Resetear el borde (que no moleste)
         world.getWorldBorder().setCenter(0, 0);
         world.getWorldBorder().setSize(5999984);
 
-        player.sendMessage("§e§lUHC ELOUD > §fMundo preparado/reseteado correctamente");
+        String prefix = plugin.getLang().get("general.prefix");
+        player.sendMessage(plugin.getLang().get("lobby.reset-success").replace("%prefix%", prefix));
 
         return true;
     }

@@ -20,7 +20,6 @@ public class ConfirmCommand implements CommandExecutor {
 
     private final UHC_DBasic plugin;
 
-    // Este es el "constructor" que recibe el plugin desde el Main
     public ConfirmCommand(UHC_DBasic plugin) {
         this.plugin = plugin;
     }
@@ -52,7 +51,9 @@ public class ConfirmCommand implements CommandExecutor {
                 if (segundos > 0) {
                     for (Player p : Bukkit.getOnlinePlayers()) {
                         // Título en pantalla
-                        p.sendTitle("§6" + segundos, "§ePreparándote...", 0, 22, 0);
+                        String title = plugin.getLang().get("game.countdown-title").replace("%time%", String.valueOf(segundos));
+                        String subtitle = plugin.getLang().get("game.countdown-subtitle");
+                        p.sendTitle(title, subtitle, 0, 22, 0);
                         p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1f, 1f);
                     }
                     segundos--;
@@ -70,17 +71,18 @@ public class ConfirmCommand implements CommandExecutor {
                     }
 
                     for (Player p : Bukkit.getOnlinePlayers()) {
-                        p.sendTitle("§a§l¡UHC HA COMENZADO!", "§7¡Buena suerte!", 10, 40, 20);
+                        String startTitle = plugin.getLang().get("game.started-title");
+                        String startSubtitle = plugin.getLang().get("game.started-subtitle");
+                        p.sendTitle(startTitle, startSubtitle, 10, 40, 20);
                         p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
                     }
 
-                    // Llamamos al manager para que empiece el Scoreboard y el tiempo
                     plugin.getRightPanelManager().iniciarPartida();
 
                     this.cancel();
                 }
             }
-        }.runTaskTimer(plugin, 20L, 20L); // 1 segundo de retraso para que cargue el TP
+        }.runTaskTimer(plugin, 20L, 20L); // 2 segundos de retraso para que cargue el TP
 
         return true;
     }

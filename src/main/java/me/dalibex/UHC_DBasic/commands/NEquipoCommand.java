@@ -5,24 +5,32 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 public class NEquipoCommand implements CommandExecutor {
+
+    private final UHC_DBasic plugin;
+
+    public NEquipoCommand(UHC_DBasic plugin) {
+        this.plugin = plugin;
+    }
+
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player)) return true;
-        Player p = (Player) sender;
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        if (!(sender instanceof Player p)) return true;
 
         if (args.length == 0) {
-            p.sendMessage("§c¡Debes escribir un nombre! /nequipo <nombre>");
+            p.sendMessage(plugin.getLang().get("teams.name-required"));
             return true;
         }
 
         String nombre = String.join(" ", args);
-        boolean exito = UHC_DBasic.getPlugin(UHC_DBasic.class).getTeamManager().renombrarEquipo(p, nombre);
+        boolean exito = plugin.getTeamManager().renombrarEquipo(p, nombre);
 
         if (!exito) {
-            p.sendMessage("§cNo puedes renombrar un equipo si no estás en uno.");
+            p.sendMessage(plugin.getLang().get("teams.no-team"));
         }
+
         return true;
     }
 }

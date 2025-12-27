@@ -15,37 +15,46 @@ public final class UHC_DBasic extends JavaPlugin {
     private ChatManager chatManager;
     private UHC_EventManager eventHandler;
     private SpecialCraftsManager specialCraftsManager;
+    private LanguageManager languageManager;
 
     @Override
     public void onEnable() {
-        getLogger().info("UHC_DBasic Plugin Enabled");
+        // 1. CARGAR CONFIGURACIÓN E IDIOMA
+        saveDefaultConfig();
 
-        // Registrar Managers
-        rightPanelManager = new RightPanelManager(this);
+        languageManager = new LanguageManager(this);
+
+        // 3. INICIALIZAR RESTO DE MANAGERS
         teamManager = new TeamManager();
+
+        rightPanelManager = new RightPanelManager(this);
         adminPanel = new AdminPanel();
         chatManager = new ChatManager();
         eventHandler = new UHC_EventManager(this);
         specialCraftsManager = new SpecialCraftsManager(this);
 
-        // Registrar Eventos
+        // 4. REGISTRAR EVENTOS
         getServer().getPluginManager().registerEvents(eventHandler, this);
         getServer().getPluginManager().registerEvents(chatManager, this);
 
-        // Registrar Comandos
-        getCommand("uhcadmin").setExecutor(new AdminPanelCommand());
-        getCommand("start").setExecutor(new StartCommand());
+        // 5. REGISTRAR COMANDOS
+        getCommand("uhcadmin").setExecutor(new AdminPanelCommand(this));
+        getCommand("start").setExecutor(new StartCommand(this));
         getCommand("reset").setExecutor(new PrepareWorldCommand(this));
         getCommand("confirmarstart").setExecutor(new ConfirmCommand(this));
-        getCommand("uhccommands").setExecutor(new GCommandsCommand());
-        getCommand("nequipo").setExecutor(new NEquipoCommand());
+        getCommand("uhccommands").setExecutor(new GCommandsCommand(this));
+        getCommand("nequipo").setExecutor(new NEquipoCommand(this));
         getCommand("tpartes").setExecutor(new TiempoPartesCommand(this));
 
-        // Comando de prueba TEST
+        getCommand("lang").setExecutor(new LangCommand(this));
+        getCommand("lang").setTabCompleter(new LangCommand(this));
+
         getCommand("test").setExecutor(((sender, command, s, strings) -> {
-            sender.sendMessage("§a¡El plugin de UHC está funcionando perfectamente!");
+            sender.sendMessage("§a¡Plugin works fine!");
             return true;
         }));
+
+        getLogger().info("UHC ELOUD Plugin Enabled");
     }
 
     @Override
@@ -73,13 +82,26 @@ public final class UHC_DBasic extends JavaPlugin {
         return specialCraftsManager;
     }
 
+    public LanguageManager getLang() {
+        return languageManager;
+    }
+
     public UHC_EventManager getEventHandler() {
         return eventHandler;
     }
 
+    public void setLanguage(String langCode) {
+        this.getConfig().set("language", langCode);
+        this.saveConfig();
+        this.reloadLanguageManager();
+    }
+    public void reloadLanguageManager() {
+        this.languageManager = new LanguageManager(this);
+        specialCraftsManager.actualizarReceta();
+    }
+
     @Override
     public void onDisable() {
-        // Plugin shutdown logic
         getLogger().info("UHC_DBasic Plugin Disabled");
     }
 }

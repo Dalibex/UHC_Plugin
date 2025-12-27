@@ -10,8 +10,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.Arrays;
-
 public class SpecialCraftsManager {
 
     private final UHC_DBasic plugin;
@@ -27,22 +25,13 @@ public class SpecialCraftsManager {
     }
 
     private void registrarGoldenHead() {
+        LanguageManager lang = plugin.getLang();
         ItemStack goldenHead = new ItemStack(Material.GOLDEN_APPLE);
         ItemMeta meta = goldenHead.getItemMeta();
 
         if (meta != null) {
-            meta.setDisplayName("§6§l§k! §e§lGOLDEN HEAD §6§l§k!");
-
-            meta.setLore(Arrays.asList(
-                    "§7§m-----------------------",
-                    "§6§lArtefacto Legendario",
-                    "§7Contiene la esencia de un caído.",
-                    "",
-                    "§6Efectos de Consumo:",
-                    " §8» §fRegeneración §eII §7(12s)",
-                    " §8» §fAbsorción §6II §7(5min)",
-                    "§7§m-----------------------"
-            ));
+            meta.setDisplayName(lang.get("crafts.golden-head.name"));
+            meta.setLore(lang.getList("crafts.golden-head.lore"));
 
             meta.addEnchant(Enchantment.LUCK_OF_THE_SEA, 1, true);
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
@@ -51,6 +40,10 @@ public class SpecialCraftsManager {
         }
 
         NamespacedKey key = new NamespacedKey(plugin, "golden_head");
+        if (Bukkit.getRecipe(key) != null) {
+            Bukkit.removeRecipe(key);
+        }
+
         ShapedRecipe recipe = new ShapedRecipe(key, goldenHead);
 
         /*
@@ -63,5 +56,14 @@ public class SpecialCraftsManager {
         recipe.setIngredient('H', Material.PLAYER_HEAD);
 
         Bukkit.addRecipe(recipe);
+    }
+
+    // Por cambio de idioma
+    public void actualizarReceta() {
+        NamespacedKey key = new NamespacedKey(plugin, "golden_head");
+        if (Bukkit.getRecipe(key) != null) {
+            Bukkit.removeRecipe(key);
+        }
+        registrarGoldenHead();
     }
 }

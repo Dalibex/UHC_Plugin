@@ -1,0 +1,247 @@
+# General system messages
+general:
+  prefix: "&e&lUHC ELOUD > &f"
+  error-prefix: "&c&lERROR > &7"
+  no-permission: "&cThis command is for administrators only."
+  only-players: "&cThis command is for players only."
+
+# Game, start and confirmation commands
+game:
+  countdown-title: "&6%time%"
+  countdown-subtitle: "&eGetting ready..."
+  started-title: "&a&lUHC HAS BEGUN!"
+  started-subtitle: "&7Good luck!"
+  player-head-name: "&6%player%'s &eHead"
+  border-not-started: "&c&l⚠ &cYou cannot adjust the border because the game hasn't started."
+  border-update: "&7[&bBorder&7] &fNew size: &6%size%x%size%"
+  team-size-max: "&cMaximum team size is 4."
+  team-size-error: "&cNot enough players! You need at least %min% for teams of %n%"
+  time-min-error: "&cMinimum time is 1 minute."
+  time-update: "%prefix%&fPart duration adjusted to: &b%time% minutes&f."
+  time-button-name: "%prefix%%amount% Minute"
+  time-button-name-plural: "%prefix%%amount% Minutes"
+  border-button-name: "%prefix%%amount% Blocks"
+
+# Text shown in the command help list
+help:
+  header: "&8&m--------------&r &6&lUHC ELOUD COMMANDS &8&m--------------"
+  footer: "&8&m---------------------------------------------------"
+  commands_list:
+    - ""
+    - "&e/reset &7- &fPrepares world, rules and panel. (Use at server start)"
+    - ""
+    - "&e/start <size> &7- &fCountdown after confirm, teleports and sets rules."
+    - ""
+    - "&e/test &7- &fVerifies if the plugin is responding correctly."
+    - ""
+    - "&e/uhcadmin &7- &fOpens the administrator panel."
+    - ""
+    - "&e/nequipo <name> &7- &fRename or set your team name."
+    - ""
+    - "&e/tpartes <H> <M> <S> &7- &fManually adjust part durations."
+    - ""
+    - "&e/lang <language> &7- &fChanges language."
+    - ""
+
+# Team creation and renaming
+teams:
+  name-required: "&cYou must enter a name! /nequipo <name>"
+  no-team: "&cYou cannot rename a team if you are not in one."
+  rename-success: "&aYour team name is now: &e%name%&a!"
+  prefix-format: "&f[%color%%name%&f] "
+  assigned: "%prefix%&fYou have been assigned to %color%%name%"
+  founded: "%prefix%&fThe team %color%%name% &fhas been founded!"
+  renamed: "%prefix%&fThe team %color%%old% &fnow is known as: %color%%new%"
+
+# /reset usage
+lobby:
+  reset-success: "%prefix%World successfully prepared/reset"
+
+# Start menu section
+start-menu:
+  usage: "%error-prefix%Correct usage: /start <size>"
+  buttons:
+    confirm:
+      text: "&a[START UHC]"
+      hover: "&7START and initiate the countdown"
+    cancel:
+      text: "&c[CANCEL]"
+      hover: "&7Do nothing, cancel action"
+
+# Game timer section
+timer:
+  usage:
+    - "&c&lERROR &8> &fCorrect usage: /tpartes <hours> <minutes> <seconds>"
+    - "&7Example for 10 sec: &f/tpartes 0 0 10"
+    - "&7Example for 20 min: &f/tpartes 0 20 0"
+  already-started: "&cThe game has already started, you cannot change this now."
+  invalid-number: "&cError: You must enter whole numbers."
+  too-short: "&cTotal time must be greater than 0 seconds."
+  success: "%prefix%&fEach part duration adjusted to: &e%time%"
+
+### ---------- MANAGERS SECTION ---------- ###
+
+# Admin panel chat messages
+admin-messages:
+  combat-toggle: "%prefix%1.8 Combat has been %state%"
+  offhand-toggle: "%prefix%Offhand and shields have been %state%"
+  state-enabled: "&aENABLED"
+  state-disabled: "&cDISABLED"
+  state-blocked: "&cBLOCKED"
+  state-allowed: "&aALLOWED"
+
+# Menu translations (GUIs)
+menus:
+  common:
+    back: "&cBack"
+    status: "&7Status: "
+    enabled: "&aEnabled"
+    disabled: "&cDisabled"
+    click-to-toggle: "&eClick to toggle"
+    locked: "&c⚠ LOCKED"
+    locked-lore: "&7You cannot change this once the game has started."
+  rules:
+    nat-regen: "&bNatural Regeneration"
+    pvp: "&bPVP"
+    day-night: "&bDay/Night Cycle"
+    monsters: "&bMonster Spawning"
+    advancements: "&bAdvancement Messages"
+    trader: "&bWandering Trader Spawning"
+    locator: "&bLocator Bar"
+
+  main-admin:
+    title: "&8⚙ UHC Admin Panel"
+    combat-item:
+      name: "&bClassic Combat Settings"
+      lore:
+        - "&71.8 Combat: %status18%"
+        - "&7Shields, Offhand: %statusOffhand%"
+        - ""
+        - "&bLeft Click: &7Toggle 1.8 Cooldown"
+        - "&bRight Click: &7Toggle Offhand/Shields"
+    rules-item:
+      name: "&bChange GameRules"
+      lore: ["&7Click to view and edit", "&7server rules."]
+    border-item:
+      name: "&5Border Settings"
+      lore: ["&7Manage the size ", "&7of the play zone."]
+    time-item:
+      name: "&6Match Control"
+      lore: ["&7Pause or resume the timer."]
+    teams-item:
+      name: "&aConfigure Teams"
+      name-locked: "&7&mConfigure Teams"
+      size-solos: "Solos"
+      size-teams: "Teams of %n%"
+      lore:
+        - "&7Current size: &e%size%"
+        - ""
+        - "&fPlayers online: &b%online%"
+        - "&fResulting teams: &b%total%"
+        - ""
+        - "&bLeft Click: &7Increase (+1)"
+        - "&bRight Click: &7Decrease (-1)"
+      balance-warning: "&e⚠ &iDistribution will be balanced (ex: 3, 2, 2)"
+
+  gamerules:
+    title: "&8⚙ Change GameRules"
+
+  barrier:
+    title: "&8⚖ Adjust Border Size"
+    current-size:
+      name: "&bCurrent Size"
+      lore: "&fThe border is: &6%size%x%size%"
+    change-lore: "&7Change the border by &f%amount% &7blocks."
+
+  time:
+    title: "&8⏲ Time Control"
+    info-item:
+      name: "&eTime per Chapter"
+      lore:
+        - "&fCurrent duration: &b%time%"
+        - ""
+        - "&7You can use &f/tpartes H M S"
+        - "&7for precise adjustment."
+    change-lore: "&7Change duration by &f%amount% &7minutes per part."
+    pause: "&7⏸ Pause Game"
+    resume: "&a▶ Resume Game"
+
+chat:
+  global-tag: "&cGLOBAL"
+  private-tag: "&aPRIVATE"
+  empty-global-error: "&cYou must write a message after the !"
+  format-global: "&8[&r%tag%&8] &8[&r%color%%team%&8] &f%player%: &7%msg%"
+  format-team: "&8[&b%team%&8] &f%player%: &f%msg%"
+  format-private: "&8[&r%tag%&8] &f%player%: &f%msg%"
+
+# Victory and endgame announcements
+victory:
+  broadcast-header: "&e&l🎉 CONGRATULATIONS, %color%%team%&e:"
+  broadcast-footer: "&6&lThey are the UHC winners!"
+  title: "&6🏆 VICTORY! 🏆"
+  subtitle: "%color%%team% &fhas won"
+  no-survivors: "&c☠ The game ended with no survivors."
+  scoreboard-title: "&6&l!VICTORIA!"
+  scoreboard-winner: "&fWinning team: %color%%team%"
+
+# Chapter and event announcements
+game-events:
+  chapter-start: "%prefix%&fPart &a%chapter% &fhas started"
+  final-phase:
+    - ""
+    - "&8&m------------------------------------"
+    - "&c&lTIME IS UP! &c⚔"
+    - "&fHead to X=0 Z=0 for the final battle"
+    - "&8&m------------------------------------"
+  teams-formed: "&6&lTEAMS HAVE BEEN FORMED! ⚔"
+  pvp-enabled:
+    - ""
+    - "&8&m------------------------------------"
+    - "&c&lPVP HAS BEEN ENABLED! &c⚔"
+    - "&fThe gentleman's agreement has ended"
+    - "&8&m------------------------------------"
+
+# Scoreboard (Right sidebar)
+scoreboard:
+  title: "&6&lELOUD UHC"
+  waiting: " &6>> &7Waiting... "
+  players: " &fPlayers: &b%online% &d👥 "
+  phase: " &fCurrent part: &a%chapter%"
+  finalized: " &6&lTIME IS UP!"
+  go-center: " &fGo to X=0 Z=0"
+  pvp-label: " &fPVP: %status%"
+  pvp-pact: "&eGentleman's pact "
+  pvp-active: "&c&lACTIVE &4⚔ "
+  team-label: " &b🛡 &fTeam: %color%%name%"
+  team-rename-warn: " &c⚠ &7Use /nequipo"
+  team-assigning: " &d👥 &7Assigning..."
+  team-mates-label: " &d👥 &fTeam: %color%%name%"
+  mate-offline: " &7[OFF]"
+  mate-dead: " &c✘"
+  no-mates: " &7&oTeammates: &c✘"
+  time-total-label: " &c⏳ &lTotal Time"
+  time-next-label: " &d⌚ &lNext part"
+
+# Special items
+tracking-compass:
+  name: "&b&lTeammate Tracker"
+  lore: ["&7Points towards the nearest ally.", "&eDon't lose it!"]
+  inv-full: "&b&l» &cInventory full! &fYour tracker dropped on the ground."
+  received: "&b&l» &fYou received a team &bTracker&f."
+
+crafts:
+  golden-head:
+    name: "&6&l&k! &e&lGOLDEN HEAD &6&l&k!"
+    lore:
+      - "&7&m-----------------------"
+      - "&6&lLegendary Artifact"
+      - "&7Contains the essence of the fallen."
+      - ""
+      - "&6Consumption Effects:"
+      - " &8» &fRegeneration &eII &7(12s)"
+      - " &8» &fAbsorption &6II &7(5min)"
+      - "&7&m-----------------------"
+
+# Compass action
+compass:
+  tracking-actionbar: "&bTracking: &f%player% &7(&a%dist%m&7)"

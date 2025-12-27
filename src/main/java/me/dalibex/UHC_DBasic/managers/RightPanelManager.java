@@ -5,9 +5,6 @@ import me.dalibex.UHC_DBasic.UHC_DBasic;
 import org.bukkit.*;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -19,7 +16,6 @@ import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class RightPanelManager {
 
@@ -53,29 +49,19 @@ public class RightPanelManager {
                     break;
                 }
             }
-            if (tieneVivos) {
-                equiposVivos.add(team);
-            }
+            if (tieneVivos) equiposVivos.add(team);
         }
 
-        if (equiposVivos.size() == 1) {
-            Team ganador = equiposVivos.get(0);
-            finalizarPartida(ganador);
-        }
-        else if (equiposVivos.isEmpty()) {
-            finalizarPartida(null);
-        }
+        if (equiposVivos.size() == 1) finalizarPartida(equiposVivos.get(0));
+        else if (equiposVivos.isEmpty()) finalizarPartida(null);
     }
     private void finalizarPartida(Team ganador) {
-        if (partidaTask != null) {
-            partidaTask.cancel();
-            partidaTask = null;
-        }
+        LanguageManager lang = plugin.getLang();
+        if (partidaTask != null) { partidaTask.cancel(); partidaTask = null; }
 
         if (ganador != null) {
             List<String> nombresGanadores = new ArrayList<>();
             List<Player> jugadoresGanadores = new ArrayList<>();
-
             for (String entry : ganador.getEntries()) {
                 if (!jugadoresEliminados.contains(entry)) {
                     nombresGanadores.add(entry);
@@ -85,306 +71,200 @@ public class RightPanelManager {
             }
 
             String listaNombres = String.join(", ", nombresGanadores);
-            ChatColor colorTeam = ganador.getColor();
             String nombreEquipo = ganador.getDisplayName();
+            String color = ganador.getColor().toString();
 
             Bukkit.broadcastMessage("");
-            Bukkit.broadcastMessage("§e§l🎉 FELICIDADES, " + colorTeam + nombreEquipo + "§e:");
+            Bukkit.broadcastMessage(lang.get("victory.broadcast-header").replace("%color%", color).replace("%team%", nombreEquipo));
             Bukkit.broadcastMessage("§f" + listaNombres);
-            Bukkit.broadcastMessage("§6§l¡Han sido los ganadores del UHC!");
+            Bukkit.broadcastMessage(lang.get("victory.broadcast-footer"));
             Bukkit.broadcastMessage("");
 
             for (Player p : Bukkit.getOnlinePlayers()) {
-                p.sendTitle("§6🏆 ¡VICTORIA! 🏆", colorTeam + nombreEquipo + " ha ganado", 10, 100, 20);
+                p.sendTitle(lang.get("victory.title"), lang.get("victory.subtitle").replace("%color%", color).replace("%team%", nombreEquipo), 10, 100, 20);
                 p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
-                mostrarScoreboardVictoria(p, ganador);
+                mostrarScoreboardVictoria(p, ganador, lang);
             }
 
             new BukkitRunnable() {
-                int segundos = 0;
-                @Override
-                public void run() {
-                    if (segundos >= 10) {
-                        this.cancel();
-                        return;
-                    }
-                    for (Player winner : jugadoresGanadores) {
-                        if (winner.isOnline()) {
-                            lanzarCohete(winner.getLocation());
-                        }
-                    }
-                    segundos++;
+                int seg = 0;
+                @Override public void run() {
+                    if (seg >= 10) { this.cancel(); return; }
+                    for (Player w : jugadoresGanadores) if (w.isOnline()) lanzarCohete(w.getLocation());
+                    seg++;
                 }
             }.runTaskTimer(plugin, 0L, 20L);
-
         } else {
-            Bukkit.broadcastMessage("§c☠ La partida ha terminado sin supervivientes.");
+            Bukkit.broadcastMessage(lang.get("victory.no-survivors"));
         }
     }
-    private void lanzarCohete(Location loc) {
-        Firework fw = loc.getWorld().spawn(loc, Firework.class);
-        FireworkMeta fwm = fw.getFireworkMeta();
-
-        fwm.addEffect(FireworkEffect.builder()
-                .withColor(Color.GREEN)
-                .withFade(Color.YELLOW)
-                .with(FireworkEffect.Type.BALL_LARGE)
-                .withTrail()
-                .build());
-        fwm.setPower(1);
-        fw.setFireworkMeta(fwm);
-    }
-    private void mostrarScoreboardVictoria(Player player, Team ganador) {
+    private void mostrarScoreboardVictoria(Player player, Team ganador, LanguageManager lang) {
         Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
-        Objective obj = board.registerNewObjective("victoria", "dummy", "§6§l!VICTORIA!");
+        Objective obj = board.registerNewObjective("victoria", "dummy", lang.get("victory.scoreboard-title"));
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
-
         obj.numberFormat(NumberFormat.blank());
         obj.getScore("§1 ").setScore(2);
-
-        String textoGanador = "§fEquipo ganador: " + ganador.getColor() + ganador.getDisplayName();
-        obj.getScore(textoGanador).setScore(1);
-
+        obj.getScore(lang.get("victory.scoreboard-winner").replace("%color%", ganador.getColor().toString()).replace("%team%", ganador.getDisplayName())).setScore(1);
         player.setScoreboard(board);
     }
     // ------------------------------------------------
 
-    // --- CONTROL DE PARTIDA Y REINICIO, TIMERS ---
     public void setStandBy() {
-        if (partidaTask != null) {
-            partidaTask.cancel();
-            partidaTask = null;
-        }
-        cronometroSegundos = 0;
-        tiempoTotalSegundos = 0;
-        capitulo = 1;
-        equiposFormados = false;
-        jugadoresEliminados.clear();
-
+        if (partidaTask != null) { partidaTask.cancel(); partidaTask = null; }
+        cronometroSegundos = 0; tiempoTotalSegundos = 0; capitulo = 1;
+        equiposFormados = false; jugadoresEliminados.clear();
         for (Player p : Bukkit.getOnlinePlayers()) {
-            actualizarScoreboard(p, "§eEsperando...", "", false);
+            actualizarScoreboard(p, "00:00", "00:00", false);
         }
     }
 
     public void iniciarPartida() {
         if (partidaTask != null) partidaTask.cancel();
-        pausado = false;
-        equiposFormados = false;
-        jugadoresEliminados.clear();
+        pausado = false; equiposFormados = false; jugadoresEliminados.clear();
+        LanguageManager lang = plugin.getLang();
 
         partidaTask = new BukkitRunnable() {
             @Override
             public void run() {
-                TeamManager tm = plugin.getTeamManager();
                 if (pausado) return;
+                TeamManager tm = plugin.getTeamManager();
+                if (cronometroSegundos == 1 && tm.getTeamSize() == 1 && !equiposFormados) { tm.shuffleTeams(); equiposFormados = true; }
 
-                if (cronometroSegundos == 1 && tm.getTeamSize() == 1 && !equiposFormados) {
-                    tm.shuffleTeams();
-                    equiposFormados = true;
-                }
-
-                cronometroSegundos++;
-                tiempoTotalSegundos++;
-
-                int tiempoRestanteEnCapitulo = segundosPorCapitulo - (cronometroSegundos % segundosPorCapitulo);
+                cronometroSegundos++; tiempoTotalSegundos++;
+                int restante = segundosPorCapitulo - (cronometroSegundos % segundosPorCapitulo);
 
                 if (cronometroSegundos % segundosPorCapitulo == 0) {
                     capitulo++;
                     if (capitulo < 10) {
-                        Bukkit.broadcastMessage("§e§lUHC ELOUD > §fHa comenzado la §aParte " + capitulo);
-                        for (Player p : Bukkit.getOnlinePlayers()) {
-                            p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
-                        }
+                        Bukkit.broadcastMessage(lang.get("game-events.chapter-start").replace("%prefix%", lang.get("general.prefix")).replace("%chapter%", String.valueOf(capitulo)));
+                        for (Player p : Bukkit.getOnlinePlayers()) p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
                     }
-
                     if (capitulo == 10) {
-                        Bukkit.broadcastMessage("");
-                        Bukkit.broadcastMessage("§8§m------------------------------------");
-                        Bukkit.broadcastMessage("§c§l¡EL TIEMPO HA TERMINADO! §c⚔");
-                        Bukkit.broadcastMessage("§fDirígete a X=0 Z=0 para la pelea final");
-                        Bukkit.broadcastMessage("§8§m------------------------------------");
-                        for (Player p : Bukkit.getOnlinePlayers()) {
-                            p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
-                        }
+                        for (String s : lang.getList("game-events.final-phase")) Bukkit.broadcastMessage(s);
+                        for (Player p : Bukkit.getOnlinePlayers()) p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
                     }
-
                     if (capitulo == 3 && tm.getTeamSize() > 1 && !equiposFormados) {
-                        tm.shuffleTeams();
-                        entregarBrujulasDeSeguimiento();
+                        tm.shuffleTeams(); entregarBrujulasDeSeguimiento(lang);
                         equiposFormados = true;
-                        Bukkit.broadcastMessage("§6§l¡LOS EQUIPOS HAN SIDO FORMADOS! ⚔");
-
+                        Bukkit.broadcastMessage(lang.get("game-events.teams-formed"));
                     }
-
                     if (capitulo == 4) {
-                        Bukkit.broadcastMessage("");
-                        Bukkit.broadcastMessage("§8§m------------------------------------");
-                        Bukkit.broadcastMessage("§c§l¡EL PVP SE HA ACTIVADO! §c⚔");
-                        Bukkit.broadcastMessage("§fEl pacto de caballeros ha finalizado");
-                        Bukkit.broadcastMessage("§8§m------------------------------------");
-                        for (Player p : Bukkit.getOnlinePlayers()) {
-                            p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
-                        }
+                        for (String s : lang.getList("game-events.pvp-enabled")) Bukkit.broadcastMessage(s);
+                        for (Player p : Bukkit.getOnlinePlayers()) p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
                     }
                 }
-
-                String tiempoFormateado = formatTime(tiempoRestanteEnCapitulo);
-                String tiempoTotal = formatTime(tiempoTotalSegundos);
-
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    actualizarScoreboard(p, tiempoFormateado, tiempoTotal, true);
-                }
-
+                for (Player p : Bukkit.getOnlinePlayers()) actualizarScoreboard(p, formatTime(restante), formatTime(tiempoTotalSegundos), true);
                 plugin.getEventHandler().onCompassTrack();
             }
         }.runTaskTimer(plugin, 0L, 20L);
     }
 
-    private void entregarBrujulasDeSeguimiento() {
-        ItemStack trackingCompass = new ItemStack(Material.COMPASS);
-        ItemMeta meta = trackingCompass.getItemMeta();
-
-        meta.setDisplayName("§b§lLocalizador de Compañeros");
-        meta.setLore(Arrays.asList("§7Apunta hacia el aliado más cercano.", "§e¡No la pierdas!"));
-
+    private void entregarBrujulasDeSeguimiento(LanguageManager lang) {
+        ItemStack compass = new ItemStack(Material.COMPASS);
+        ItemMeta meta = compass.getItemMeta();
+        meta.setDisplayName(lang.get("tracking-compass.name"));
+        meta.setLore(lang.getList("tracking-compass.lore"));
         meta.addEnchant(org.bukkit.enchantments.Enchantment.LUCK_OF_THE_SEA, 1, true);
         meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
-
-        trackingCompass.setItemMeta(meta);
+        compass.setItemMeta(meta);
 
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if (!jugadoresEliminados.contains(p.getName())) {
-
-                java.util.Map<Integer, ItemStack> sobrantes = p.getInventory().addItem(trackingCompass);
-                if (!sobrantes.isEmpty()) {
-                    for (ItemStack item : sobrantes.values()) {
-                        p.getWorld().dropItemNaturally(p.getLocation(), item);
-                    }
-                    p.sendMessage("§b§l» §c¡Inventario lleno! §fTu localizador ha caído al suelo.");
-                } else {
-                    p.sendMessage("§b§l» §fHas recibido un §bLocalizador §fde equipo.");
-                }
-
-                p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, 1f, 1f);
-            }
+            if (jugadoresEliminados.contains(p.getName())) continue;
+            if (!p.getInventory().addItem(compass).isEmpty()) {
+                p.getWorld().dropItemNaturally(p.getLocation(), compass);
+                p.sendMessage(lang.get("tracking-compass.inv-full"));
+            } else p.sendMessage(lang.get("tracking-compass.received"));
+            p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, 1f, 1f);
         }
     }
 
     private void actualizarScoreboard(Player player, String tiempo, String tiempoTotal, boolean partidaActiva) {
+        LanguageManager lang = plugin.getLang();
         Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
-        Objective obj = board.registerNewObjective("uhc", "dummy", "§6§lELOUD UHC");
-        obj.numberFormat(NumberFormat.blank());
+        Objective obj = board.registerNewObjective("uhc", "dummy", lang.get("scoreboard.title"));
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
+        obj.numberFormat(NumberFormat.blank());
 
         if (!partidaActiva) {
             obj.getScore("§1 ").setScore(5);
-            obj.getScore(" §6>> §8Esperando... ").setScore(4);
+            obj.getScore(lang.get("scoreboard.waiting")).setScore(4);
             obj.getScore("§2 ").setScore(3);
-            obj.getScore(" §fJugadores: §b" + Bukkit.getOnlinePlayers().size() + " §7👥 ").setScore(2);
+            obj.getScore(lang.get("scoreboard.players").replace("%online%", String.valueOf(Bukkit.getOnlinePlayers().size()))).setScore(2);
             obj.getScore("§3 ").setScore(1);
         } else {
             int teamSize = plugin.getTeamManager().getTeamSize();
             Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(player.getName());
-            String pvpStatus = (capitulo < 4) ? "§ePacto de caballeros " : "§4§lACTIVO §4⚔ ";
+            String pvpStatus = (capitulo < 4) ? lang.get("scoreboard.pvp-pact") : lang.get("scoreboard.pvp-active");
 
             obj.getScore("§4 ").setScore(23);
-            if (capitulo < 10) {
-                obj.getScore(" §fParte actual: §a" + capitulo).setScore(22);
-            } else {
-                obj.getScore(" §6§lFINALIZADO!").setScore(21);
-                obj.getScore(" §fDirígete a X=0 Z=0").setScore(20);
+            if (capitulo < 10) obj.getScore(lang.get("scoreboard.phase").replace("%chapter%", String.valueOf(capitulo))).setScore(22);
+            else {
+                obj.getScore(lang.get("scoreboard.finalized")).setScore(21);
+                obj.getScore(lang.get("scoreboard.go-center")).setScore(20);
                 obj.getScore("§5 ").setScore(19);
             }
-            obj.getScore(" §fPVP: " + pvpStatus).setScore(18);
+            obj.getScore(lang.get("scoreboard.pvp-label").replace("%status%", pvpStatus)).setScore(18);
             obj.getScore("§6 ").setScore(17);
 
-            int nextScore = 16;
+            int next = 16;
             if (teamSize == 1) {
-                String lineaSolos = (team != null && !team.getPrefix().contains("team_"))
-                        ? " §b🛡 §fEquipo: " + team.getColor() + team.getDisplayName()
-                        : " §c⚠ §7Usa /nequipo";
-                obj.getScore(lineaSolos).setScore(nextScore--);
+                String line = (team != null && !team.getPrefix().contains("team_")) ?
+                        lang.get("scoreboard.team-label").replace("%color%", team.getColor().toString()).replace("%name%", team.getDisplayName()) : lang.get("scoreboard.team-rename-warn");
+                obj.getScore(line).setScore(next--);
             } else {
                 if (capitulo < 3) {
-                    for (int i = 1; i <= (teamSize - 1); i++) {
-                        obj.getScore(" §d👥 §f: §k??????" + (new String(new char[i]).replace("\0", " "))).setScore(nextScore--);
-                    }
+                    for (int i = 1; i < teamSize; i++) obj.getScore(" §d👥 §f: §k??????" + (" ".repeat(i))).setScore(next--);
                 } else {
-                    String lineaNombre;
-                    if (team != null && !team.getPrefix().contains("team_")) {
-                        lineaNombre = " §d👥 §fEquipo: " + team.getColor() + team.getDisplayName();
-                    } else if (team != null) {
-                        lineaNombre = " §c⚠ §7Usa /nequipo";
-                    } else {
-                        lineaNombre = " §d👥 §7Asignando...";
-                    }
-
-                    obj.getScore(lineaNombre).setScore(nextScore--);
-
+                    String line = (team != null && !team.getPrefix().contains("team_")) ? lang.get("scoreboard.team-mates-label").replace("%color%", team.getColor().toString()).replace("%name%", team.getDisplayName()) :
+                            (team != null ? lang.get("scoreboard.team-rename-warn") : lang.get("scoreboard.team-assigning"));
+                    obj.getScore(line).setScore(next--);
                     if (team != null) {
-                        boolean tieneCompañerosVivos = false;
+                        boolean survivors = false;
                         for (String entry : team.getEntries()) {
                             if (entry.equals(player.getName())) continue;
-
-                            String textoVida;
-                            String prefixColor = "§f";
-
-                            // LÓGICA DE MUERTE PERSISTENTE
-                            if (jugadoresEliminados.contains(entry)) {
-                                prefixColor = "§7§m";
-                                textoVida = " §c✘";
-                            } else {
-                                Player member = Bukkit.getPlayer(entry);
-                                if (member != null && member.isOnline()) {
-                                    tieneCompañerosVivos = true;
-                                    double salud = member.getHealth();
-                                    String colorS = (salud > 15) ? "§a" : (salud > 10) ? "§2" : (salud > 5) ? "§e" : "§c";
-                                    textoVida = " " + colorS + (int)salud + "§4❤";
-                                } else {
-                                    textoVida = " §7[OFF]";
-                                }
+                            String healthText; String colorPrefix = "§f";
+                            if (jugadoresEliminados.contains(entry)) { colorPrefix = "§7§m"; healthText = lang.get("scoreboard.mate-dead"); }
+                            else {
+                                Player m = Bukkit.getPlayer(entry);
+                                if (m != null && m.isOnline()) {
+                                    survivors = true; double h = m.getHealth();
+                                    String c = (h > 15) ? "§a" : (h > 10) ? "§2" : (h > 5) ? "§e" : "§c";
+                                    healthText = " " + c + (int)h + "§4❤";
+                                } else healthText = lang.get("scoreboard.mate-offline");
                             }
-                            obj.getScore(" §8> " + prefixColor + entry + textoVida).setScore(nextScore--);
+                            obj.getScore(" §8> " + colorPrefix + entry + healthText).setScore(next--);
                         }
-                        if (!tieneCompañerosVivos && teamSize > 1) {
-                            obj.getScore(" §7§oCompañeros: §c✘").setScore(nextScore--);
-                        }
+                        if (!survivors && teamSize > 1) obj.getScore(lang.get("scoreboard.no-mates")).setScore(next--);
                     }
                 }
             }
-
-            obj.getScore("§6 ").setScore(nextScore--);
-            obj.getScore(" §4⏳ §lTiempo Acumulado").setScore(nextScore--);
-            obj.getScore("§6> §f" + tiempoTotal).setScore(nextScore--);
-            obj.getScore("§7 ").setScore(nextScore--);
-
+            obj.getScore("§6 ").setScore(next--);
+            obj.getScore(lang.get("scoreboard.time-total-label")).setScore(next--);
+            obj.getScore("§6> §f" + tiempoTotal).setScore(next--);
+            obj.getScore("§7 ").setScore(next--);
             if (capitulo < 10) {
-                obj.getScore(" §5⌚ §lSiguiente parte").setScore(nextScore--);
-                obj.getScore("§6> §f" + tiempo).setScore(nextScore--);
-                obj.getScore("§8 ").setScore(nextScore--);
+                obj.getScore(lang.get("scoreboard.time-next-label")).setScore(next--);
+                obj.getScore("§6> §f" + tiempo).setScore(next--);
             }
         }
-
         player.setScoreboard(board);
     }
-    private String formatTime(int segundosTotales) {
-        int h = segundosTotales / 3600;
-        int m = (segundosTotales % 3600) / 60;
-        int s = segundosTotales % 60;
 
-        if (h > 0) {
-            return String.format("%02d:%02d:%02d", h, m, s);
-        } else {
-            return String.format("%02d:%02d", m, s);
-        }
+    private String formatTime(int s) {
+        int h = s / 3600; int m = (s % 3600) / 60; int sec = s % 60;
+        return (h > 0) ? String.format("%02d:%02d:%02d", h, m, sec) : String.format("%02d:%02d", m, sec);
     }
-    // ------------------------------------------------
 
-    // Getters y setters
-    public void setPausado(boolean estado) { this.pausado = estado; }
+    private void lanzarCohete(Location loc) {
+        Firework fw = loc.getWorld().spawn(loc, Firework.class); FireworkMeta fwm = fw.getFireworkMeta();
+        fwm.addEffect(FireworkEffect.builder().withColor(Color.GREEN).withFade(Color.YELLOW).with(FireworkEffect.Type.BALL_LARGE).withTrail().build());
+        fwm.setPower(1); fw.setFireworkMeta(fwm);
+    }
+
+    public void setPausado(boolean e) { this.pausado = e; }
     public boolean isPausado() { return pausado; }
     public int getTiempoTotalSegundos() { return tiempoTotalSegundos; }
     public int getSegundosPorCapitulo() {return segundosPorCapitulo; }
-    public void setSegundosPorCapitulo(int segundos) {this.segundosPorCapitulo = segundos;}
+    public void setSegundosPorCapitulo(int s) {this.segundosPorCapitulo = s;}
     public Set<String> getJugadoresEliminados() { return jugadoresEliminados; }
 }
