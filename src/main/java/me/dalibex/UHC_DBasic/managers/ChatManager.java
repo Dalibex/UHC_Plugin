@@ -22,7 +22,7 @@ public class ChatManager implements Listener {
 
         event.setCancelled(true);
 
-        // 1. CHAT GLOBAL FORZADO (Empieza con "!")
+        // 1. CHAT GLOBAL (Empieza con "!")
         if (mensaje.startsWith("!")) {
             String mensajeLimpio = mensaje.substring(1).trim();
 
@@ -35,7 +35,7 @@ public class ChatManager implements Listener {
             return;
         }
 
-        // 2. LOGICA DE CHAT PRIVADO / EQUIPO
+        // 2. LOGICA DE CHAT DE EQUIPO
         if (team != null) {
             for (String entry : team.getEntries()) {
                 Player member = Bukkit.getPlayer(entry);
@@ -50,7 +50,7 @@ public class ChatManager implements Listener {
             Bukkit.getConsoleSender().sendMessage("[TeamChat] " + p.getName() + ": " + mensaje);
 
         } else {
-            // Mensaje para jugadores sin equipo (se traduce según su idioma)
+            // Mensaje para jugadores sin equipo
             String formatoPrivado = lang.get("chat.format-private", p)
                     .replace("%tag%", lang.get("chat.private-tag", p))
                     .replace("%player%", p.getName())
@@ -61,17 +61,16 @@ public class ChatManager implements Listener {
     }
 
     private void enviarMensajeGlobal(Player p, Team team, String msg, LanguageManager lang) {
-        String teamName = (team != null) ? team.getDisplayName() : "";
         ChatColor colorName = (team != null) ? team.getColor() : ChatColor.GRAY;
 
         for (Player receptor : Bukkit.getOnlinePlayers()) {
             String formatoGlobal = lang.get("chat.format-global", receptor)
                     .replace("%tag%", lang.get("chat.global-tag", receptor))
                     .replace("%color%", colorName.toString())
-                    .replace("%team%", teamName)
+                    .replace("%team%", "")
+                    .replace("[]", "")
                     .replace("%player%", p.getName())
                     .replace("%msg%", msg);
-
             receptor.sendMessage(formatoGlobal);
         }
 

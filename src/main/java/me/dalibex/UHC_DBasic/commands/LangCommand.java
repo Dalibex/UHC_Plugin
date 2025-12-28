@@ -7,6 +7,7 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+import org.bukkit.scoreboard.DisplaySlot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -44,6 +45,10 @@ public class LangCommand implements CommandExecutor, TabCompleter {
 
         if (langCode.equals("es") || langCode.equals("en")) {
             plugin.getLang().setPlayerLanguage(p, langCode);
+
+            if (p.getScoreboard().getObjective(DisplaySlot.SIDEBAR) != null) {
+                plugin.getRightPanelManager().actualizarScoreboard(p, "00:00", "00:00", false);
+            }
 
             String prefix = plugin.getLang().get("general.prefix", p);
             String confirmMsg = plugin.getLang().get("lang-switch", p).replace("%prefix%", prefix);

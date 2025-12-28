@@ -78,7 +78,6 @@ public class RightPanelManager {
             String nombreEquipo = ganador.getDisplayName();
             String color = ganador.getColor().toString();
 
-            // Broadcast multilingüe: se envía a cada jugador en su idioma
             for (Player p : Bukkit.getOnlinePlayers()) {
                 p.sendMessage("");
                 p.sendMessage(lang.get("victory.broadcast-header", p).replace("%color%", color).replace("%team%", nombreEquipo));
@@ -108,7 +107,6 @@ public class RightPanelManager {
 
     private void mostrarScoreboardVictoria(Player player, Team ganador, LanguageManager lang) {
         Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
-        // Título de victoria localizado
         Objective obj = board.registerNewObjective("victoria", "dummy", lang.get("victory.scoreboard-title", player));
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
         obj.numberFormat(NumberFormat.blank());
@@ -121,6 +119,7 @@ public class RightPanelManager {
         if (partidaTask != null) { partidaTask.cancel(); partidaTask = null; }
         cronometroSegundos = 0; tiempoTotalSegundos = 0; capitulo = 1;
         equiposFormados = false; jugadoresEliminados.clear();
+        shulkerEntregado = false;
 
         Scoreboard managerBoard = Bukkit.getScoreboardManager().getMainScoreboard();
 
@@ -132,6 +131,7 @@ public class RightPanelManager {
         }
 
         for (Player p : Bukkit.getOnlinePlayers()) {
+            p.setPlayerListName(p.getName());
             p.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
             actualizarScoreboard(p, "00:00", "00:00", false);
         }
@@ -143,6 +143,7 @@ public class RightPanelManager {
         LanguageManager lang = plugin.getLang();
 
         for(Player p : Bukkit.getOnlinePlayers()) {
+            p.setPlayerListName(p.getName());
             p.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_DAMAGE, 1, 0, false, false, false));
             p.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_HEALTH, 1, 0, false, false, false));
         }
@@ -228,7 +229,6 @@ public class RightPanelManager {
             player.setScoreboard(board);
         }
 
-        // SIDEBAR (UHC) localizada
         Objective obj = board.getObjective("uhc");
         if (obj != null) obj.unregister();
 
@@ -236,7 +236,6 @@ public class RightPanelManager {
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
         obj.numberFormat(NumberFormat.blank());
 
-        // TAB (VIDA) localizada
         Objective objVida = board.getObjective("vida_tab");
         if (partidaActiva) {
             if (objVida == null) {
@@ -309,30 +308,33 @@ public class RightPanelManager {
                 obj.getScore("§6> §f" + tiempo).setScore(next--);
             }
 
-            Team mainBoardTeam = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(player.getName());
+            // --- LÓGICA DE VISIBILIDAD DE EQUIPOS (TAB Y NAMETAGS) ---
+            Team myTeam = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(player.getName());
+
             for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+                onlinePlayer.setPlayerListName(onlinePlayer.getName());
+
                 String teamKey = "h_" + onlinePlayer.getName();
                 Team t = board.getTeam(teamKey);
+
                 if (t == null) {
                     t = board.registerNewTeam(teamKey);
                     t.addEntry(onlinePlayer.getName());
                 }
+
                 t.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
-                boolean esCompanero = (mainBoardTeam != null && mainBoardTeam.hasEntry(onlinePlayer.getName()));
+
+                boolean esCompanero = (myTeam != null && myTeam.hasEntry(onlinePlayer.getName()));
                 boolean soyYo = onlinePlayer.equals(player);
 
                 if (soyYo || esCompanero) {
-                    t.setPrefix("");
-                    t.setSuffix("");
-                    t.setColor(ChatColor.WHITE);
+                    t.setColor(ChatColor.LIGHT_PURPLE);
                 } else {
-                    int fakeId = Math.abs(onlinePlayer.getName().hashCode() % 100);
-                    String prefix = lang.get("scoreboard.anonymous-prefix", player).replace("%id%", String.valueOf(fakeId));
-                    String suffix = lang.get("scoreboard.anonymous-suffix", player) + " " + ChatColor.translateAlternateColorCodes('&', lang.get("scoreboard.health-icon", player));
-                    t.setPrefix(prefix);
-                    t.setSuffix(suffix);
                     t.setColor(ChatColor.RED);
                 }
+
+                t.setPrefix("");
+                t.setSuffix("");
             }
         }
     }
