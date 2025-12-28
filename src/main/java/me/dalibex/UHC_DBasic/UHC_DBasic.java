@@ -28,8 +28,8 @@ public final class UHC_DBasic extends JavaPlugin {
         // 3. INICIALIZAR RESTO DE MANAGERS
         teamManager = new TeamManager();
         rightPanelManager = new RightPanelManager(this);
-        adminPanel = new AdminPanel();
-        chatManager = new ChatManager();
+        adminPanel = new AdminPanel(this);
+        chatManager = new ChatManager(this);
         eventHandler = new UHC_EventManager(this);
         specialCraftsManager = new SpecialCraftsManager(this);
 

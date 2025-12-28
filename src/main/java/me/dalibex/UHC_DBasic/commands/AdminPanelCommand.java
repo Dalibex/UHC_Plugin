@@ -1,12 +1,12 @@
 package me.dalibex.UHC_DBasic.commands;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
-import me.dalibex.UHC_DBasic.managers.AdminPanel;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 public class AdminPanelCommand implements CommandExecutor {
 
@@ -17,22 +17,21 @@ public class AdminPanelCommand implements CommandExecutor {
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        LanguageManager lang = plugin.getLang(); //
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        LanguageManager lang = plugin.getLang();
 
-        if (!(sender instanceof Player)) {
+        if (!(sender instanceof Player player)) {
             sender.sendMessage(lang.get("general.only-players", null));
             return true;
         }
 
-        Player player = (Player) sender;
-
-        if(!player.isOp()) {
+        if (!player.isOp()) {
             player.sendMessage(lang.get("general.no-permission", player));
             return true;
         }
 
-        AdminPanel.openMainAdminPanel(player);
+        plugin.getAdminPanel().openMainAdminPanel(player);
+
         return true;
     }
 }

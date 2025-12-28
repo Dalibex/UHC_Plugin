@@ -18,6 +18,9 @@ import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
 import java.util.*;
+import java.util.stream.Collectors;
+
+import static org.bukkit.GameRules.*;
 
 public class RightPanelManager {
 
@@ -30,74 +33,119 @@ public class RightPanelManager {
     boolean equiposFormados = false;
     private boolean pausado = false;
     private boolean shulkerEntregado = false;
-
     private final Set<String> jugadoresEliminados = new HashSet<>();
 
     public RightPanelManager(UHC_DBasic plugin) {
         this.plugin = plugin;
     }
 
-    // --- EVENTO DE MUERTE Y DETECCIÓN DE VICTORIA ---
+    // --- DETECCIÓN DE VICTORIA ---
     public void comprobarVictoria() {
-        if (tiempoTotalSegundos <= 0 || partidaTask == null) return;
+        if (this.tiempoTotalSegundos <= 0) return;
 
-        Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
-        List<Team> equiposVivos = new ArrayList<>();
+        List<Player> jugadoresVivos = Bukkit.getOnlinePlayers().stream()
+                .filter(p -> p.getGameMode() == GameMode.SURVIVAL)
+                .filter(p -> !jugadoresEliminados.contains(p.getName()))
+                .collect(Collectors.toList());
 
-        for (Team team : board.getTeams()) {
-            boolean tieneVivos = false;
-            for (String entry : team.getEntries()) {
-                if (!jugadoresEliminados.contains(entry)) {
-                    tieneVivos = true;
-                    break;
-                }
-            }
-            if (tieneVivos) equiposVivos.add(team);
+        if (jugadoresVivos.isEmpty()) {
+            finalizarPartida(null);
+            return;
         }
 
-        if (equiposVivos.size() == 1) finalizarPartida(equiposVivos.get(0));
-        else if (equiposVivos.isEmpty()) finalizarPartida(null);
+        // --- LÓGICA DE EPISODIOS ---
+        int episodioActual = (this.tiempoTotalSegundos / this.segundosPorCapitulo) + 1;
+        int episodioEquipos = 3;
+
+        if (episodioActual < episodioEquipos) {
+            if (jugadoresVivos.size() == 1) {
+                Team equipo = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(jugadoresVivos.get(0).getName());
+                finalizarPartida(equipo);
+            }
+        } else {
+            Map<String, Team> equiposVivos = new HashMap<>();
+            for (Player p : jugadoresVivos) {
+                Team equipo = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
+                if (equipo != null) {
+                    equiposVivos.put(equipo.getName(), equipo);
+                } else {
+                    equiposVivos.put("SOLO_" + p.getName(), null);
+                }
+            }
+
+            if (equiposVivos.size() == 1) {
+                String key = equiposVivos.keySet().iterator().next();
+                Team equipoGanador = equiposVivos.get(key);
+                finalizarPartida(equipoGanador);
+            }
+        }
     }
 
     private void finalizarPartida(Team ganador) {
         LanguageManager lang = plugin.getLang();
-        if (partidaTask != null) { partidaTask.cancel(); partidaTask = null; }
+        // Detenemos el cronómetro de la partida
+        if (partidaTask != null) {
+            partidaTask.cancel();
+            partidaTask = null;
+        }
 
         if (ganador != null) {
-            List<String> nombresGanadores = new ArrayList<>();
-            List<Player> jugadoresGanadores = new ArrayList<>();
+            List<String> nombresFormateados = new ArrayList<>();
+            List<Player> vivosParaCohetes = new ArrayList<>();
+
             for (String entry : ganador.getEntries()) {
-                if (!jugadoresEliminados.contains(entry)) {
-                    nombresGanadores.add(entry);
+
+                if (jugadoresEliminados.contains(entry)) {
+                    nombresFormateados.add("§7§m" + entry + "§r");
+                } else {
+                    nombresFormateados.add("§f" + entry);
+
                     Player p = Bukkit.getPlayer(entry);
-                    if (p != null) jugadoresGanadores.add(p);
+                    if (p != null && p.isOnline()) {
+                        vivosParaCohetes.add(p);
+                        p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 600, 255, false, false));
+                    }
                 }
             }
 
-            String listaNombres = String.join(", ", nombresGanadores);
+            String listaFinal = String.join("§7, ", nombresFormateados);
             String nombreEquipo = ganador.getDisplayName();
             String color = ganador.getColor().toString();
 
             for (Player p : Bukkit.getOnlinePlayers()) {
                 p.sendMessage("");
                 p.sendMessage(lang.get("victory.broadcast-header", p).replace("%color%", color).replace("%team%", nombreEquipo));
-                p.sendMessage("§f" + listaNombres);
+                p.sendMessage("§7Integrantes: " + listaFinal);
                 p.sendMessage(lang.get("victory.broadcast-footer", p));
                 p.sendMessage("");
 
-                p.sendTitle(lang.get("victory.title", p), lang.get("victory.subtitle", p).replace("%color%", color).replace("%team%", nombreEquipo), 10, 100, 20);
+                // Título gigante en pantalla
+                p.sendTitle(lang.get("victory.title", p),
+                        lang.get("victory.subtitle", p).replace("%color%", color).replace("%team%", nombreEquipo),
+                        10, 100, 20);
+
                 p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+
                 mostrarScoreboardVictoria(p, ganador, lang);
             }
 
             new BukkitRunnable() {
                 int seg = 0;
-                @Override public void run() {
-                    if (seg >= 10) { this.cancel(); return; }
-                    for (Player w : jugadoresGanadores) if (w.isOnline()) lanzarCohete(w.getLocation());
+                @Override
+                public void run() {
+                    if (seg >= 10) {
+                        this.cancel();
+                        return;
+                    }
+                    for (Player w : vivosParaCohetes) {
+                        if (w.isOnline()) {
+                            lanzarCohete(w.getLocation());
+                        }
+                    }
                     seg++;
                 }
             }.runTaskTimer(plugin, 0L, 20L);
+
         } else {
             for (Player p : Bukkit.getOnlinePlayers()) {
                 p.sendMessage(lang.get("victory.no-survivors", p));
@@ -121,6 +169,11 @@ public class RightPanelManager {
         equiposFormados = false; jugadoresEliminados.clear();
         shulkerEntregado = false;
 
+        World world = Bukkit.getWorlds().get(0);
+        int y = world.getHighestBlockYAt(0, 0);
+        if (y < 60) y = 100;
+        Location spawnLoc = new Location(world, 0.5, y + 1, 0.5);
+
         Scoreboard managerBoard = Bukkit.getScoreboardManager().getMainScoreboard();
 
         if (managerBoard.getObjective("uhc") != null) managerBoard.getObjective("uhc").unregister();
@@ -131,6 +184,7 @@ public class RightPanelManager {
         }
 
         for (Player p : Bukkit.getOnlinePlayers()) {
+            p.teleport(spawnLoc);
             p.setPlayerListName(p.getName());
             p.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
             actualizarScoreboard(p, "00:00", "00:00", false);
@@ -144,8 +198,18 @@ public class RightPanelManager {
 
         for(Player p : Bukkit.getOnlinePlayers()) {
             p.setPlayerListName(p.getName());
-            p.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_DAMAGE, 1, 0, false, false, false));
-            p.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_HEALTH, 1, 0, false, false, false));
+            p.damage(0.01);
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    if (p.isOnline()) {
+                        p.setHealth(20.0);
+                        p.setFoodLevel(20);
+                        p.setSaturation(20f);
+                        p.setFallDistance(0);
+                    }
+                }
+            }.runTaskLater(plugin, 1L);
         }
 
         partidaTask = new BukkitRunnable() {
@@ -153,6 +217,7 @@ public class RightPanelManager {
             public void run() {
                 if (pausado) return;
                 TeamManager tm = plugin.getTeamManager();
+
                 if (cronometroSegundos == 1 && tm.getTeamSize() == 1 && !equiposFormados) { tm.shuffleTeams(); equiposFormados = true; }
 
                 cronometroSegundos++; tiempoTotalSegundos++;
@@ -186,6 +251,9 @@ public class RightPanelManager {
                         for (Player p : Bukkit.getOnlinePlayers()) p.sendMessage(lang.get("game-events.teams-formed", p));
                     }
                     if (capitulo == 4) {
+                        for (World w : Bukkit.getWorlds()) {
+                            w.setGameRule(PVP, true);
+                        }
                         for (Player p : Bukkit.getOnlinePlayers()) {
                             for (String s : lang.getList("game-events.pvp-enabled", p)) p.sendMessage(s);
                             p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);

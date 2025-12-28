@@ -11,11 +11,15 @@ import org.bukkit.scoreboard.Team;
 
 public class ChatManager implements Listener {
 
+    private final UHC_DBasic plugin;
+
+    public ChatManager(UHC_DBasic plugin) {
+        this.plugin = plugin;
+    }
+
     @EventHandler
     public void onChat(AsyncPlayerChatEvent event) {
-        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
         LanguageManager lang = plugin.getLang();
-
         Player p = event.getPlayer();
         String mensaje = event.getMessage();
         Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
@@ -36,7 +40,7 @@ public class ChatManager implements Listener {
         }
 
         // 2. LOGICA DE CHAT DE EQUIPO
-        if (team != null) {
+        if (team != null && team.getEntries().size() > 1) {
             for (String entry : team.getEntries()) {
                 Player member = Bukkit.getPlayer(entry);
                 if (member != null && member.isOnline()) {
@@ -47,10 +51,9 @@ public class ChatManager implements Listener {
                     member.sendMessage(formatoTeam);
                 }
             }
-            Bukkit.getConsoleSender().sendMessage("[TeamChat] " + p.getName() + ": " + mensaje);
+            Bukkit.getConsoleSender().sendMessage("[TeamChat] " + team.getName() + " - " + p.getName() + ": " + mensaje);
 
         } else {
-            // Mensaje para jugadores sin equipo
             String formatoPrivado = lang.get("chat.format-private", p)
                     .replace("%tag%", lang.get("chat.private-tag", p))
                     .replace("%player%", p.getName())
@@ -61,17 +64,19 @@ public class ChatManager implements Listener {
     }
 
     private void enviarMensajeGlobal(Player p, Team team, String msg, LanguageManager lang) {
-        ChatColor colorName = (team != null) ? team.getColor() : ChatColor.GRAY;
+        ChatColor colorName = (team != null) ? team.getColor() : ChatColor.WHITE;
 
         for (Player receptor : Bukkit.getOnlinePlayers()) {
-            String formatoGlobal = lang.get("chat.format-global", receptor)
-                    .replace("%tag%", lang.get("chat.global-tag", receptor))
+            String formatoGlobal = lang.get("chat.format-global", receptor);
+
+            formatoGlobal = formatoGlobal.replace("[%team%]", "").replace("[%team% ]", "").replace("%team%", "");
+
+            formatoGlobal = formatoGlobal.replace("%tag%", lang.get("chat.global-tag", receptor))
                     .replace("%color%", colorName.toString())
-                    .replace("%team%", "")
-                    .replace("[]", "")
                     .replace("%player%", p.getName())
                     .replace("%msg%", msg);
-            receptor.sendMessage(formatoGlobal);
+
+            receptor.sendMessage(formatoGlobal.replace("  ", " ").trim());
         }
 
         Bukkit.getConsoleSender().sendMessage("[GlobalChat] " + p.getName() + ": " + msg);

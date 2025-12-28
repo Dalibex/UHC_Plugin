@@ -5,19 +5,23 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.World;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.Team;
 
-import static me.dalibex.UHC_DBasic.managers.AdminPanel.*;
 import static org.bukkit.GameRules.*;
 
 public class UHC_EventManager implements Listener {
@@ -42,7 +46,6 @@ public class UHC_EventManager implements Listener {
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         if (meta != null) {
             meta.setOwningPlayer(muerto);
-            // Nombre de la cabeza localizado según el idioma global/admin para el item físico
             meta.setDisplayName(lang.get("game.player-head-name", null).replace("%player%", muerto.getName()));
             head.setItemMeta(meta);
         }
@@ -62,20 +65,35 @@ public class UHC_EventManager implements Listener {
 
     // --- BLOQUEOS DE MANO SECUNDARIA Y ESCUDOS ---
     @EventHandler
-    public void onOffhandSwap(org.bukkit.event.player.PlayerSwapHandItemsEvent event) {
+    public void onOffhandSwap(PlayerSwapHandItemsEvent event) {
         if (AdminPanel.bloquearManoSecundaria) event.setCancelled(true);
     }
+
     @EventHandler
     public void onSweepAttack(org.bukkit.event.entity.EntityDamageByEntityEvent event) {
         if (AdminPanel.combate18 && event.getCause() == org.bukkit.event.entity.EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) {
             event.setCancelled(true);
         }
     }
+
+    @EventHandler
+    public void onShieldUse(PlayerInteractEvent event) {
+        if (AdminPanel.bloquearManoSecundaria) {
+            Player p = event.getPlayer();
+            // Si el jugador intenta usar el escudo (Click derecho) teniendo uno en cualquier mano, se cancela
+            if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
+                if (p.getInventory().getItemInMainHand().getType() == Material.SHIELD ||
+                        p.getInventory().getItemInOffHand().getType() == Material.SHIELD) {
+                    event.setCancelled(true);
+                }
+            }
+        }
+    }
+
     @EventHandler
     public void onOffhandBlock(InventoryClickEvent event) {
         if (!AdminPanel.bloquearManoSecundaria) return;
         if (event.getWhoClicked().getGameMode() == org.bukkit.GameMode.CREATIVE) return;
-        // Se usa null para el título comparativo ya que es una clave técnica
         if (event.getView().getTitle().contains(plugin.getLang().get("menus.main-admin.title", null))) return;
 
         if (event.getSlot() == 40 || event.getRawSlot() == 45) {
@@ -93,53 +111,27 @@ public class UHC_EventManager implements Listener {
             }
         }
     }
-    @EventHandler
-    public void onShieldUse(org.bukkit.event.player.PlayerInteractEvent event) {
-        if (AdminPanel.bloquearManoSecundaria) {
-            Player p = event.getPlayer();
-            boolean tieneEscudoManoPrincipal = p.getInventory().getItemInMainHand().getType() == Material.SHIELD;
-            boolean tieneEscudoManoSecundaria = p.getInventory().getItemInOffHand().getType() == Material.SHIELD;
-            if (tieneEscudoManoPrincipal || tieneEscudoManoSecundaria) {
-                if (event.getAction() == org.bukkit.event.block.Action.RIGHT_CLICK_AIR ||
-                        event.getAction() == org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) {
-                    event.setCancelled(true);
-                }
-            }
-        }
-    }
-    @EventHandler
-    public void onInventoryDrag(org.bukkit.event.inventory.InventoryDragEvent event) {
-        if (!AdminPanel.bloquearManoSecundaria) return;
-        if (event.getWhoClicked().getGameMode() == org.bukkit.GameMode.CREATIVE) return;
-        if (event.getInventorySlots().contains(40) || event.getRawSlots().contains(45)) {
-            event.setCancelled(true);
-        }
-    }
+
     @EventHandler
     public void onAxeDamage(org.bukkit.event.entity.EntityDamageByEntityEvent event) {
         if (!AdminPanel.combate18) return;
-        if (!(event.getDamager() instanceof Player)) return;
+        if (!(event.getDamager() instanceof Player attacker)) return;
 
-        Player attacker = (Player) event.getDamager();
         ItemStack item = attacker.getInventory().getItemInMainHand();
-        Material weapon = item.getType();
-        String name = weapon.toString();
+        String name = item.getType().toString();
 
         if (name.endsWith("_AXE")) {
-            double damageReduction = 0.0;
-            if (name.contains("WOODEN") || name.contains("GOLDEN")) damageReduction = 4.0;
-            else if (name.contains("STONE")) damageReduction = 5.0;
-            else if (name.contains("IRON")) damageReduction = 4.0;
-            else if (name.contains("DIAMOND")) damageReduction = 3.0;
-            else if (name.contains("NETHERITE")) damageReduction = 4.0;
+            double reduction = 0.0;
+            if (name.contains("WOODEN") || name.contains("GOLDEN")) reduction = 4.0;
+            else if (name.contains("STONE")) reduction = 5.0;
+            else if (name.contains("IRON")) reduction = 4.0;
+            else if (name.contains("DIAMOND")) reduction = 3.0;
+            else if (name.contains("NETHERITE")) reduction = 4.0;
 
-            double currentDamage = event.getDamage();
-            double finalDamage = Math.max(0, currentDamage - damageReduction);
-            event.setDamage(finalDamage);
+            event.setDamage(Math.max(0, event.getDamage() - reduction));
         }
     }
 
-    // --- INVENTARIO PANEL DE ADMINISTRACIÓN ---
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player p)) return;
@@ -147,6 +139,7 @@ public class UHC_EventManager implements Listener {
         LanguageManager lang = plugin.getLang();
         String title = event.getView().getTitle();
         ItemStack item = event.getCurrentItem();
+        AdminPanel admin = plugin.getAdminPanel();
 
         if (item == null || item.getType() == Material.AIR) return;
 
@@ -155,23 +148,24 @@ public class UHC_EventManager implements Listener {
             event.setCancelled(true);
             int slot = event.getSlot();
 
-            if (slot == 1) { p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1); plugin.getAdminPanel().openGeneralRulesPanel(p); }
-            else if (slot == 4) { p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1); plugin.getAdminPanel().openBarrierRulesPanel(p); }
-            else if (slot == 2) { p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1); plugin.getAdminPanel().openGameRulesPanel(p); }
-            else if (slot == 6) { p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1); openTimePanel(p); }
-            else if (slot == 0) {
-                if (event.isLeftClick()) toggleCombate18(p);
-                else if (event.isRightClick()) toggleManoSecundaria(p);
+            if (slot == 0) {
+                if (event.isLeftClick()) admin.toggleCombate18();
+                else if (event.isRightClick()) admin.toggleManoSecundaria();
                 p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
-                openMainAdminPanel(p);
+                admin.openMainAdminPanel(p);
             }
+            else if (slot == 1) admin.openGeneralRulesPanel(p);
+            else if (slot == 2) admin.openGameRulesPanel(p);
+            else if (slot == 4) admin.openBarrierRulesPanel(p);
+            else if (slot == 6) admin.openTimePanel(p);
             else if (slot == 8) {
                 RightPanelManager rpm = plugin.getRightPanelManager();
                 if (rpm.getTiempoTotalSegundos() > 0) {
-                    p.sendMessage(lang.get("menus.common.locked", p) + " " + lang.get("menus.common.locked-lore", p));
+                    p.sendMessage(lang.get("menus.common.locked", p));
                     p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
                     return;
                 }
+
                 TeamManager tm = plugin.getTeamManager();
                 int current = tm.getTeamSize();
                 int online = Bukkit.getOnlinePlayers().size();
@@ -179,69 +173,68 @@ public class UHC_EventManager implements Listener {
                 if (event.isLeftClick()) {
                     int next = current + 1;
                     if (next <= 4 && online >= (next * 2)) {
-                        tm.setTeamSize(next); p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
+                        tm.setTeamSize(next);
+                        p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
                     } else if (next > 4) {
                         p.sendMessage(lang.get("game.team-size-max", p));
                         p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
                     } else {
-                        p.sendMessage(lang.get("game.team-size-error", p).replace("%min%", String.valueOf(next * 2)).replace("%n%", String.valueOf(next)));
+                        p.sendMessage(lang.get("game.team-size-error", p)
+                                .replace("%min%", String.valueOf(next * 2))
+                                .replace("%n%", String.valueOf(next)));
                         p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
                     }
                 } else if (event.isRightClick() && current > 1) {
-                    tm.setTeamSize(current - 1); p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 1, 1);
+                    tm.setTeamSize(current - 1);
+                    p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 1, 1);
                 }
-                openMainAdminPanel(p);
+                admin.openMainAdminPanel(p);
             }
+            p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
         }
 
         // PANEL AJUSTES GENERALES
         else if (title.equals(lang.get("menus.generalrules.title", p))) {
             event.setCancelled(true);
             int slot = event.getSlot();
+            if (slot == 11) admin.setShulkerOneEnabled(!admin.isShulkerOneEnabled());
+            else if (slot == 15) admin.setShulkerTwoEnabled(!admin.isShulkerTwoEnabled());
+            else if (slot == 18) { admin.openMainAdminPanel(p); p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1); return; }
 
-            if (slot == 11) {
-                plugin.getAdminPanel().setShulkerOneEnabled(!plugin.getAdminPanel().isShulkerOneEnabled());
-                p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
-                plugin.getAdminPanel().openGeneralRulesPanel(p);
-            }
-            else if (slot == 15) {
-                plugin.getAdminPanel().setShulkerTwoEnabled(!plugin.getAdminPanel().isShulkerTwoEnabled());
-                p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
-                plugin.getAdminPanel().openGeneralRulesPanel(p);
-            }
-            else if (slot == 18) {
-                p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
-                openMainAdminPanel(p);
-            }
+            p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
+            admin.openGeneralRulesPanel(p);
         }
 
-        // PANEL GAMERULES
+        // PANEL GAMERULES (APLICAR A TODAS LAS DIMENSIONES)
         else if (title.equals(lang.get("menus.gamerules.title", p))) {
             event.setCancelled(true);
             Material mat = item.getType();
-            if (mat == Material.GOLDEN_APPLE) p.getWorld().setGameRule(NATURAL_HEALTH_REGENERATION, !p.getWorld().getGameRuleValue(NATURAL_HEALTH_REGENERATION));
-            else if (mat == Material.PUFFERFISH) p.getWorld().setGameRule(ADVANCE_TIME, !p.getWorld().getGameRuleValue(ADVANCE_TIME));
-            else if (mat == Material.ZOMBIE_HEAD) p.getWorld().setGameRule(SPAWN_MONSTERS, !p.getWorld().getGameRuleValue(SPAWN_MONSTERS));
-            else if (mat == Material.CRAFTING_TABLE) p.getWorld().setGameRule(SHOW_ADVANCEMENT_MESSAGES, !p.getWorld().getGameRuleValue(SHOW_ADVANCEMENT_MESSAGES));
-            else if (mat == Material.VILLAGER_SPAWN_EGG) p.getWorld().setGameRule(SPAWN_WANDERING_TRADERS, !p.getWorld().getGameRuleValue(SPAWN_WANDERING_TRADERS));
-            else if (mat == Material.NETHERITE_SWORD) p.getWorld().setGameRule(PVP, !p.getWorld().getGameRuleValue(PVP));
-            else if (mat == Material.COMPASS) p.getWorld().setGameRule(LOCATOR_BAR, !p.getWorld().getGameRuleValue(LOCATOR_BAR));
-            else if (mat == Material.ARROW) { p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1); openMainAdminPanel(p); return; }
+            if (mat == Material.ARROW) { admin.openMainAdminPanel(p); p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1); return; }
 
+            org.bukkit.GameRule<Boolean> ruleToToggle = null;
+            if (mat == Material.GOLDEN_APPLE) ruleToToggle = NATURAL_HEALTH_REGENERATION;
+            else if (mat == Material.PUFFERFISH) ruleToToggle = ADVANCE_TIME;
+            else if (mat == Material.ZOMBIE_HEAD) ruleToToggle = SPAWN_MONSTERS;
+            else if (mat == Material.CRAFTING_TABLE) ruleToToggle = SHOW_ADVANCEMENT_MESSAGES;
+            else if (mat == Material.VILLAGER_SPAWN_EGG) ruleToToggle = SPAWN_WANDERING_TRADERS;
+            else if (mat == Material.NETHERITE_SWORD) ruleToToggle = PVP;
+            else if (mat == Material.COMPASS) ruleToToggle = LOCATOR_BAR;
+
+            if (ruleToToggle != null) {
+                boolean newVal = !Bukkit.getWorlds().get(0).getGameRuleValue(ruleToToggle);
+                for (World w : Bukkit.getWorlds()) w.setGameRule(ruleToToggle, newVal);
+            }
             p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
-            plugin.getAdminPanel().openGameRulesPanel(p);
+            admin.openGameRulesPanel(p);
         }
 
-        // PANEL BARRERA
+        // PANEL BARRERA (AFECTA AL MUNDO PRINCIPAL)
         else if (title.equals(lang.get("menus.barrier.title", p))) {
             event.setCancelled(true);
-            if (item.getType() == Material.ARROW) {
-                openMainAdminPanel(p);
-                p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
-                return;
-            }
+            if (item.getType() == Material.ARROW) { admin.openMainAdminPanel(p); p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1); return; }
 
-            if (p.getWorld().getWorldBorder().getSize() > 5999980) {
+            World overworld = Bukkit.getWorlds().get(0);
+            if (overworld.getWorldBorder().getSize() > 5999980 && event.getSlot() != 13) {
                 p.sendMessage(lang.get("game.border-not-started", p));
                 p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
                 return;
@@ -252,23 +245,19 @@ public class UHC_EventManager implements Listener {
             else if (slot == 15) amount = 20; else if (slot == 16) amount = 200; else if (slot == 24) amount = 1000; else if (slot == 25) amount = 2000;
 
             if (amount != 0) {
-                p.getWorld().getWorldBorder().setSize(p.getWorld().getWorldBorder().getSize() + amount);
-                p.sendMessage(lang.get("game.border-update", p).replace("%size%", String.valueOf((int) p.getWorld().getWorldBorder().getSize())));
+                overworld.getWorldBorder().setSize(overworld.getWorldBorder().getSize() + amount);
+                p.sendMessage(lang.get("game.border-update", p).replace("%size%", String.valueOf((int) overworld.getWorldBorder().getSize())));
                 p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BIT, 1, 1);
-                plugin.getAdminPanel().openBarrierRulesPanel(p);
+                admin.openBarrierRulesPanel(p);
             }
         }
 
         // PANEL TIMER
         else if (title.equals(lang.get("menus.time.title", p))) {
             event.setCancelled(true);
-            if (item.getType() == Material.BARRIER) {
-                p.sendMessage(lang.get("menus.common.locked-lore", p));
-                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BIT, 1, 1);
-                return;
-            }
-
             RightPanelManager rpm = plugin.getRightPanelManager();
+            if (item.getType() == Material.BARRIER) { p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1); return; }
+
             int change = 0, slot = event.getSlot();
             if (slot == 10) change = -1; else if (slot == 11) change = -5; else if (slot == 12) change = -10;
             else if (slot == 14) change = 1; else if (slot == 15) change = 5; else if (slot == 16) change = 10;
@@ -280,20 +269,23 @@ public class UHC_EventManager implements Listener {
                     p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
                 } else {
                     rpm.setSegundosPorCapitulo(nuevoS);
+
                     for (Player online : Bukkit.getOnlinePlayers()) {
-                        online.sendMessage(lang.get("game.time-update", online).replace("%prefix%", lang.get("general.prefix", online)).replace("%time%", String.valueOf(nuevoS / 60)));
+                        String mensaje = lang.get("game.time-update", online)
+                                .replace("%prefix%", lang.get("general.prefix", online))
+                                .replace("%time%", String.valueOf(nuevoS / 60));
+                        online.sendMessage(mensaje);
                     }
-                    openTimePanel(p);
+
+                    admin.openTimePanel(p);
                     p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BIT, 1, 1);
                 }
             } else if (item.getType().toString().contains("DYE")) {
                 rpm.setPausado(!rpm.isPausado());
-                openTimePanel(p);
-                p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
-            } else if (item.getType() == Material.ARROW) {
-                openMainAdminPanel(p);
-                p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
-            }
+                admin.openTimePanel(p);
+            } else if (item.getType() == Material.ARROW) admin.openMainAdminPanel(p);
+
+            p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
         }
     }
 
@@ -301,7 +293,6 @@ public class UHC_EventManager implements Listener {
     public void onConsume(org.bukkit.event.player.PlayerItemConsumeEvent event) {
         ItemStack item = event.getItem();
         if (item.getType() == Material.GOLDEN_APPLE && item.hasItemMeta()) {
-            // Verificación técnica de nombre usando el idioma por defecto
             if (item.getItemMeta().getDisplayName().equals(plugin.getLang().get("crafts.golden-head.name", null))) {
                 Player p = event.getPlayer();
                 p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.REGENERATION, 12 * 20, 1));
@@ -310,13 +301,48 @@ public class UHC_EventManager implements Listener {
         }
     }
 
+    @EventHandler
+    public void onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent event) {
+        Player p = event.getPlayer();
+        RightPanelManager rpm = plugin.getRightPanelManager();
+
+        if (rpm.getTiempoTotalSegundos() == 0) {
+            World world = p.getWorld();
+            world.getChunkAt(0, 0).load(true);
+            int y = world.getHighestBlockYAt(0, 0);
+            if (y < 60) y = 100;
+            Location spawnLoc = new Location(world, 0.5, y + 1, 0.5);
+            p.teleport(spawnLoc);
+        }
+
+        double attackSpeedValue = AdminPanel.combate18 ? 1024.0 : 4.0;
+        p.getAttribute(Attribute.ATTACK_SPEED).setBaseValue(attackSpeedValue);
+
+        if (rpm.getTiempoTotalSegundos() > 0) {
+            int restante = rpm.getSegundosPorCapitulo() - (rpm.getTiempoTotalSegundos() % rpm.getSegundosPorCapitulo());
+            rpm.actualizarScoreboard(p, formatTime(restante), formatTime(rpm.getTiempoTotalSegundos()), true);
+        } else {
+            rpm.actualizarScoreboard(p, "00:00", "00:00", false);
+        }
+
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            rpm.actualizarScoreboard(online, "Sincronizando...", "...", rpm.getTiempoTotalSegundos() > 0);
+        }
+    }
+
+    private String formatTime(int s) {
+        int h = s / 3600; int m = (s % 3600) / 60; int sec = s % 60;
+        return (h > 0) ? String.format("%02d:%02d:%02d", h, m, sec) : String.format("%02d:%02d", m, sec);
+    }
+
     public void onCompassTrack() {
         LanguageManager lang = plugin.getLang();
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (plugin.getRightPanelManager().getJugadoresEliminados().contains(p.getName())) continue;
             Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
             if (team == null || team.getEntries().size() <= 1) {
-                p.setCompassTarget(new Location(p.getWorld(), 0, p.getLocation().getY(), 0)); continue;
+                p.setCompassTarget(new Location(p.getWorld(), 0, 100, 0));
+                continue;
             }
             Player cercano = null; double distMin = Double.MAX_VALUE;
             for (String entry : team.getEntries()) {
@@ -333,7 +359,7 @@ public class UHC_EventManager implements Listener {
                 if (hand.getType() == Material.COMPASS && hand.hasItemMeta() && hand.getItemMeta().getDisplayName().equals(lang.get("tracking-compass.name", p))) {
                     p.sendActionBar(lang.get("compass.tracking-actionbar", p).replace("%player%", cercano.getName()).replace("%dist%", String.valueOf((int)distMin)));
                 }
-            } else p.setCompassTarget(new Location(p.getWorld(), 0, 100, 0));
+            }
         }
     }
 }

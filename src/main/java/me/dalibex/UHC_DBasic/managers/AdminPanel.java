@@ -4,6 +4,7 @@ import me.dalibex.UHC_DBasic.UHC_DBasic;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -18,14 +19,20 @@ import static org.bukkit.GameRules.*;
 
 public class AdminPanel {
 
+    private final UHC_DBasic plugin;
     public static boolean combate18 = false;
     public static boolean bloquearManoSecundaria = false;
     private boolean shulkerOneEnabled = true;
     private boolean shulkerTwoEnabled = true;
 
+    public AdminPanel(UHC_DBasic plugin) {
+        this.plugin = plugin;
+    }
+
     // ------------------------------ DISEÑO PANELES ------------------------------
-    public static void openMainAdminPanel(Player player) {
-        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
+    public void openMainAdminPanel(Player player) {
+        if (!player.isOp()) return;
+
         LanguageManager lang = plugin.getLang();
         TeamManager tm = plugin.getTeamManager();
 
@@ -33,6 +40,7 @@ public class AdminPanel {
         int teamSize = tm.getTeamSize();
         int jugadoresOnline = Bukkit.getOnlinePlayers().size();
 
+        // Item de Combate
         ItemStack pvpItem = new ItemStack(Material.IRON_SWORD);
         ItemMeta ameta = pvpItem.getItemMeta();
         ameta.setDisplayName(lang.get("menus.main-admin.combat-item.name", player));
@@ -47,34 +55,13 @@ public class AdminPanel {
         pvpItem.setItemMeta(ameta);
         mainGui.setItem(0, pvpItem);
 
-        ItemStack rulesItem = new ItemStack(Material.BOOK);
-        ItemMeta meta = rulesItem.getItemMeta();
-        meta.setDisplayName(lang.get("menus.main-admin.rules-item.name", player));
-        meta.setLore(lang.getList("menus.main-admin.rules-item.lore", player));
-        rulesItem.setItemMeta(meta);
-        mainGui.setItem(2, rulesItem);
+        // Otros Items
+        mainGui.setItem(1, createSimpleItem(Material.BELL, "menus.main-admin.general-rules-item", player));
+        mainGui.setItem(2, createSimpleItem(Material.BOOK, "menus.main-admin.rules-item", player));
+        mainGui.setItem(4, createSimpleItem(Material.EMERALD_BLOCK, "menus.main-admin.border-item", player));
+        mainGui.setItem(6, createSimpleItem(Material.CLOCK, "menus.main-admin.time-item", player));
 
-        ItemStack generalRulesItem = new ItemStack(Material.BELL);
-        ItemMeta xmeta = generalRulesItem.getItemMeta();
-        xmeta.setDisplayName(lang.get("menus.main-admin.general-rules-item.name", player));
-        xmeta.setLore(lang.getList("menus.main-admin.general-rules-item.lore", player));
-        generalRulesItem.setItemMeta(xmeta);
-        mainGui.setItem(1, generalRulesItem);
-
-        ItemStack borderItem = new ItemStack(Material.EMERALD_BLOCK);
-        ItemMeta bMeta = borderItem.getItemMeta();
-        bMeta.setDisplayName(lang.get("menus.main-admin.border-item.name", player));
-        bMeta.setLore(lang.getList("menus.main-admin.border-item.lore", player));
-        borderItem.setItemMeta(bMeta);
-        mainGui.setItem(4, borderItem);
-
-        ItemStack timeItem = new ItemStack(Material.CLOCK);
-        ItemMeta tMeta = timeItem.getItemMeta();
-        tMeta.setDisplayName(lang.get("menus.main-admin.time-item.name", player));
-        tMeta.setLore(lang.getList("menus.main-admin.time-item.lore", player));
-        timeItem.setItemMeta(tMeta);
-        mainGui.setItem(6, timeItem);
-
+        // Item de Equipos (Bloqueado si hay partida)
         RightPanelManager rpm = plugin.getRightPanelManager();
         boolean partidaEnCurso = rpm.getTiempoTotalSegundos() > 0;
 
@@ -83,12 +70,7 @@ public class AdminPanel {
 
         if (partidaEnCurso) {
             cMeta.setDisplayName(lang.get("menus.main-admin.teams-item.name-locked", player));
-            List<String> lore = new ArrayList<>();
-            lore.add(lang.get("menus.common.locked", player));
-            lore.add(lang.get("menus.common.locked-lore", player));
-            cMeta.setLore(lore);
-            cMeta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 1, true);
-            cMeta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
+            cMeta.setLore(Arrays.asList(lang.get("menus.common.locked", player), lang.get("menus.common.locked-lore", player)));
         } else {
             cMeta.setDisplayName(lang.get("menus.main-admin.teams-item.name", player));
             String sizeStr = (teamSize == 1) ? lang.get("menus.main-admin.teams-item.size-solos", player) :
@@ -99,10 +81,6 @@ public class AdminPanel {
             for (String line : lang.getList("menus.main-admin.teams-item.lore", player)) {
                 lore.add(line.replace("%size%", sizeStr).replace("%online%", String.valueOf(jugadoresOnline)).replace("%total%", String.valueOf(numEquipos)));
             }
-            if (teamSize > 1 && jugadoresOnline % teamSize != 0 && jugadoresOnline > 0) {
-                lore.add("");
-                lore.add(lang.get("menus.main-admin.teams-item.balance-warning", player));
-            }
             cMeta.setLore(lore);
         }
         teamItem.setItemMeta(cMeta);
@@ -112,36 +90,11 @@ public class AdminPanel {
     }
 
     public void openGeneralRulesPanel(Player player) {
-        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
         LanguageManager lang = plugin.getLang();
         Inventory inv = Bukkit.createInventory(null, 27, lang.get("menus.generalrules.title", player));
 
-        ItemStack pouch = new ItemStack(Material.ORANGE_SHULKER_BOX);
-        ItemMeta pMeta = pouch.getItemMeta();
-        pMeta.setDisplayName(lang.get("menus.generalrules.settings.shulker-item-1.name", player));
-
-        List<String> pLore = new ArrayList<>();
-        String statusP = isShulkerOneEnabled() ? lang.get("menus.common.enabled", player) : lang.get("menus.common.disabled", player);
-        for(String s : lang.getList("menus.generalrules.settings.shulker-item-1.lore", player)) {
-            pLore.add(s.replace("%status%", statusP));
-        }
-        pMeta.setLore(pLore);
-        pouch.setItemMeta(pMeta);
-
-        ItemStack shulker = new ItemStack(Material.LIGHT_BLUE_SHULKER_BOX);
-        ItemMeta sMeta = shulker.getItemMeta();
-        sMeta.setDisplayName(lang.get("menus.generalrules.settings.shulker-item-2.name", player));
-
-        List<String> sLore = new ArrayList<>();
-        String statusS = isShulkerTwoEnabled() ? lang.get("menus.common.enabled", player) : lang.get("menus.common.disabled", player);
-        for(String s : lang.getList("menus.generalrules.settings.shulker-item-2.lore", player)) {
-            sLore.add(s.replace("%status%", statusS));
-        }
-        sMeta.setLore(sLore);
-        shulker.setItemMeta(sMeta);
-
-        inv.setItem(11, pouch);
-        inv.setItem(15, shulker);
+        inv.setItem(11, createShulkerBtn(Material.ORANGE_SHULKER_BOX, "menus.generalrules.settings.shulker-item-1", isShulkerOneEnabled(), player));
+        inv.setItem(15, createShulkerBtn(Material.LIGHT_BLUE_SHULKER_BOX, "menus.generalrules.settings.shulker-item-2", isShulkerTwoEnabled(), player));
 
         ItemStack back = new ItemStack(Material.ARROW);
         ItemMeta bMeta = back.getItemMeta();
@@ -153,25 +106,19 @@ public class AdminPanel {
     }
 
     public void openGameRulesPanel(Player player) {
-        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
         LanguageManager lang = plugin.getLang();
-
         Inventory rulesGui = Bukkit.createInventory(null, 36, lang.get("menus.gamerules.title", player));
 
-        rulesGui.setItem(10, createRuleItem(Material.GOLDEN_APPLE, lang.get("menus.rules.nat-regen", player),
-                player.getWorld().getGameRuleValue(NATURAL_HEALTH_REGENERATION), player, lang));
-        rulesGui.setItem(11, createRuleItem(Material.NETHERITE_SWORD, lang.get("menus.rules.pvp", player),
-                player.getWorld().getGameRuleValue(PVP), player, lang));
-        rulesGui.setItem(12, createRuleItem(Material.PUFFERFISH, lang.get("menus.rules.day-night", player),
-                player.getWorld().getGameRuleValue(ADVANCE_TIME), player, lang));
-        rulesGui.setItem(13, createRuleItem(Material.ZOMBIE_HEAD, lang.get("menus.rules.monsters", player),
-                player.getWorld().getGameRuleValue(SPAWN_MONSTERS), player, lang));
-        rulesGui.setItem(14, createRuleItem(Material.CRAFTING_TABLE, lang.get("menus.rules.advancements", player),
-                player.getWorld().getGameRuleValue(SHOW_ADVANCEMENT_MESSAGES), player, lang));
-        rulesGui.setItem(15, createRuleItem(Material.VILLAGER_SPAWN_EGG, lang.get("menus.rules.trader", player),
-                player.getWorld().getGameRuleValue(SPAWN_WANDERING_TRADERS), player, lang));
-        rulesGui.setItem(16, createRuleItem(Material.COMPASS, lang.get("menus.rules.locator", player),
-                player.getWorld().getGameRuleValue(LOCATOR_BAR), player, lang));
+        // Usamos siempre el mundo 0 (Overworld) para que los valores no cambien según donde esté el admin
+        World w = Bukkit.getWorlds().get(0);
+
+        rulesGui.setItem(10, createRuleItem(Material.GOLDEN_APPLE, lang.get("menus.rules.nat-regen", player), w.getGameRuleValue(NATURAL_HEALTH_REGENERATION), player, lang));
+        rulesGui.setItem(11, createRuleItem(Material.NETHERITE_SWORD, lang.get("menus.rules.pvp", player), w.getGameRuleValue(PVP), player, lang));
+        rulesGui.setItem(12, createRuleItem(Material.PUFFERFISH, lang.get("menus.rules.day-night", player), w.getGameRuleValue(ADVANCE_TIME), player, lang));
+        rulesGui.setItem(13, createRuleItem(Material.ZOMBIE_HEAD, lang.get("menus.rules.monsters", player), w.getGameRuleValue(SPAWN_MONSTERS), player, lang));
+        rulesGui.setItem(14, createRuleItem(Material.CRAFTING_TABLE, lang.get("menus.rules.advancements", player), w.getGameRuleValue(SHOW_ADVANCEMENT_MESSAGES), player, lang));
+        rulesGui.setItem(15, createRuleItem(Material.VILLAGER_SPAWN_EGG, lang.get("menus.rules.trader", player), w.getGameRuleValue(SPAWN_WANDERING_TRADERS), player, lang));
+        rulesGui.setItem(16, createRuleItem(Material.COMPASS, lang.get("menus.rules.locator", player), w.getGameRuleValue(LOCATOR_BAR), player, lang));
 
         ItemStack back = new ItemStack(Material.ARROW);
         ItemMeta backMeta = back.getItemMeta();
@@ -182,12 +129,11 @@ public class AdminPanel {
         player.openInventory(rulesGui);
     }
 
-    public static void openBarrierRulesPanel(Player player) {
-        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
+    public void openBarrierRulesPanel(Player player) {
         LanguageManager lang = plugin.getLang();
         Inventory barrierGui = Bukkit.createInventory(null, 36, lang.get("menus.barrier.title", player));
 
-        double currentSize = player.getWorld().getWorldBorder().getSize();
+        double currentSize = Bukkit.getWorlds().get(0).getWorldBorder().getSize();
 
         ItemStack info = new ItemStack(Material.BEACON);
         ItemMeta iMeta = info.getItemMeta();
@@ -215,8 +161,7 @@ public class AdminPanel {
         player.openInventory(barrierGui);
     }
 
-    public static void openTimePanel(Player player) {
-        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
+    public void openTimePanel(Player player) {
         LanguageManager lang = plugin.getLang();
         Inventory timeGui = Bukkit.createInventory(null, 27, lang.get("menus.time.title", player));
 
@@ -261,63 +206,53 @@ public class AdminPanel {
         player.openInventory(timeGui);
     }
 
-    private static ItemStack createBorderItem(Material mat, String name, int amount, Player player, LanguageManager lang) {
+    // ------------------------------ MÉTODOS AUXILIARES ------------------------------
+
+    private ItemStack createSimpleItem(Material mat, String langKey, Player p) {
+        ItemStack item = new ItemStack(mat);
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName(plugin.getLang().get(langKey + ".name", p));
+        meta.setLore(plugin.getLang().getList(langKey + ".lore", p));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack createShulkerBtn(Material mat, String key, boolean enabled, Player p) {
+        ItemStack item = new ItemStack(mat);
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName(plugin.getLang().get(key + ".name", p));
+        List<String> lore = new ArrayList<>();
+        String status = enabled ? plugin.getLang().get("menus.common.enabled", p) : plugin.getLang().get("menus.common.disabled", p);
+        for(String s : plugin.getLang().getList(key + ".lore", p)) {
+            lore.add(s.replace("%status%", status));
+        }
+        meta.setLore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack createBorderItem(Material mat, String name, int amount, Player player, LanguageManager lang) {
         ItemStack item = new ItemStack(mat);
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(name);
-        meta.setLore(Arrays.asList(lang.get("menus.barrier.change-lore", player)
-                .replace("%amount%", String.valueOf(Math.abs(amount)))));
+        meta.setLore(Arrays.asList(lang.get("menus.barrier.change-lore", player).replace("%amount%", String.valueOf(Math.abs(amount)))));
         item.setItemMeta(meta);
         return item;
     }
 
-    private static ItemStack createTimeBtn(Material mat, String name, int amount, boolean bloqueado, Player player, LanguageManager lang) {
+    private ItemStack createTimeBtn(Material mat, String name, int amount, boolean bloqueado, Player player, LanguageManager lang) {
         ItemStack item = new ItemStack(bloqueado ? Material.BARRIER : mat);
         ItemMeta meta = item.getItemMeta();
-
         if (bloqueado) {
             meta.setDisplayName("§7§m" + name);
             meta.setLore(Arrays.asList(lang.get("menus.common.locked", player), lang.get("menus.common.locked-lore", player)));
-            meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 1, true);
-            meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
         } else {
             meta.setDisplayName(name);
-            meta.setLore(Arrays.asList(lang.get("menus.time.change-lore", player)
-                    .replace("%amount%", String.valueOf(Math.abs(amount)))));
+            meta.setLore(Arrays.asList(lang.get("menus.time.change-lore", player).replace("%amount%", String.valueOf(Math.abs(amount)))));
         }
-
         item.setItemMeta(meta);
         return item;
     }
-
-    public static void toggleCombate18(Player admin) {
-        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
-        combate18 = !combate18;
-        double speedValue = combate18 ? 100.0 : 4.0;
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            p.getAttribute(Attribute.ATTACK_SPEED).setBaseValue(speedValue);
-        }
-
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            String estado = combate18 ? plugin.getLang().get("admin-messages.state-enabled", p) : plugin.getLang().get("admin-messages.state-disabled", p);
-            p.sendMessage(plugin.getLang().get("admin-messages.combat-toggle", p).replace("%prefix%", plugin.getLang().get("general.prefix", p)).replace("%state%", estado));
-        }
-    }
-
-    public static void toggleManoSecundaria(Player admin) {
-        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
-        bloquearManoSecundaria = !bloquearManoSecundaria;
-
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            String estado = bloquearManoSecundaria ? plugin.getLang().get("admin-messages.state-blocked", p) : plugin.getLang().get("admin-messages.state-allowed", p);
-            p.sendMessage(plugin.getLang().get("admin-messages.offhand-toggle", p).replace("%prefix%", plugin.getLang().get("general.prefix", p)).replace("%state%", estado));
-        }
-    }
-
-    public boolean isShulkerOneEnabled() { return shulkerOneEnabled; }
-    public void setShulkerOneEnabled(boolean shulkerOEnabled) { this.shulkerOneEnabled = shulkerOEnabled; }
-    public boolean isShulkerTwoEnabled() { return shulkerTwoEnabled; }
-    public void setShulkerTwoEnabled(boolean shulkerTEnabled) { this.shulkerTwoEnabled = shulkerTEnabled; }
 
     private ItemStack createRuleItem(Material mat, String name, Boolean state, Player player, LanguageManager lang) {
         ItemStack item = new ItemStack(mat);
@@ -328,4 +263,31 @@ public class AdminPanel {
         item.setItemMeta(meta);
         return item;
     }
+
+    // ------------------------------ LÓGICA DE TOGGLES ------------------------------
+    public void toggleCombate18() {
+        combate18 = !combate18;
+        double speedValue = combate18 ? 1024.0 : 4.0;
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            p.getAttribute(Attribute.ATTACK_SPEED).setBaseValue(speedValue);
+        }
+
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            String estado = combate18 ? plugin.getLang().get("admin-messages.state-enabled", p) : plugin.getLang().get("admin-messages.state-disabled", p);
+            p.sendMessage(plugin.getLang().get("admin-messages.combat-toggle", p).replace("%prefix%", plugin.getLang().get("general.prefix", p)).replace("%state%", estado));
+        }
+    }
+
+    public void toggleManoSecundaria() {
+        bloquearManoSecundaria = !bloquearManoSecundaria;
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            String estado = bloquearManoSecundaria ? plugin.getLang().get("admin-messages.state-blocked", p) : plugin.getLang().get("admin-messages.state-allowed", p);
+            p.sendMessage(plugin.getLang().get("admin-messages.offhand-toggle", p).replace("%prefix%", plugin.getLang().get("general.prefix", p)).replace("%state%", estado));
+        }
+    }
+
+    public boolean isShulkerOneEnabled() { return shulkerOneEnabled; }
+    public void setShulkerOneEnabled(boolean e) { this.shulkerOneEnabled = e; }
+    public boolean isShulkerTwoEnabled() { return shulkerTwoEnabled; }
+    public void setShulkerTwoEnabled(boolean e) { this.shulkerTwoEnabled = e; }
 }

@@ -35,28 +35,38 @@ public class PrepareWorldCommand implements CommandExecutor {
             return true;
         }
 
-        World world = player.getWorld();
-
+        // --- ACCIONES SOBRE JUGADORES ---
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.clearActivePotionEffects();
             p.getInventory().clear();
             p.setGameMode(GameMode.ADVENTURE);
+            p.setHealth(20.0);
+            p.setFoodLevel(20);
             p.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 999999, 255, false, false, false));
             p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 999999, 255, false, false, false));
             p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 200, 255, false, false, false));
         }
 
-        world.setDifficulty(Difficulty.HARD);
+        World overworld = Bukkit.getWorld("world");
+        overworld.getWorldBorder().setCenter(0, 0);
+        overworld.getWorldBorder().setSize(5999984);
+
+        // --- ACCIONES SOBRE TODOS LOS MUNDOS ---
+        for (World world : Bukkit.getWorlds()) {
+            world.setDifficulty(Difficulty.HARD);
+            world.setTime(0L);
+            world.setThundering(false);
+            world.setStorm(false);
+
+            world.setGameRule(ADVANCE_TIME, false);
+            world.setGameRule(ADVANCE_WEATHER, false);
+            world.setGameRule(NATURAL_HEALTH_REGENERATION, true);
+            world.setGameRule(SPAWN_MONSTERS, false);
+        }
+
+        // --- RESET DE MANAGERS ---
         plugin.getRightPanelManager().setStandBy();
         plugin.getTeamManager().borrarTodosLosEquipos();
-
-        world.setTime(0L);
-        world.setGameRule(ADVANCE_TIME, false);
-        world.setGameRule(ADVANCE_WEATHER, false);
-        world.setGameRule(NATURAL_HEALTH_REGENERATION, true);
-        world.setGameRule(SPAWN_MONSTERS, false);
-        world.getWorldBorder().setCenter(0, 0);
-        world.getWorldBorder().setSize(5999984);
 
         String prefix = plugin.getLang().get("general.prefix", player);
         player.sendMessage(plugin.getLang().get("lobby.reset-success", player).replace("%prefix%", prefix));
