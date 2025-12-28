@@ -53,14 +53,27 @@ public class RightPanelManager {
             return;
         }
 
-        // --- LÓGICA DE EPISODIOS ---
         int episodioActual = (this.tiempoTotalSegundos / this.segundosPorCapitulo) + 1;
         int episodioEquipos = 3;
 
         if (episodioActual < episodioEquipos) {
             if (jugadoresVivos.size() == 1) {
-                Team equipo = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(jugadoresVivos.get(0).getName());
-                finalizarPartida(equipo);
+                Player ganador = jugadoresVivos.get(0);
+                Team equipo = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(ganador.getName());
+
+                if (equipo == null) {
+                    Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
+                    Team tempTeam = board.getTeam("ganador_temp");
+                    if (tempTeam == null) tempTeam = board.registerNewTeam("ganador_temp");
+
+                    tempTeam.addEntry(ganador.getName());
+                    tempTeam.setDisplayName(ganador.getName());
+                    tempTeam.setColor(org.bukkit.ChatColor.GOLD);
+
+                    finalizarPartida(tempTeam);
+                } else {
+                    finalizarPartida(equipo);
+                }
             }
         } else {
             Map<String, Team> equiposVivos = new HashMap<>();
@@ -76,9 +89,30 @@ public class RightPanelManager {
             if (equiposVivos.size() == 1) {
                 String key = equiposVivos.keySet().iterator().next();
                 Team equipoGanador = equiposVivos.get(key);
-                finalizarPartida(equipoGanador);
+
+                if (equipoGanador == null) {
+                    String soloName = key.replace("SOLO_", "");
+                    finalizarPartidaIndividual(soloName);
+                } else {
+                    finalizarPartida(equipoGanador);
+                }
             }
         }
+    }
+
+    private void finalizarPartidaIndividual(String nombreGanador) {
+        Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
+
+        if (board.getTeam("ganador_temp") != null) {
+            board.getTeam("ganador_temp").unregister();
+        }
+
+        Team tempTeam = board.registerNewTeam("ganador_temp");
+        tempTeam.addEntry(nombreGanador);
+        tempTeam.setDisplayName(nombreGanador);
+        tempTeam.setColor(ChatColor.GOLD);
+
+        finalizarPartida(tempTeam);
     }
 
     private void finalizarPartida(Team ganador) {
