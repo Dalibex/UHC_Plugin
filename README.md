@@ -1,6 +1,6 @@
 # ⚔️ UHC ELOUD
 
-![Plugin Version](https://img.shields.io/badge/Plugin_Version-1.4.3-orange)
+![Plugin Version](https://img.shields.io/badge/Plugin_Version-1.4.4-orange)
 ![Minecraft Version](https://img.shields.io/badge/Minecraft_Version-1.21.11-gold)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Platform](https://img.shields.io/badge/Platform-Spigot%20%7C%20Paper-blue)
@@ -11,10 +11,10 @@ Basado en **UHC ESPAÑA** creado por **ElRichMC**.
 
 ---
 
-## ✨ Novedades de la Versión 1.4.3
+## ✨ Novedades de la Versión 1.4.4
 
 * 🏆 **Fix Sistema de Victoria:**
-  * Al finalizar la partida, el chat muestra a todos los integrantes del equipo ganador.
+  * Al finalizar la partida, el chat muestra a todos los integrantes del equipo ganador, si todos mueren antes de que se formen equipos, gana el jugador superviviente.
   * **Reconocimiento a los Caídos:** Los compañeros que murieron aparecen en la lista final con formato gris y tachado (`§7§m`), mientras que los supervivientes resaltan en blanco.
   * **Inmunidad de Campeón:** Los ganadores reciben Resistencia 255 y curación instantánea durante la celebración.
 
