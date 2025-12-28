@@ -1,9 +1,11 @@
 package me.dalibex.UHC_DBasic.commands;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
+import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -18,15 +20,18 @@ public class GCommandsCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        LanguageManager lang = plugin.getLang();
 
-        sender.sendMessage(plugin.getLang().get("help.header"));
+        Player player = (sender instanceof Player) ? (Player) sender : null;
 
-        List<String> lines = plugin.getLang().getList("help.commands_list");
+        sender.sendMessage(lang.get("help.header", player));
+
+        List<String> lines = lang.getList("help.commands_list", player);
         for (String line : lines) {
             sender.sendMessage(line);
         }
 
-        sender.sendMessage(plugin.getLang().get("help.footer"));
+        sender.sendMessage(lang.get("help.footer", player));
 
         return true;
     }

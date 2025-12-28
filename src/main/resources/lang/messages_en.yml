@@ -40,7 +40,7 @@ help:
     - ""
     - "&e/tpartes <H> <M> <S> &7- &fManually adjust part durations."
     - ""
-    - "&e/lang <language> &7- &fChanges language."
+    - "&e/lang <language> &7- &fChange language."
     - ""
 
 # Team creation and renaming
@@ -276,3 +276,6 @@ crafts:
 # Compass action
 compass:
   tracking-actionbar: "&bTracking: &f%player% &7(&a%dist%m&7)"
+
+# Change language
+lang-switch: "%prefix%&aYour language changed to: &eEnglish"

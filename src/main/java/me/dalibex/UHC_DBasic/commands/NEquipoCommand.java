@@ -20,7 +20,7 @@ public class NEquipoCommand implements CommandExecutor {
         if (!(sender instanceof Player p)) return true;
 
         if (args.length == 0) {
-            p.sendMessage(plugin.getLang().get("teams.name-required"));
+            p.sendMessage(plugin.getLang().get("teams.name-required", p));
             return true;
         }
 
@@ -28,7 +28,7 @@ public class NEquipoCommand implements CommandExecutor {
         boolean exito = plugin.getTeamManager().renombrarEquipo(p, nombre);
 
         if (!exito) {
-            p.sendMessage(plugin.getLang().get("teams.no-team"));
+            p.sendMessage(plugin.getLang().get("teams.no-team", p));
         }
 
         return true;

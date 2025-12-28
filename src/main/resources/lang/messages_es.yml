@@ -58,6 +58,7 @@ teams:
 lobby:
   reset-success: "%prefix%Mundo preparado/reseteado correctamente"
 
+
 # Sección para el menú de inicio
 start-menu:
   usage: "%error-prefix%Uso correcto: /start <tamaño>"
@@ -275,3 +276,6 @@ crafts:
 # Acción de la brújula
 compass:
   tracking-actionbar: "&bRastreando a: &f%player% &7(&a%dist%m&7)"
+
+# Cambiar idioma
+lang-switch: "%prefix%&aHas cambiado tu idioma a: &eEspañol"

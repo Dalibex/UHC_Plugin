@@ -21,7 +21,6 @@ public class SpecialCraftsManager {
 
     private void registrarRecetas() {
         registrarGoldenHead();
-        // ...
     }
 
     private void registrarGoldenHead() {
@@ -29,9 +28,10 @@ public class SpecialCraftsManager {
         ItemStack goldenHead = new ItemStack(Material.GOLDEN_APPLE);
         ItemMeta meta = goldenHead.getItemMeta();
 
+        // Al ser una receta global, usamos null para obtener el idioma por defecto de la config
         if (meta != null) {
-            meta.setDisplayName(lang.get("crafts.golden-head.name"));
-            meta.setLore(lang.getList("crafts.golden-head.lore"));
+            meta.setDisplayName(lang.get("crafts.golden-head.name", null));
+            meta.setLore(lang.getList("crafts.golden-head.lore", null));
 
             meta.addEnchant(Enchantment.LUCK_OF_THE_SEA, 1, true);
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
@@ -46,11 +46,6 @@ public class SpecialCraftsManager {
 
         ShapedRecipe recipe = new ShapedRecipe(key, goldenHead);
 
-        /*
-          G G G
-          G H G  G = Oro, H = Cabeza de jugador
-          G G G
-         */
         recipe.shape("GGG", "GHG", "GGG");
         recipe.setIngredient('G', Material.GOLD_INGOT);
         recipe.setIngredient('H', Material.PLAYER_HEAD);
@@ -58,7 +53,6 @@ public class SpecialCraftsManager {
         Bukkit.addRecipe(recipe);
     }
 
-    // Por cambio de idioma
     public void actualizarReceta() {
         NamespacedKey key = new NamespacedKey(plugin, "golden_head");
         if (Bukkit.getRecipe(key) != null) {

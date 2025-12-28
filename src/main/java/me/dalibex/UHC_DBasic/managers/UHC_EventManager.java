@@ -13,6 +13,7 @@ import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.Team;
 
@@ -41,7 +42,8 @@ public class UHC_EventManager implements Listener {
         SkullMeta meta = (SkullMeta) head.getItemMeta();
         if (meta != null) {
             meta.setOwningPlayer(muerto);
-            meta.setDisplayName(lang.get("game.player-head-name").replace("%player%", muerto.getName()));
+            // Nombre de la cabeza localizado según el idioma global/admin para el item físico
+            meta.setDisplayName(lang.get("game.player-head-name", null).replace("%player%", muerto.getName()));
             head.setItemMeta(meta);
         }
 
@@ -73,7 +75,8 @@ public class UHC_EventManager implements Listener {
     public void onOffhandBlock(InventoryClickEvent event) {
         if (!AdminPanel.bloquearManoSecundaria) return;
         if (event.getWhoClicked().getGameMode() == org.bukkit.GameMode.CREATIVE) return;
-        if (event.getView().getTitle().contains("Panel Administración UHC")) return;
+        // Se usa null para el título comparativo ya que es una clave técnica
+        if (event.getView().getTitle().contains(plugin.getLang().get("menus.main-admin.title", null))) return;
 
         if (event.getSlot() == 40 || event.getRawSlot() == 45) {
             event.setCancelled(true);
@@ -115,30 +118,21 @@ public class UHC_EventManager implements Listener {
     @EventHandler
     public void onAxeDamage(org.bukkit.event.entity.EntityDamageByEntityEvent event) {
         if (!AdminPanel.combate18) return;
-
         if (!(event.getDamager() instanceof Player)) return;
 
         Player attacker = (Player) event.getDamager();
-        org.bukkit.inventory.ItemStack item = attacker.getInventory().getItemInMainHand();
+        ItemStack item = attacker.getInventory().getItemInMainHand();
         Material weapon = item.getType();
         String name = weapon.toString();
 
         if (name.endsWith("_AXE")) {
             double damageReduction = 0.0;
+            if (name.contains("WOODEN") || name.contains("GOLDEN")) damageReduction = 4.0;
+            else if (name.contains("STONE")) damageReduction = 5.0;
+            else if (name.contains("IRON")) damageReduction = 4.0;
+            else if (name.contains("DIAMOND")) damageReduction = 3.0;
+            else if (name.contains("NETHERITE")) damageReduction = 4.0;
 
-            if (name.contains("WOODEN") || name.contains("GOLDEN")) {
-                damageReduction = 4.0;
-            } else if (name.contains("STONE")) {
-                damageReduction = 5.0;
-            } else if (name.contains("IRON")) {
-                damageReduction = 4.0;
-            } else if (name.contains("DIAMOND")) {
-                damageReduction = 3.0;
-            } else if (name.contains("NETHERITE")) {
-                damageReduction = 4.0;
-            } // Para conseguir valores originales de la 1.8 en hachas
-
-            // Daño total actual (Base + Fuerza + Sharpness + Crítico)
             double currentDamage = event.getDamage();
             double finalDamage = Math.max(0, currentDamage - damageReduction);
             event.setDamage(finalDamage);
@@ -157,7 +151,7 @@ public class UHC_EventManager implements Listener {
         if (item == null || item.getType() == Material.AIR) return;
 
         // PANEL PRINCIPAL
-        if (title.equals(lang.get("menus.main-admin.title"))) {
+        if (title.equals(lang.get("menus.main-admin.title", p))) {
             event.setCancelled(true);
             int slot = event.getSlot();
 
@@ -174,7 +168,7 @@ public class UHC_EventManager implements Listener {
             else if (slot == 8) {
                 RightPanelManager rpm = plugin.getRightPanelManager();
                 if (rpm.getTiempoTotalSegundos() > 0) {
-                    p.sendMessage(lang.get("menus.common.locked") + " " + lang.get("menus.common.locked-lore"));
+                    p.sendMessage(lang.get("menus.common.locked", p) + " " + lang.get("menus.common.locked-lore", p));
                     p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
                     return;
                 }
@@ -187,10 +181,10 @@ public class UHC_EventManager implements Listener {
                     if (next <= 4 && online >= (next * 2)) {
                         tm.setTeamSize(next); p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
                     } else if (next > 4) {
-                        p.sendMessage(lang.get("game.team-size-max"));
+                        p.sendMessage(lang.get("game.team-size-max", p));
                         p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
                     } else {
-                        p.sendMessage(lang.get("game.team-size-error").replace("%min%", String.valueOf(next * 2)).replace("%n%", String.valueOf(next)));
+                        p.sendMessage(lang.get("game.team-size-error", p).replace("%min%", String.valueOf(next * 2)).replace("%n%", String.valueOf(next)));
                         p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
                     }
                 } else if (event.isRightClick() && current > 1) {
@@ -201,28 +195,28 @@ public class UHC_EventManager implements Listener {
         }
 
         // PANEL AJUSTES GENERALES
-        else if (title.equals(lang.get("menus.generalrules.title"))) {
+        else if (title.equals(lang.get("menus.generalrules.title", p))) {
             event.setCancelled(true);
             int slot = event.getSlot();
 
-            if (slot == 11) { // Shulker 1
+            if (slot == 11) {
                 plugin.getAdminPanel().setShulkerOneEnabled(!plugin.getAdminPanel().isShulkerOneEnabled());
                 p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
                 plugin.getAdminPanel().openGeneralRulesPanel(p);
             }
-            else if (slot == 15) { // Shulker 2
+            else if (slot == 15) {
                 plugin.getAdminPanel().setShulkerTwoEnabled(!plugin.getAdminPanel().isShulkerTwoEnabled());
                 p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
                 plugin.getAdminPanel().openGeneralRulesPanel(p);
             }
-            else if (slot == 18) { // Volver
+            else if (slot == 18) {
                 p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
                 openMainAdminPanel(p);
             }
         }
 
         // PANEL GAMERULES
-        else if (title.equals(lang.get("menus.gamerules.title"))) {
+        else if (title.equals(lang.get("menus.gamerules.title", p))) {
             event.setCancelled(true);
             Material mat = item.getType();
             if (mat == Material.GOLDEN_APPLE) p.getWorld().setGameRule(NATURAL_HEALTH_REGENERATION, !p.getWorld().getGameRuleValue(NATURAL_HEALTH_REGENERATION));
@@ -239,7 +233,7 @@ public class UHC_EventManager implements Listener {
         }
 
         // PANEL BARRERA
-        else if (title.equals(lang.get("menus.barrier.title"))) {
+        else if (title.equals(lang.get("menus.barrier.title", p))) {
             event.setCancelled(true);
             if (item.getType() == Material.ARROW) {
                 openMainAdminPanel(p);
@@ -248,7 +242,7 @@ public class UHC_EventManager implements Listener {
             }
 
             if (p.getWorld().getWorldBorder().getSize() > 5999980) {
-                p.sendMessage(lang.get("game.border-not-started"));
+                p.sendMessage(lang.get("game.border-not-started", p));
                 p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
                 return;
             }
@@ -259,17 +253,17 @@ public class UHC_EventManager implements Listener {
 
             if (amount != 0) {
                 p.getWorld().getWorldBorder().setSize(p.getWorld().getWorldBorder().getSize() + amount);
-                p.sendMessage(lang.get("game.border-update").replace("%size%", String.valueOf((int) p.getWorld().getWorldBorder().getSize())));
+                p.sendMessage(lang.get("game.border-update", p).replace("%size%", String.valueOf((int) p.getWorld().getWorldBorder().getSize())));
                 p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BIT, 1, 1);
                 plugin.getAdminPanel().openBarrierRulesPanel(p);
             }
         }
 
         // PANEL TIMER
-        else if (title.equals(lang.get("menus.time.title"))) {
+        else if (title.equals(lang.get("menus.time.title", p))) {
             event.setCancelled(true);
             if (item.getType() == Material.BARRIER) {
-                p.sendMessage(lang.get("menus.common.locked-lore"));
+                p.sendMessage(lang.get("menus.common.locked-lore", p));
                 p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BIT, 1, 1);
                 return;
             }
@@ -282,13 +276,13 @@ public class UHC_EventManager implements Listener {
             if (change != 0) {
                 int nuevoS = rpm.getSegundosPorCapitulo() + (change * 60);
                 if (nuevoS < 60) {
-                    p.sendMessage(lang.get("game.time-min-error"));
+                    p.sendMessage(lang.get("game.time-min-error", p));
                     p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
-                }
-
-                else {
+                } else {
                     rpm.setSegundosPorCapitulo(nuevoS);
-                    Bukkit.broadcastMessage(lang.get("game.time-update").replace("%prefix%", lang.get("general.prefix")).replace("%time%", String.valueOf(nuevoS / 60)));
+                    for (Player online : Bukkit.getOnlinePlayers()) {
+                        online.sendMessage(lang.get("game.time-update", online).replace("%prefix%", lang.get("general.prefix", online)).replace("%time%", String.valueOf(nuevoS / 60)));
+                    }
                     openTimePanel(p);
                     p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BIT, 1, 1);
                 }
@@ -307,11 +301,11 @@ public class UHC_EventManager implements Listener {
     public void onConsume(org.bukkit.event.player.PlayerItemConsumeEvent event) {
         ItemStack item = event.getItem();
         if (item.getType() == Material.GOLDEN_APPLE && item.hasItemMeta()) {
-            if (item.getItemMeta().getDisplayName().equals(plugin.getLang().get("crafts.golden-head.name"))) {
+            // Verificación técnica de nombre usando el idioma por defecto
+            if (item.getItemMeta().getDisplayName().equals(plugin.getLang().get("crafts.golden-head.name", null))) {
                 Player p = event.getPlayer();
-                p.removePotionEffect(org.bukkit.potion.PotionEffectType.REGENERATION);
-                p.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.REGENERATION, 12 * 20, 1));
-                p.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.ABSORPTION, 300 * 20, 1));
+                p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.REGENERATION, 12 * 20, 1));
+                p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.ABSORPTION, 300 * 20, 1));
             }
         }
     }
@@ -336,8 +330,8 @@ public class UHC_EventManager implements Listener {
             if (cercano != null) {
                 p.setCompassTarget(cercano.getLocation());
                 ItemStack hand = p.getInventory().getItemInMainHand();
-                if (hand.getType() == Material.COMPASS && hand.hasItemMeta() && hand.getItemMeta().getDisplayName().equals(lang.get("tracking-compass.name"))) {
-                    p.sendActionBar(lang.get("compass.tracking-actionbar").replace("%player%", cercano.getName()).replace("%dist%", String.valueOf((int)distMin)));
+                if (hand.getType() == Material.COMPASS && hand.hasItemMeta() && hand.getItemMeta().getDisplayName().equals(lang.get("tracking-compass.name", p))) {
+                    p.sendActionBar(lang.get("compass.tracking-actionbar", p).replace("%player%", cercano.getName()).replace("%dist%", String.valueOf((int)distMin)));
                 }
             } else p.setCompassTarget(new Location(p.getWorld(), 0, 100, 0));
         }

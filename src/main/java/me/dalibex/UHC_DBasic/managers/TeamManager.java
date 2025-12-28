@@ -53,7 +53,8 @@ public class TeamManager {
             team.setColor(COLOR_UNICO);
             team.setDisplayName(idEquipo);
 
-            String prefix = lang.get("teams.prefix-format")
+            // El prefijo es global en el servidor, usamos null para el idioma base
+            String prefix = lang.get("teams.prefix-format", null)
                     .replace("%color%", COLOR_UNICO.toString())
                     .replace("%name%", idEquipo);
             team.setPrefix(prefix);
@@ -68,8 +69,9 @@ public class TeamManager {
 
             teamAsignado.addEntry(p.getName());
 
-            String msg = lang.get("teams.assigned")
-                    .replace("%prefix%", lang.get("general.prefix"))
+            // Mensaje de asignación individualizado
+            String msg = lang.get("teams.assigned", p)
+                    .replace("%prefix%", lang.get("general.prefix", p))
                     .replace("%color%", teamAsignado.getColor().toString())
                     .replace("%name%", teamAsignado.getDisplayName());
             p.sendMessage(msg);
@@ -88,7 +90,8 @@ public class TeamManager {
         String nombreAnterior = team.getDisplayName();
         team.setDisplayName(nuevoNombre);
 
-        String prefix = lang.get("teams.prefix-format")
+        // El prefijo visual del equipo es global para todos
+        String prefix = lang.get("teams.prefix-format", null)
                 .replace("%color%", team.getColor().toString())
                 .replace("%name%", nuevoNombre);
         team.setPrefix(prefix);
@@ -100,24 +103,25 @@ public class TeamManager {
             }
         }
 
-        if (nombreAnterior.contains("team_")) {
-            String foundedMsg = lang.get("teams.founded")
-                    .replace("%prefix%", lang.get("general.prefix"))
-                    .replace("%color%", team.getColor().toString())
-                    .replace("%name%", nuevoNombre);
-            Bukkit.broadcastMessage(foundedMsg);
-        } else {
-            String renamedMsg = lang.get("teams.renamed")
-                    .replace("%prefix%", lang.get("general.prefix"))
-                    .replace("%color%", team.getColor().toString())
-                    .replace("%old%", nombreAnterior)
-                    .replace("%new%", nuevoNombre);
-            Bukkit.broadcastMessage(renamedMsg);
-        }
-
+        // Anuncios de broadcast multilingües
         for (Player all : Bukkit.getOnlinePlayers()) {
+            if (nombreAnterior.contains("team_")) {
+                String foundedMsg = lang.get("teams.founded", all)
+                        .replace("%prefix%", lang.get("general.prefix", all))
+                        .replace("%color%", team.getColor().toString())
+                        .replace("%name%", nuevoNombre);
+                all.sendMessage(foundedMsg);
+            } else {
+                String renamedMsg = lang.get("teams.renamed", all)
+                        .replace("%prefix%", lang.get("general.prefix", all))
+                        .replace("%color%", team.getColor().toString())
+                        .replace("%old%", nombreAnterior)
+                        .replace("%new%", nuevoNombre);
+                all.sendMessage(renamedMsg);
+            }
             all.playSound(all.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_CHIME, 0.5f, 1.2f);
         }
+
         return true;
     }
 

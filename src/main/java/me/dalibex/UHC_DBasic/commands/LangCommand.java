@@ -24,28 +24,35 @@ public class LangCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
 
-        if (!sender.isOp()) {
-            sender.sendMessage(plugin.getLang().get("general.no-permission"));
+        if (!(sender instanceof Player p)) {
+            sender.sendMessage(plugin.getLang().get("general.only-players", null));
+            return true;
+        }
+
+        if (plugin.getRightPanelManager().getTiempoTotalSegundos() > 0) {
+            p.sendMessage(plugin.getLang().get("timer.already-started", p));
+            p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
             return true;
         }
 
         if (args.length != 1) {
-            sender.sendMessage("§cUsage/Uso: /lang <es|en>");
+            p.sendMessage("§cUsage: /lang <language>");
             return true;
         }
 
         String langCode = args[0].toLowerCase();
 
         if (langCode.equals("es") || langCode.equals("en")) {
-            plugin.setLanguage(langCode);
+            plugin.getLang().setPlayerLanguage(p, langCode);
 
-            sender.sendMessage("§e§lUHC ELOUD > §fLanguage updated to: §a" + langCode.toUpperCase());
+            String prefix = plugin.getLang().get("general.prefix", p);
+            String confirmMsg = plugin.getLang().get("lang-switch", p).replace("%prefix%", prefix);
+            p.sendMessage(confirmMsg);
 
-            if (sender instanceof Player p) {
-                p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
-            }
+            p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
+
         } else {
-            sender.sendMessage("§cInvalid language. Use 'es' (Español) or 'en' (English).");
+            p.sendMessage("§cInvalid language");
         }
 
         return true;

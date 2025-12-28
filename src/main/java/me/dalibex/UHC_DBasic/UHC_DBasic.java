@@ -22,11 +22,11 @@ public final class UHC_DBasic extends JavaPlugin {
         // 1. CARGAR CONFIGURACIÓN E IDIOMA
         saveDefaultConfig();
 
+        // El LanguageManager ahora carga todos los archivos de la carpeta /lang
         languageManager = new LanguageManager(this);
 
         // 3. INICIALIZAR RESTO DE MANAGERS
         teamManager = new TeamManager();
-
         rightPanelManager = new RightPanelManager(this);
         adminPanel = new AdminPanel();
         chatManager = new ChatManager();
@@ -46,6 +46,7 @@ public final class UHC_DBasic extends JavaPlugin {
         getCommand("nequipo").setExecutor(new NEquipoCommand(this));
         getCommand("tpartes").setExecutor(new TiempoPartesCommand(this));
 
+        // Comando de idioma
         getCommand("lang").setExecutor(new LangCommand(this));
         getCommand("lang").setTabCompleter(new LangCommand(this));
 
@@ -55,11 +56,6 @@ public final class UHC_DBasic extends JavaPlugin {
         }));
 
         getLogger().info("UHC ELOUD Plugin Enabled");
-    }
-
-    @Override
-    public @NotNull Path getDataPath() {
-        return super.getDataPath();
     }
 
     public RightPanelManager getRightPanelManager() {
@@ -90,12 +86,9 @@ public final class UHC_DBasic extends JavaPlugin {
         return eventHandler;
     }
 
-    public void setLanguage(String langCode) {
+    public void setGlobalLanguage(String langCode) {
         this.getConfig().set("language", langCode);
         this.saveConfig();
-        this.reloadLanguageManager();
-    }
-    public void reloadLanguageManager() {
         this.languageManager = new LanguageManager(this);
         specialCraftsManager.actualizarReceta();
     }

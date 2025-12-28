@@ -26,12 +26,12 @@ public class PrepareWorldCommand implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(plugin.getLang().get("general.only-players"));
+            sender.sendMessage(plugin.getLang().get("general.only-players", null));
             return true;
         }
 
         if (!player.isOp()) {
-            player.sendMessage(plugin.getLang().get("general.no-permission"));
+            player.sendMessage(plugin.getLang().get("general.no-permission", player));
             return true;
         }
 
@@ -58,8 +58,8 @@ public class PrepareWorldCommand implements CommandExecutor {
         world.getWorldBorder().setCenter(0, 0);
         world.getWorldBorder().setSize(5999984);
 
-        String prefix = plugin.getLang().get("general.prefix");
-        player.sendMessage(plugin.getLang().get("lobby.reset-success").replace("%prefix%", prefix));
+        String prefix = plugin.getLang().get("general.prefix", player);
+        player.sendMessage(plugin.getLang().get("lobby.reset-success", player).replace("%prefix%", prefix));
 
         return true;
     }

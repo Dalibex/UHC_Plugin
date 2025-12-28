@@ -1,6 +1,7 @@
 package me.dalibex.UHC_DBasic.commands;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
+import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -28,17 +29,17 @@ public class ConfirmCommand implements CommandExecutor {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!(sender instanceof Player player)) return true;
 
-        // Si no hay argumentos (el tamaño), no hacemos nada
         if (args.length == 0) return true;
 
         int size = Integer.parseInt(args[0]);
         World world = player.getWorld();
+        LanguageManager lang = plugin.getLang();
 
         // Configurar el borde
         world.getWorldBorder().setCenter(0, 0);
         world.getWorldBorder().setSize(size);
 
-        // CALCULAR POSICIONES
+        // CALCULAR POSICIONES Y TP
         getPlayerPos(world, size);
 
         // Tarea de cuenta atrás
@@ -47,42 +48,42 @@ public class ConfirmCommand implements CommandExecutor {
 
             @Override
             public void run() {
-                // CONTADOR DE 10 SEGUNDOS
                 if (segundos > 0) {
                     for (Player p : Bukkit.getOnlinePlayers()) {
-                        // Título en pantalla
-                        String title = plugin.getLang().get("game.countdown-title").replace("%time%", String.valueOf(segundos));
-                        String subtitle = plugin.getLang().get("game.countdown-subtitle");
+                        // Título localizado para cada jugador individualmente
+                        String title = lang.get("game.countdown-title", p).replace("%time%", String.valueOf(segundos));
+                        String subtitle = lang.get("game.countdown-subtitle", p);
+
                         p.sendTitle(title, subtitle, 0, 22, 0);
                         p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1f, 1f);
                     }
                     segundos--;
                 } else {
                     // AL LLEGAR A CERO EL CONTADOR
-
-                    // SETEAR GAMERULES Y AJUSTES PARA DAR COMIENZO A PARTIDA
                     world.setGameRule(ADVANCE_TIME, true);
                     world.setGameRule(ADVANCE_WEATHER, true);
                     world.setGameRule(NATURAL_HEALTH_REGENERATION, false);
                     world.setGameRule(SPAWN_MONSTERS, true);
                     world.setDifficulty(Difficulty.HARD);
-                    for (Player p : Bukkit.getOnlinePlayers()) {
-                        p.setGameMode(GameMode.SURVIVAL);
-                    }
 
                     for (Player p : Bukkit.getOnlinePlayers()) {
-                        String startTitle = plugin.getLang().get("game.started-title");
-                        String startSubtitle = plugin.getLang().get("game.started-subtitle");
+                        p.setGameMode(GameMode.SURVIVAL);
+
+                        // Mensaje de inicio localizado para cada jugador
+                        String startTitle = lang.get("game.started-title", p);
+                        String startSubtitle = lang.get("game.started-subtitle", p);
+
                         p.sendTitle(startTitle, startSubtitle, 10, 40, 20);
                         p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
                     }
 
+                    // Inicia la lógica de Scoreboard y cronómetro
                     plugin.getRightPanelManager().iniciarPartida();
 
                     this.cancel();
                 }
             }
-        }.runTaskTimer(plugin, 20L, 20L); // 2 segundos de retraso para que cargue el TP
+        }.runTaskTimer(plugin, 20L, 20L);
 
         return true;
     }
@@ -125,25 +126,24 @@ public class ConfirmCommand implements CommandExecutor {
 
             int blockY = world.getHighestBlockYAt(blockX, blockZ);
             org.bukkit.block.Block bloqueSuelo = world.getBlockAt(blockX, blockY, blockZ);
+
             if (bloqueSuelo.isLiquid() || bloqueSuelo.getType().toString().contains("AIR")) {
                 if (bloqueSuelo.isLiquid()) {
                     blockY += 1;
-                    world.getBlockAt(blockX, blockY, blockZ).setType(org.bukkit.Material.GLASS);
+                    world.getBlockAt(blockX, blockY, blockZ).setType(Material.GLASS);
                 }
             }
 
             Location loc = new Location(world, spawnX, blockY + 1.5, spawnZ);
             p.teleport(loc);
 
-            // Efectos
             for (PotionEffect effect : p.getActivePotionEffects()) {
-                p.removePotionEffect(effect.getType()); // Limpiar antiguos
+                p.removePotionEffect(effect.getType());
             }
-            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.BLINDNESS, 180, 1, false, false));
-            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.REGENERATION, 320, 255, false, false));
-            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.SATURATION, 320, 255, false, false));
-            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.SLOWNESS, 220, 255, false, false));
-            p.addPotionEffect(new org.bukkit.potion.PotionEffect(PotionEffectType.JUMP_BOOST, 220, 255, false, false));
+            p.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 180, 1, false, false));
+            p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 320, 255, false, false));
+            p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 220, 255, false, false));
+            p.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 220, 255, false, false));
         }
     }
 }

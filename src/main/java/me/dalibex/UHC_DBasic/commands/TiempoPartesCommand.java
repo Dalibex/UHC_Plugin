@@ -1,6 +1,7 @@
 package me.dalibex.UHC_DBasic.commands;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
+import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import me.dalibex.UHC_DBasic.managers.RightPanelManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -20,14 +21,16 @@ public class TiempoPartesCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        LanguageManager lang = plugin.getLang();
+        Player player = (sender instanceof Player) ? (Player) sender : null;
 
         if (!sender.hasPermission("uhc.admin")) {
-            sender.sendMessage(plugin.getLang().get("general.no-permission"));
+            sender.sendMessage(lang.get("general.no-permission", player));
             return true;
         }
 
         if (args.length != 3) {
-            List<String> usage = plugin.getLang().getList("timer.usage");
+            List<String> usage = lang.getList("timer.usage", player);
             for (String line : usage) {
                 sender.sendMessage(line);
             }
@@ -37,7 +40,7 @@ public class TiempoPartesCommand implements CommandExecutor {
         RightPanelManager rpm = plugin.getRightPanelManager();
 
         if (rpm.getTiempoTotalSegundos() > 0) {
-            sender.sendMessage(plugin.getLang().get("timer.already-started"));
+            sender.sendMessage(lang.get("timer.already-started", player));
             return true;
         }
 
@@ -49,7 +52,7 @@ public class TiempoPartesCommand implements CommandExecutor {
             int totalSegundos = (h * 3600) + (m * 60) + s;
 
             if (totalSegundos <= 0) {
-                sender.sendMessage(plugin.getLang().get("timer.too-short"));
+                sender.sendMessage(lang.get("timer.too-short", player));
                 return true;
             }
 
@@ -57,18 +60,18 @@ public class TiempoPartesCommand implements CommandExecutor {
 
             String tiempoFormateado = String.format("%02dh %02dm %02ds", h, m, s);
 
-            String successMsg = plugin.getLang().get("timer.success")
-                    .replace("%prefix%", plugin.getLang().get("general.prefix"))
+            String successMsg = lang.get("timer.success", player)
+                    .replace("%prefix%", lang.get("general.prefix", player))
                     .replace("%time%", tiempoFormateado);
 
             sender.sendMessage(successMsg);
 
-            if (sender instanceof Player p) {
-                p.playSound(p.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_CHIME, 1f, 1.2f);
+            if (player != null) {
+                player.playSound(player.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_CHIME, 1f, 1.2f);
             }
 
         } catch (NumberFormatException e) {
-            sender.sendMessage(plugin.getLang().get("timer.invalid-number"));
+            sender.sendMessage(lang.get("timer.invalid-number", player));
         }
 
         return true;

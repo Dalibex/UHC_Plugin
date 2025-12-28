@@ -2,6 +2,7 @@ package me.dalibex.UHC_DBasic.commands;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.managers.AdminPanel;
+import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -17,15 +18,17 @@ public class AdminPanelCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        LanguageManager lang = plugin.getLang(); //
+
         if (!(sender instanceof Player)) {
-            sender.sendMessage(plugin.getLang().get("general.only-players"));
+            sender.sendMessage(lang.get("general.only-players", null));
             return true;
         }
 
         Player player = (Player) sender;
 
         if(!player.isOp()) {
-            sender.sendMessage(plugin.getLang().get("general.no-permission"));
+            player.sendMessage(lang.get("general.no-permission", player));
             return true;
         }
 
