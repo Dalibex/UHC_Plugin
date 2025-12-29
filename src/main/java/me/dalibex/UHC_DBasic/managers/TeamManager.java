@@ -3,12 +3,14 @@ package me.dalibex.UHC_DBasic.managers;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class TeamManager {
@@ -37,45 +39,69 @@ public class TeamManager {
             team.unregister();
         }
 
-        List<Player> jugadores = new ArrayList<>(Bukkit.getOnlinePlayers());
-        Collections.shuffle(jugadores);
+        List<Player> vivos = new ArrayList<>();
+        List<Player> muertos = new ArrayList<>();
 
-        int totalJugadores = jugadores.size();
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (plugin.getRightPanelManager().getJugadoresEliminados().contains(p.getName())
+                    || p.getGameMode() == GameMode.SPECTATOR) {
+                muertos.add(p);
+            } else {
+                vivos.add(p);
+            }
+        }
+
+        int totalJugadores = vivos.size() + muertos.size();
         if (totalJugadores == 0) return;
 
-        int numeroDeEquipos = (int) Math.ceil((double) totalJugadores / teamSize);
+        Collections.shuffle(vivos);
+        Collections.shuffle(muertos);
 
+        int numeroDeEquipos = (int) Math.ceil((double) totalJugadores / teamSize);
         List<Team> listaEquipos = new ArrayList<>();
+
         for (int i = 1; i <= numeroDeEquipos; i++) {
             String idEquipo = "team_" + i;
             Team team = board.registerNewTeam(idEquipo);
-
             team.setColor(COLOR_UNICO);
             team.setDisplayName(idEquipo);
 
-            // El prefijo es global en el servidor, usamos null para el idioma base
             String prefix = lang.get("teams.prefix-format", null)
                     .replace("%color%", COLOR_UNICO.toString())
                     .replace("%name%", idEquipo);
             team.setPrefix(prefix);
-
             team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
             listaEquipos.add(team);
         }
 
-        for (int i = 0; i < jugadores.size(); i++) {
+        for (int i = 0; i < vivos.size(); i++) {
             Team teamAsignado = listaEquipos.get(i % numeroDeEquipos);
-            Player p = jugadores.get(i);
-
-            teamAsignado.addEntry(p.getName());
-
-            // Mensaje de asignación individualizado
-            String msg = lang.get("teams.assigned", p)
-                    .replace("%prefix%", lang.get("general.prefix", p))
-                    .replace("%color%", teamAsignado.getColor().toString())
-                    .replace("%name%", teamAsignado.getDisplayName());
-            p.sendMessage(msg);
+            Player p = vivos.get(i);
+            asignarJugadorAEquipo(p, teamAsignado, lang);
         }
+
+        if (!listaEquipos.isEmpty()) {
+            for (Player p : muertos) {
+                Team equipoMasVacio = listaEquipos.stream()
+                        .min(Comparator.comparingInt(t -> t.getEntries().size()))
+                        .orElse(listaEquipos.get(0));
+
+                asignarJugadorAEquipo(p, equipoMasVacio, lang);
+            }
+        }
+    }
+
+    /**
+     * Método auxiliar para asignación
+     */
+    private void asignarJugadorAEquipo(Player p, Team team, LanguageManager lang) {
+        team.addEntry(p.getName());
+
+        String msg = lang.get("teams.assigned", p)
+                .replace("%prefix%", lang.get("general.prefix", p))
+                .replace("%color%", team.getColor().toString())
+                .replace("%name%", team.getDisplayName());
+        p.sendMessage(msg);
     }
 
     public boolean renombrarEquipo(Player player, String nuevoNombre) {

@@ -1,6 +1,7 @@
 package me.dalibex.UHC_DBasic.commands;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
+import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -24,43 +25,56 @@ public class LangCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        LanguageManager lang = plugin.getLang();
 
-        if (!(sender instanceof Player p)) {
-            sender.sendMessage(plugin.getLang().get("general.only-players", null));
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(lang.get("general.only-players", null));
             return true;
+        }
+
+        String langCode = validarTodo(player, args);
+        if (langCode == null) return true;
+
+        lang.setPlayerLanguage(player, langCode);
+
+        if (player.getScoreboard().getObjective(DisplaySlot.SIDEBAR) != null) {
+            plugin.getRightPanelManager().actualizarScoreboard(player, "00:00", "00:00", false);
+        }
+
+        String prefix = lang.get("general.prefix", player);
+        String confirmMsg = lang.get("lang.switch", player).replace("%prefix%", prefix);
+        player.sendMessage(confirmMsg);
+        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
+
+        return true;
+    }
+
+    /**
+     * Valida argumentos, estado del juego y disponibilidad del idioma.
+     * @return El código del idioma si es válido, null si falla.
+     */
+    private String validarTodo(Player player, String[] args) {
+        LanguageManager lang = plugin.getLang();
+        String errorPrefix = lang.get("general.error-prefix", player);
+
+        if (args.length != 1) {
+            player.sendMessage(lang.get("lang.usage", player).replace("%error-prefix%", errorPrefix));
+            return null;
         }
 
         if (plugin.getRightPanelManager().getTiempoTotalSegundos() > 0) {
-            p.sendMessage(plugin.getLang().get("timer.already-started", p));
-            p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
-            return true;
+            player.sendMessage(lang.get("lang.already-started", player).replace("%error-prefix%", errorPrefix));
+            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
+            return null;
         }
 
-        if (args.length != 1) {
-            p.sendMessage("§cUsage: /lang <language>");
-            return true;
+        String targetLang = args[0].toLowerCase();
+        if (!targetLang.equals("es") && !targetLang.equals("en")) {
+            player.sendMessage(lang.get("lang.invalid", player).replace("%error-prefix%", errorPrefix));
+            return null;
         }
 
-        String langCode = args[0].toLowerCase();
-
-        if (langCode.equals("es") || langCode.equals("en")) {
-            plugin.getLang().setPlayerLanguage(p, langCode);
-
-            if (p.getScoreboard().getObjective(DisplaySlot.SIDEBAR) != null) {
-                plugin.getRightPanelManager().actualizarScoreboard(p, "00:00", "00:00", false);
-            }
-
-            String prefix = plugin.getLang().get("general.prefix", p);
-            String confirmMsg = plugin.getLang().get("lang-switch", p).replace("%prefix%", prefix);
-            p.sendMessage(confirmMsg);
-
-            p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
-
-        } else {
-            p.sendMessage("§cInvalid language");
-        }
-
-        return true;
+        return targetLang;
     }
 
     @Override

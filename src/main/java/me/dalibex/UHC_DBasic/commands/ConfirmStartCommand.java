@@ -17,12 +17,14 @@ import java.util.List;
 
 import static org.bukkit.GameRules.*;
 
-public class ConfirmCommand implements CommandExecutor {
+public class ConfirmStartCommand implements CommandExecutor {
 
     private final UHC_DBasic plugin;
+    private final StartCommand startCmd;
 
-    public ConfirmCommand(UHC_DBasic plugin) {
+    public ConfirmStartCommand(UHC_DBasic plugin, StartCommand startCmd) {
         this.plugin = plugin;
+        this.startCmd = startCmd;
     }
 
     @Override
@@ -30,41 +32,67 @@ public class ConfirmCommand implements CommandExecutor {
         if (!(sender instanceof Player player)) return true;
         if (args.length == 0) return true;
 
-        int size = Integer.parseInt(args[0]);
-        World world = player.getWorld();
+        if (!startCmd.getConfirmacionPendiente() || plugin.getRightPanelManager().isPartidaIniciada()) {
+            return true;
+        }
+
+        plugin.getRightPanelManager().setPartidaIniciada(true);
+        startCmd.setConfirmacionPendiente(false);
+
+        iniciarProcesoUHC(player, Integer.parseInt(args[0]));
+
+        return true;
+    }
+
+    /**
+     * Coordina el borde, el scatter (TP) y la cuenta atrás.
+     */
+    private void iniciarProcesoUHC(Player admin, int size) {
+        World world = admin.getWorld();
         LanguageManager lang = plugin.getLang();
 
-        // Configurar el borde
         world.getWorldBorder().setCenter(0, 0);
         world.getWorldBorder().setSize(size);
 
-        // --- TP POR TURNOS (Escalonado) ---
         List<Player> jugadores = new ArrayList<>(Bukkit.getOnlinePlayers());
-        int numPosiciones = Math.max(4, jugadores.size());
-        List<Integer> indicesAleatorios = new ArrayList<>();
-        for (int i = 0; i < numPosiciones; i++) {
-            indicesAleatorios.add(i);
-        }
-        java.util.Collections.shuffle(indicesAleatorios);
+        int totalJugadores = jugadores.size();
+        int numPosiciones = Math.max(4, totalJugadores);
+        List<Integer> indices = new ArrayList<>();
+        for (int i = 0; i < numPosiciones; i++) indices.add(i);
+        java.util.Collections.shuffle(indices);
 
+        // --- Tarea de Teletransporte Escalonado ---
         new BukkitRunnable() {
             int current = 0;
 
             @Override
             public void run() {
-                if (current < jugadores.size()) {
+                if (current < totalJugadores) {
                     Player p = jugadores.get(current);
+                    prepararYTeletransportar(p, world, indices.get(current), numPosiciones, size);
 
-                    prepararYTeletransportar(p, world, indicesAleatorios.get(current), numPosiciones, size);
+                    for (Player online : Bukkit.getOnlinePlayers()) {
+                        online.sendMessage(lang.get("game.teleporting-progress", online)
+                                .replace("%current%", String.valueOf(current + 1))
+                                .replace("%total%", String.valueOf(totalJugadores)));
+                    }
                     current++;
                 } else {
-                    iniciarCuentaAtras(world, lang);
                     this.cancel();
+
+                    for (Player online : Bukkit.getOnlinePlayers()) {
+                        online.sendMessage(lang.get("game.loading-world", online));
+                    }
+
+                    new BukkitRunnable() {
+                        @Override
+                        public void run() {
+                            iniciarCuentaAtras(world, lang);
+                        }
+                    }.runTaskLater(plugin, 120L); // 6 segundos de delay
                 }
             }
         }.runTaskTimer(plugin, 0L, 40L);
-
-        return true;
     }
 
     private void prepararYTeletransportar(Player p, World world, int i, int numPosiciones, int size) {
@@ -106,10 +134,10 @@ public class ConfirmCommand implements CommandExecutor {
             p.removePotionEffect(effect.getType());
         }
         // Efectos con más tiempo para que duren hasta que terminen todos los turnos
-        p.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 1200, 1, false, false));
-        p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 1200, 255, false, false));
-        p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 1200, 255, false, false));
-        p.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 1200, 255, false, false));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 3600, 1, false, false, false));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 3600, 255, false, false, false));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 3600, 255, false, false, false));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 3600, 255, false, false, false));
     }
 
     private void iniciarCuentaAtras(World world, LanguageManager lang) {

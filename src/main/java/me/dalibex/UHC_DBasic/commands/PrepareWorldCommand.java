@@ -1,10 +1,8 @@
 package me.dalibex.UHC_DBasic.commands;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
-import org.bukkit.Bukkit;
-import org.bukkit.Difficulty;
-import org.bukkit.GameMode;
-import org.bukkit.World;
+import me.dalibex.UHC_DBasic.managers.LanguageManager;
+import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -25,52 +23,61 @@ public class PrepareWorldCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        LanguageManager lang = plugin.getLang();
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(plugin.getLang().get("general.only-players", null));
+            sender.sendMessage(lang.get("general.only-players", null));
             return true;
         }
 
         if (!player.isOp()) {
-            player.sendMessage(plugin.getLang().get("general.no-permission", player));
+            player.sendMessage(lang.get("general.no-permission", player));
             return true;
         }
 
-        // --- ACCIONES SOBRE JUGADORES ---
+        resetearJugadores();
+        resetearMundos();
+
+        plugin.getRightPanelManager().setStandBy();
+        plugin.getTeamManager().borrarTodosLosEquipos();
+
+        String prefix = lang.get("general.prefix", player);
+        player.sendMessage(lang.get("lobby.reset-success", player).replace("%prefix%", prefix));
+        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 0.5f);
+
+        return true;
+    }
+
+    private void resetearJugadores() {
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.clearActivePotionEffects();
             p.getInventory().clear();
             p.setGameMode(GameMode.ADVENTURE);
             p.setHealth(20.0);
             p.setFoodLevel(20);
-            p.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, 999999, 255, false, false, false));
-            p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 999999, 255, false, false, false));
+            p.setExp(0);
+            p.setLevel(0);
+
+            p.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, Integer.MAX_VALUE, 255, false, false, false));
+            p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, Integer.MAX_VALUE, 255, false, false, false));
             p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 200, 255, false, false, false));
         }
+    }
 
-        World overworld = Bukkit.getWorld("world");
-        overworld.getWorldBorder().setCenter(0, 0);
-        overworld.getWorldBorder().setSize(5999984);
-
-        // --- ACCIONES SOBRE TODOS LOS MUNDOS ---
+    private void resetearMundos() {
         for (World world : Bukkit.getWorlds()) {
             world.setDifficulty(Difficulty.HARD);
             world.setTime(0L);
             world.setThundering(false);
             world.setStorm(false);
 
+            world.getWorldBorder().setCenter(0, 0);
+            world.getWorldBorder().setSize(5999984);
+
             world.setGameRule(ADVANCE_TIME, false);
             world.setGameRule(ADVANCE_WEATHER, false);
             world.setGameRule(NATURAL_HEALTH_REGENERATION, true);
             world.setGameRule(SPAWN_MONSTERS, false);
+            world.setGameRule(PVP, false);
         }
-
-        // --- RESET DE MANAGERS ---
-        plugin.getRightPanelManager().setStandBy();
-        plugin.getTeamManager().borrarTodosLosEquipos();
-
-        String prefix = plugin.getLang().get("general.prefix", player);
-        player.sendMessage(plugin.getLang().get("lobby.reset-success", player).replace("%prefix%", prefix));
-
-        return true;
     }
 }

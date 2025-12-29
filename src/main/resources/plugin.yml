@@ -1,5 +1,5 @@
 name: ELOUD_UHC
-version: '1.4.4-SNAPSHOT'
+version: '1.4.5-SNAPSHOT'
 main: me.dalibex.UHC_DBasic.UHC_DBasic
 api-version: '1.21'
 authors: [ Dalibex ]
@@ -18,8 +18,11 @@ commands:
     description: Inicia el proceso de UHC (crea muro)
     usage: /start [size]
   confirmarstart:
-    description: Comando interno para confirmar (no necesita uso manual)
+    description: Comando interno para confirmar el inicio de partida (no necesita uso manual)
     usage: Llamado automáticamente por "/start" para confirmación
+  cancelarstart:
+    description: Comando interno para cancelar el inicio de partida (no necesita uso manual)
+    usage: Llamado automáticamente al cancelar la acción de empezar partida
   reset:
     description: Prepara el mundo y lo pone en espera para usar "/start"
     usage: /reset

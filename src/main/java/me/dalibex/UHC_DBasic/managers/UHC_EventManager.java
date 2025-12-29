@@ -1,11 +1,7 @@
 package me.dalibex.UHC_DBasic.managers;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Sound;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -305,6 +301,8 @@ public class UHC_EventManager implements Listener {
     public void onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent event) {
         Player p = event.getPlayer();
         RightPanelManager rpm = plugin.getRightPanelManager();
+
+        p.setGameMode(GameMode.ADVENTURE);
 
         if (rpm.getTiempoTotalSegundos() == 0) {
             World world = p.getWorld();

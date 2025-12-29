@@ -30,6 +30,7 @@ public class RightPanelManager {
     private int capitulo = 1;
     private int segundosPorCapitulo = 20*60;
     private BukkitTask partidaTask;
+    private boolean partidaIniciada = false;
     boolean equiposFormados = false;
     private boolean pausado = false;
     private boolean shulkerEntregado = false;
@@ -201,7 +202,7 @@ public class RightPanelManager {
         if (partidaTask != null) { partidaTask.cancel(); partidaTask = null; }
         cronometroSegundos = 0; tiempoTotalSegundos = 0; capitulo = 1;
         equiposFormados = false; jugadoresEliminados.clear();
-        shulkerEntregado = false;
+        shulkerEntregado = false; this.partidaIniciada = false;
 
         World world = Bukkit.getWorlds().get(0);
         int y = world.getHighestBlockYAt(0, 0);
@@ -226,8 +227,17 @@ public class RightPanelManager {
     }
 
     public void iniciarPartida() {
-        if (partidaTask != null) partidaTask.cancel();
-        pausado = false; equiposFormados = false; jugadoresEliminados.clear();
+        if (partidaTask != null) return;
+
+        //RESETS DE SEGURIDAD
+        this.partidaIniciada = true;
+        this.cronometroSegundos = 0;
+        this.tiempoTotalSegundos = 0;
+        this.capitulo = 1;
+        this.pausado = false;
+        this.equiposFormados = false;
+        this.jugadoresEliminados.clear();
+
         LanguageManager lang = plugin.getLang();
 
         for(Player p : Bukkit.getOnlinePlayers()) {
@@ -396,7 +406,7 @@ public class RightPanelManager {
                                     healthText = " " + c + (int)h + "§4❤";
                                 } else healthText = lang.get("scoreboard.mate-offline", player);
                             }
-                            obj.getScore(" §8> " + colorPrefix + entry + healthText).setScore(next--);
+                            obj.getScore(" §6> " + colorPrefix + entry + healthText).setScore(next--);
                         }
                     }
                 }
@@ -481,4 +491,10 @@ public class RightPanelManager {
     public int getSegundosPorCapitulo() {return segundosPorCapitulo; }
     public void setSegundosPorCapitulo(int s) {this.segundosPorCapitulo = s;}
     public Set<String> getJugadoresEliminados() { return jugadoresEliminados; }
+    public boolean isPartidaIniciada() {
+        return partidaIniciada;
+    }
+    public void setPartidaIniciada(boolean estado) {
+        this.partidaIniciada = estado;
+    }
 }

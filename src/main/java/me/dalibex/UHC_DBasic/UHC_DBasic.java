@@ -3,9 +3,6 @@ package me.dalibex.UHC_DBasic;
 import me.dalibex.UHC_DBasic.commands.*;
 import me.dalibex.UHC_DBasic.managers.*;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.jetbrains.annotations.NotNull;
-
-import java.nio.file.Path;
 
 public final class UHC_DBasic extends JavaPlugin {
 
@@ -39,14 +36,17 @@ public final class UHC_DBasic extends JavaPlugin {
 
         // 5. REGISTRAR COMANDOS
         getCommand("uhcadmin").setExecutor(new AdminPanelCommand(this));
-        getCommand("start").setExecutor(new StartCommand(this));
         getCommand("reset").setExecutor(new PrepareWorldCommand(this));
-        getCommand("confirmarstart").setExecutor(new ConfirmCommand(this));
         getCommand("uhccommands").setExecutor(new GCommandsCommand(this));
         getCommand("nequipo").setExecutor(new NEquipoCommand(this));
         getCommand("tpartes").setExecutor(new TiempoPartesCommand(this));
 
-        // Comando de idioma
+        StartCommand startCmd = new StartCommand(this);
+        getCommand("start").setExecutor(startCmd);
+        getCommand("confirmarstart").setExecutor(new ConfirmStartCommand(this, startCmd));
+        getCommand("cancelarstart").setExecutor(new CancelarStartCommand(this, startCmd));
+
+        // COMANDO DE IDIOMA
         getCommand("lang").setExecutor(new LangCommand(this));
         getCommand("lang").setTabCompleter(new LangCommand(this));
 
@@ -84,13 +84,6 @@ public final class UHC_DBasic extends JavaPlugin {
 
     public UHC_EventManager getEventHandler() {
         return eventHandler;
-    }
-
-    public void setGlobalLanguage(String langCode) {
-        this.getConfig().set("language", langCode);
-        this.saveConfig();
-        this.languageManager = new LanguageManager(this);
-        specialCraftsManager.actualizarReceta();
     }
 
     @Override

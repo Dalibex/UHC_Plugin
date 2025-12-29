@@ -3,10 +3,15 @@ general:
   prefix: "&e&lUHC ELOUD > &f"
   error-prefix: "&c&lERROR > &7"
   no-permission: "&cThis command is for administrators only."
+  only-players: "&cThis command is for players only."
   inv-full: "&cInventory full! The item has dropped at your feet."
 
 # Game, start and confirmation commands
 game:
+  invalid-number: "%error-prefix% §fThe size must be a valid integer number."
+  teleporting-progress: "§fTeleporting players... §e(%current%/%total%)"
+  loading-world: "§6§l[!] §fAll players teleported. Loading world and chunks..."
+  game-already-started: "§cThe game has already started."
   countdown-title: "&6%time%"
   countdown-subtitle: "&eGetting ready..."
   started-title: "&a&lUHC HAS BEGUN!"
@@ -59,7 +64,9 @@ lobby:
 
 # Start menu section
 start-menu:
-  usage: "%error-prefix%Correct usage: /start <size>"
+  usage: "%error-prefix%§fCorrect usage: /start <size>"
+  already-starting: "%error-prefix% §fA confirmation is already pending or the game is starting."
+  cancelled: "§6§l[!] §fAction cancelled. Use §e/start [size] §fwhen you are ready again."
   buttons:
     confirm:
       text: "&a[START UHC]"
@@ -71,11 +78,13 @@ start-menu:
 # Game timer section
 timer:
   usage:
-    - "&c&lERROR &8> &fCorrect usage: /tpartes <hours> <minutes> <seconds>"
+    - "&c&lERROR > &fCorrect usage: /tpartes <hours> <minutes> <seconds>"
     - "&7Example for 10 sec: &f/tpartes 0 0 10"
     - "&7Example for 20 min: &f/tpartes 0 20 0"
-  already-started: "&cThe game has already started, you cannot change this now."
-  invalid-number: "&cError: You must enter whole numbers."
+  already-started: "&fThe game has already started, you cannot change this now."
+  invalid-number: "&cYou must enter whole numbers."
+  negative-values: "§cValues cannot be negative."
+  max-value-limit: "§cThe maximum value for each unit is 99."
   too-short: "&cTotal time must be greater than 0 seconds."
   success: "%prefix%&fEach part duration adjusted to: &e%time%"
 
@@ -171,6 +180,7 @@ menus:
 
   barrier:
     title: "&8⚖ Adjust Border Size"
+    min-size-error: "§cThe minimum border size is 20 blocks."
     current-size:
       name: "&bCurrent Size"
       lore: "&fThe border is: &6%size%x%size%"
@@ -234,7 +244,7 @@ scoreboard:
   go-center: " &fGo to X=0 Z=0"
   pvp-label: " &fPVP: %status%"
   pvp-pact: "&eGentleman's pact "
-  pvp-active: "&c&lACTIVE ⚔ "
+  pvp-active: "&cACTIVE ⚔ "
   team-label: " &b🛡 &fTeam: %color%%name%"
   team-rename-warn: " &c⚠ &7Use /nequipo"
   team-assigning: " &d👥 &7Assigning..."
@@ -278,4 +288,8 @@ compass:
   tracking-actionbar: "&bTracking: &f%player% &7(&a%dist%m&7)"
 
 # Change language
-lang-switch: "%prefix%&aYour language changed to: &eEnglish"
+lang:
+  usage: "%error-prefix%§fCorrect usage: /lang <language>"
+  invalid: "§cThat language is not available."
+  already-started: "§cYou cannot change the global language once the game has started."
+  switch: "%prefix%&aLanguage changed to: &eEnglish"

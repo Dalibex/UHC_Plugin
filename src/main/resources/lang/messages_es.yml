@@ -8,6 +8,10 @@ general:
 
 # Comandos de inicio y confirmación, juego
 game:
+  invalid-number: "§cEl tamaño debe ser un número entero válido."
+  teleporting-progress: "§fTeletransportando jugadores... §e(%current%/%total%)"
+  loading-world: "§6§l[!] §fTodos los jugadores teletransportados. Cargando mundo y chunks..."
+  game-already-started: "§fLa partida ya ha comenzado."
   countdown-title: "&6%time%"
   countdown-subtitle: "&ePreparándote..."
   started-title: "&a&l¡UHC HA COMENZADO!"
@@ -61,23 +65,27 @@ lobby:
 
 # Sección para el menú de inicio
 start-menu:
-  usage: "%error-prefix%Uso correcto: /start <tamaño>"
+  usage: "%error-prefix%§fUso correcto: /start <tamaño>"
+  already-starting: "%error-prefix% §fYa hay una confirmación pendiente o el juego está iniciando."
+  cancelled: "§6§l[!] §fAcción cancelada. Usa §e/start [tamaño] §fcuando estés listo de nuevo."
   buttons:
     confirm:
       text: "&a[EMPEZAR UHC]"
-      hover: "&7EMPEZAR e iniciar la cuenta atrás"
+      hover: "&7Click para EMPEZAR e iniciar la cuenta atrás"
     cancel:
       text: "&c[CANCELAR]"
-      hover: "&7No hacer nada, cancela la acción"
+      hover: "&7Click para CANCELAR la acción"
 
 # Sección de game
 timer:
   usage:
-    - "&c&lERROR &8> &fUso correcto: /tpartes <horas> <minutos> <segundos>"
+    - "&c&lERROR > &fUso correcto: /tpartes <horas> <minutos> <segundos>"
     - "&7Ejemplo para 10 seg: &f/tpartes 0 0 10"
     - "&7Ejemplo para 20 min: &f/tpartes 0 20 0"
   already-started: "&cLa partida ya ha comenzado, no puedes cambiar esto ahora."
-  invalid-number: "&cError: Debes introducir números enteros."
+  invalid-number: "&cDebes introducir números enteros."
+  negative-values: "§cLos valores no pueden ser negativos."
+  max-value-limit: "§cEl valor máximo para cada unidad es 99."
   too-short: "&cEl tiempo total debe ser mayor a 0 segundos."
   success: "%prefix%&fDuración de cada parte ajustada a: &e%time%"
 
@@ -172,6 +180,7 @@ menus:
 
   barrier:
     title: "&8⚖ Ajustar tamaño de barrera"
+    min-size-error: "§cEl tamaño mínimo de la barrera es de 20 bloques."
     current-size:
       name: "&bTamaño Actual"
       lore: "&fEl borde mide: &6%size%x%size%"
@@ -235,7 +244,7 @@ scoreboard:
   go-center: " &fDirígete a X=0 Z=0"
   pvp-label: " &fPVP: %status%"
   pvp-pact: "&ePacto de caballeros "
-  pvp-active: "&c&lACTIVO ⚔ "
+  pvp-active: "&cACTIVO ⚔ "
   team-label: " &b🛡 &fEquipo: %color%%name%"
   team-rename-warn: " &c⚠ &7Usa /nequipo"
   team-assigning: " &d👥 &7Asignando..."
@@ -278,4 +287,8 @@ compass:
   tracking-actionbar: "&bRastreando a: &f%player% &7(&a%dist%m&7)"
 
 # Cambiar idioma
-lang-switch: "%prefix%&aHas cambiado tu idioma a: &eEspañol"
+lang:
+  usage: "%error-prefix%§fUso correcto: /lang <idioma>"
+  invalid: "§cEse idioma no está disponible."
+  already-started: "§cNo puedes cambiar el idioma global una vez iniciada la partida."
+  switch: "%prefix%&aHas cambiado tu idioma a: &eEspañol"

@@ -15,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 public class StartCommand implements CommandExecutor {
 
     private final UHC_DBasic plugin;
+    private boolean confirmacionPendiente = false;
 
     public StartCommand(UHC_DBasic plugin) {
         this.plugin = plugin;
@@ -34,15 +35,58 @@ public class StartCommand implements CommandExecutor {
             return true;
         }
 
-        if (args.length == 0) {
-            String errorMsg = lang.get("start-menu.usage", player)
-                    .replace("%error-prefix%", lang.get("general.error-prefix", player));
-            player.sendMessage(errorMsg);
-            return true;
+        int size = validarTodo(player, args);
+        if (size == -1) return true;
+
+        this.confirmacionPendiente = true;
+        enviarMenuConfirmacion(player, size);
+
+        return true;
+    }
+
+    /**
+     * Valida argumentos, formato numérico, rango mínimo y estado del juego.
+     * @return el tamaño (size) si es válido, -1 si falla (enviando mensaje de error).
+     */
+    private int validarTodo(Player player, String[] args) {
+        LanguageManager lang = plugin.getLang();
+        String errorPrefix = lang.get("general.error-prefix", player);
+
+        if (args.length != 1) {
+            player.sendMessage(lang.get("start-menu.usage", player).replace("%error-prefix%", errorPrefix));
+            return -1;
         }
 
-        String size = args[0];
+        int size;
+        try {
+            size = Integer.parseInt(args[0]);
+            if (size < 20) {
+                player.sendMessage(lang.get("menus.barrier.min-size-error", player).replace("%error-prefix%", errorPrefix));
+                return -1;
+            }
+        } catch (NumberFormatException e) {
+            player.sendMessage(lang.get("game.invalid-number", player).replace("%error-prefix%", errorPrefix));
+            return -1;
+        }
 
+        if (plugin.getRightPanelManager().isPartidaIniciada()) {
+            player.sendMessage(errorPrefix + lang.get("game.game-already-started", player));
+            return -1;
+        }
+
+        if (confirmacionPendiente) {
+            player.sendMessage(lang.get("start-menu.already-starting", player).replace("%error-prefix%", errorPrefix));
+            return -1;
+        }
+
+        return size;
+    }
+
+    /**
+     * Construye y envía el mensaje interactivo con los botones SÍ/NO.
+     */
+    private void enviarMenuConfirmacion(Player player, int size) {
+        LanguageManager lang = plugin.getLang();
         TextComponent mensaje = new TextComponent(lang.get("general.prefix", player));
 
         // BOTÓN SI
@@ -53,14 +97,23 @@ public class StartCommand implements CommandExecutor {
 
         // BOTÓN NO
         TextComponent botonNo = new TextComponent(lang.get("start-menu.buttons.cancel.text", player));
+        botonNo.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/cancelarstart"));
         botonNo.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
                 new Text(lang.get("start-menu.buttons.cancel.hover", player))));
 
-        mensaje.addExtra(botonSi);
         mensaje.addExtra(" ");
+        mensaje.addExtra(botonSi);
+        mensaje.addExtra("   ");
         mensaje.addExtra(botonNo);
-        player.spigot().sendMessage(mensaje);
 
-        return true;
+        player.spigot().sendMessage(mensaje);
+    }
+
+    public void setConfirmacionPendiente(boolean estado) {
+        this.confirmacionPendiente = estado;
+    }
+
+    public boolean getConfirmacionPendiente() {
+        return confirmacionPendiente;
     }
 }
