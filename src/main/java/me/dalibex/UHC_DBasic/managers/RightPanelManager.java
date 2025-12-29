@@ -406,7 +406,7 @@ public class RightPanelManager {
                                     healthText = " " + c + (int)h + "§4❤";
                                 } else healthText = lang.get("scoreboard.mate-offline", player);
                             }
-                            obj.getScore(" §6> " + colorPrefix + entry + healthText).setScore(next--);
+                            obj.getScore("§6> " + colorPrefix + entry + healthText).setScore(next--);
                         }
                     }
                 }
