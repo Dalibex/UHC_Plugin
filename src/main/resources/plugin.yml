@@ -1,5 +1,5 @@
 name: ELOUD_UHC
-version: '1.4.5-SNAPSHOT'
+version: '1.4.6-SNAPSHOT'
 main: me.dalibex.UHC_DBasic.UHC_DBasic
 api-version: '1.21'
 authors: [ Dalibex ]

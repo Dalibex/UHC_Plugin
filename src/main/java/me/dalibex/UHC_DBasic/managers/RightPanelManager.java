@@ -35,6 +35,7 @@ public class RightPanelManager {
     private boolean pausado = false;
     private boolean shulkerEntregado = false;
     private final Set<String> jugadoresEliminados = new HashSet<>();
+    private final List<String> participantesIniciales = new ArrayList<>();
 
     public RightPanelManager(UHC_DBasic plugin) {
         this.plugin = plugin;
@@ -239,6 +240,7 @@ public class RightPanelManager {
         this.jugadoresEliminados.clear();
 
         LanguageManager lang = plugin.getLang();
+        registrarParticipantes();
 
         for(Player p : Bukkit.getOnlinePlayers()) {
             p.setPlayerListName(p.getName());
@@ -484,6 +486,20 @@ public class RightPanelManager {
             p.playSound(p.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 1f);
         }
     }
+
+    // ----- PARTICIPANTES DE LA PARTIDA PARA LOS EQUIPOS -----
+    public void registrarParticipantes() {
+        participantesIniciales.clear();
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (p.getGameMode() == GameMode.SURVIVAL || p.getGameMode() == GameMode.ADVENTURE) {
+                participantesIniciales.add(p.getName());
+            }
+        }
+    }
+    public List<String> getParticipantesIniciales() {
+        return participantesIniciales;
+    }
+    // --------------------------------------------------------
 
     public void setPausado(boolean e) { this.pausado = e; }
     public boolean isPausado() { return pausado; }

@@ -3,7 +3,6 @@ package me.dalibex.UHC_DBasic.managers;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
@@ -39,23 +38,22 @@ public class TeamManager {
             team.unregister();
         }
 
-        List<Player> vivos = new ArrayList<>();
-        List<Player> muertos = new ArrayList<>();
+        List<String> vivosNames = new ArrayList<>();
+        List<String> muertosNames = new ArrayList<>();
 
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            if (plugin.getRightPanelManager().getJugadoresEliminados().contains(p.getName())
-                    || p.getGameMode() == GameMode.SPECTATOR) {
-                muertos.add(p);
+        for (String name : plugin.getRightPanelManager().getParticipantesIniciales()) {
+            if (plugin.getRightPanelManager().getJugadoresEliminados().contains(name)) {
+                muertosNames.add(name);
             } else {
-                vivos.add(p);
+                vivosNames.add(name);
             }
         }
 
-        int totalJugadores = vivos.size() + muertos.size();
+        int totalJugadores = vivosNames.size() + muertosNames.size();
         if (totalJugadores == 0) return;
 
-        Collections.shuffle(vivos);
-        Collections.shuffle(muertos);
+        Collections.shuffle(vivosNames);
+        Collections.shuffle(muertosNames);
 
         int numeroDeEquipos = (int) Math.ceil((double) totalJugadores / teamSize);
         List<Team> listaEquipos = new ArrayList<>();
@@ -74,34 +72,40 @@ public class TeamManager {
             listaEquipos.add(team);
         }
 
-        for (int i = 0; i < vivos.size(); i++) {
+        // REPARTO DE VIVOS
+        for (int i = 0; i < vivosNames.size(); i++) {
             Team teamAsignado = listaEquipos.get(i % numeroDeEquipos);
-            Player p = vivos.get(i);
-            asignarJugadorAEquipo(p, teamAsignado, lang);
+            String name = vivosNames.get(i);
+            asignarEquipoPorNombre(name, teamAsignado, lang);
         }
 
+        // REPARTO DE MUERTOS
         if (!listaEquipos.isEmpty()) {
-            for (Player p : muertos) {
+            for (String name : muertosNames) {
                 Team equipoMasVacio = listaEquipos.stream()
                         .min(Comparator.comparingInt(t -> t.getEntries().size()))
                         .orElse(listaEquipos.get(0));
 
-                asignarJugadorAEquipo(p, equipoMasVacio, lang);
+                asignarEquipoPorNombre(name, equipoMasVacio, lang);
             }
         }
     }
 
     /**
-     * Método auxiliar para asignación
+     * Método auxiliar corregido para aceptar Nombres (String)
+     * Maneja automáticamente si el jugador está online u offline
      */
-    private void asignarJugadorAEquipo(Player p, Team team, LanguageManager lang) {
-        team.addEntry(p.getName());
+    private void asignarEquipoPorNombre(String name, Team team, LanguageManager lang) {
+        team.addEntry(name);
 
-        String msg = lang.get("teams.assigned", p)
-                .replace("%prefix%", lang.get("general.prefix", p))
-                .replace("%color%", team.getColor().toString())
-                .replace("%name%", team.getDisplayName());
-        p.sendMessage(msg);
+        Player p = Bukkit.getPlayer(name);
+        if (p != null && p.isOnline()) {
+            String msg = lang.get("teams.assigned", p)
+                    .replace("%prefix%", lang.get("general.prefix", p))
+                    .replace("%color%", team.getColor().toString())
+                    .replace("%name%", team.getDisplayName());
+            p.sendMessage(msg);
+        }
     }
 
     public boolean renombrarEquipo(Player player, String nuevoNombre) {
@@ -116,7 +120,6 @@ public class TeamManager {
         String nombreAnterior = team.getDisplayName();
         team.setDisplayName(nuevoNombre);
 
-        // El prefijo visual del equipo es global para todos
         String prefix = lang.get("teams.prefix-format", null)
                 .replace("%color%", team.getColor().toString())
                 .replace("%name%", nuevoNombre);
@@ -129,7 +132,6 @@ public class TeamManager {
             }
         }
 
-        // Anuncios de broadcast multilingües
         for (Player all : Bukkit.getOnlinePlayers()) {
             if (nombreAnterior.contains("team_")) {
                 String foundedMsg = lang.get("teams.founded", all)
@@ -147,7 +149,6 @@ public class TeamManager {
             }
             all.playSound(all.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_CHIME, 0.5f, 1.2f);
         }
-
         return true;
     }
 
