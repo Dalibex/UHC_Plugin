@@ -3,7 +3,6 @@ package me.dalibex.UHC_DBasic.managers;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
@@ -17,7 +16,7 @@ import java.util.List;
 
 import static org.bukkit.GameRules.*;
 
-public class AdminPanel {
+public class AdminPanelManager {
 
     private final UHC_DBasic plugin;
     public static boolean combate18 = false;
@@ -25,7 +24,7 @@ public class AdminPanel {
     private boolean shulkerOneEnabled = true;
     private boolean shulkerTwoEnabled = true;
 
-    public AdminPanel(UHC_DBasic plugin) {
+    public AdminPanelManager(UHC_DBasic plugin) {
         this.plugin = plugin;
     }
 
@@ -62,7 +61,7 @@ public class AdminPanel {
         mainGui.setItem(6, createSimpleItem(Material.CLOCK, "menus.main-admin.time-item", player));
 
         // Item de Equipos (Bloqueado si hay partida)
-        RightPanelManager rpm = plugin.getRightPanelManager();
+        GameManager rpm = plugin.getRightPanelManager();
         boolean partidaEnCurso = rpm.getTiempoTotalSegundos() > 0;
 
         ItemStack teamItem = new ItemStack(partidaEnCurso ? Material.BARRIER : Material.WHITE_BANNER);
@@ -165,7 +164,7 @@ public class AdminPanel {
         LanguageManager lang = plugin.getLang();
         Inventory timeGui = Bukkit.createInventory(null, 27, lang.get("menus.time.title", player));
 
-        RightPanelManager rpm = plugin.getRightPanelManager();
+        GameManager rpm = plugin.getRightPanelManager();
         boolean estaPausado = rpm.isPausado();
         boolean partidaEnCurso = rpm.getTiempoTotalSegundos() > 0;
         int totalSecs = rpm.getSegundosPorCapitulo();

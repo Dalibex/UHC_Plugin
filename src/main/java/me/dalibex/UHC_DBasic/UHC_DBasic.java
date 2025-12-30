@@ -6,9 +6,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public final class UHC_DBasic extends JavaPlugin {
 
-    private RightPanelManager rightPanelManager;
+    private GameManager gameManager;
     private TeamManager teamManager;
-    private AdminPanel adminPanel;
+    private AdminPanelManager adminPanelManager;
     private ChatManager chatManager;
     private UHC_EventManager eventHandler;
     private SpecialCraftsManager specialCraftsManager;
@@ -24,8 +24,8 @@ public final class UHC_DBasic extends JavaPlugin {
 
         // 3. INICIALIZAR RESTO DE MANAGERS
         teamManager = new TeamManager();
-        rightPanelManager = new RightPanelManager(this);
-        adminPanel = new AdminPanel(this);
+        gameManager = new GameManager(this);
+        adminPanelManager = new AdminPanelManager(this);
         chatManager = new ChatManager(this);
         eventHandler = new UHC_EventManager(this);
         specialCraftsManager = new SpecialCraftsManager(this);
@@ -58,16 +58,16 @@ public final class UHC_DBasic extends JavaPlugin {
         getLogger().info("UHC ELOUD Plugin Enabled");
     }
 
-    public RightPanelManager getRightPanelManager() {
-        return rightPanelManager;
+    public GameManager getRightPanelManager() {
+        return gameManager;
     }
 
     public TeamManager getTeamManager() {
         return teamManager;
     }
 
-    public AdminPanel getAdminPanel() {
-        return adminPanel;
+    public AdminPanelManager getAdminPanel() {
+        return adminPanelManager;
     }
 
     public ChatManager getChatManager() {

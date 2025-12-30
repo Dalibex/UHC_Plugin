@@ -1,0 +1,373 @@
+package me.dalibex.UHC_DBasic.gamemodes;
+
+import io.papermc.paper.scoreboard.numbers.NumberFormat;
+import me.dalibex.UHC_DBasic.UHC_DBasic;
+import me.dalibex.UHC_DBasic.managers.LanguageManager;
+import me.dalibex.UHC_DBasic.managers.GameManager;
+import me.dalibex.UHC_DBasic.managers.TeamManager;
+import org.bukkit.*;
+import org.bukkit.entity.Firework;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.FireworkMeta;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scoreboard.DisplaySlot;
+import org.bukkit.scoreboard.Objective;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static org.bukkit.GameRules.PVP;
+
+public class Classic implements UHCGameMode {
+
+    private final UHC_DBasic plugin;
+    private final GameManager rpm;
+    private boolean shulkerEntregado = false;
+    private boolean equiposFormados = false;
+
+    public Classic(UHC_DBasic plugin, GameManager rpm) {
+        this.plugin = plugin;
+        this.rpm = rpm;
+    }
+
+    @Override
+    public String getName() {
+        return "Classic UHC";
+    }
+
+    @Override
+    public void onTick(int cronometroSegundos, int tiempoTotalSegundos) {
+        LanguageManager lang = plugin.getLang();
+        TeamManager tm = plugin.getTeamManager();
+        int segundosCap = rpm.getSegundosPorCapitulo();
+        int capituloActual = rpm.getCapitulo();
+
+        // Lógica de Shulker 1 (Episodio 1)
+        if (plugin.getAdminPanel().isShulkerOneEnabled() && !shulkerEntregado && cronometroSegundos > 1) {
+            entregarObjetoGlobal("items.shulker.name", Material.ORANGE_SHULKER_BOX);
+            shulkerEntregado = true;
+        }
+
+        // Cambio de Capítulo
+        if (cronometroSegundos % segundosCap == 0 && cronometroSegundos != 0) {
+            rpm.setCapitulo(capituloActual + 1);
+            int nuevoCap = rpm.getCapitulo();
+
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (nuevoCap < 10) {
+                    p.sendMessage(lang.get("game-events.chapter-start", p)
+                            .replace("%prefix%", lang.get("general.prefix", p))
+                            .replace("%chapter%", String.valueOf(nuevoCap)));
+                    p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
+                } else if (nuevoCap == 10) {
+                    for (String s : lang.getList("game-events.final-phase", p)) p.sendMessage(s);
+                    p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
+                }
+            }
+
+            // Lógica de Shulker 2 (Episodio 8)
+            if (nuevoCap == 8 && plugin.getAdminPanel().isShulkerTwoEnabled()) {
+                entregarObjetoGlobal("items.shulker.name", Material.LIGHT_BLUE_SHULKER_BOX);
+            }
+
+            // Formación de Equipos (Episodio 3)
+            if (nuevoCap == 3 && tm.getTeamSize() > 1 && !equiposFormados) {
+                tm.shuffleTeams();
+                entregarBrujulasDeSeguimiento(lang);
+                equiposFormados = true;
+                for (Player p : Bukkit.getOnlinePlayers()) p.sendMessage(lang.get("game-events.teams-formed", p));
+            }
+
+            // Activación de PVP (Episodio 4)
+            if (nuevoCap == 4) {
+                for (World w : Bukkit.getWorlds()) w.setGameRule(PVP, true);
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    for (String s : lang.getList("game-events.pvp-enabled", p)) p.sendMessage(s);
+                    p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
+                }
+            }
+        }
+
+        // Caso especial: Solo (TeamSize 1) al segundo 1
+        if (cronometroSegundos == 1 && tm.getTeamSize() == 1 && !equiposFormados) {
+            tm.shuffleTeams();
+            equiposFormados = true;
+        }
+    }
+
+    @Override
+    public void updateScoreboard(Player player, String tiempo, String tiempoTotal, boolean partidaActiva) {
+        LanguageManager lang = plugin.getLang();
+        Scoreboard board = player.getScoreboard();
+
+        if (board == Bukkit.getScoreboardManager().getMainScoreboard()) {
+            board = Bukkit.getScoreboardManager().getNewScoreboard();
+            player.setScoreboard(board);
+        }
+
+        Objective obj = board.getObjective("uhc");
+        if (obj != null) obj.unregister();
+
+        obj = board.registerNewObjective("uhc", "dummy", ChatColor.translateAlternateColorCodes('&', lang.get("scoreboard.title", player)));
+        obj.setDisplaySlot(DisplaySlot.SIDEBAR);
+        obj.numberFormat(NumberFormat.blank());
+
+        Objective objVida = board.getObjective("vida_tab");
+        if (partidaActiva) {
+            if (objVida == null) {
+                objVida = board.registerNewObjective("vida_tab", "health",
+                        ChatColor.translateAlternateColorCodes('&', lang.get("scoreboard.health-icon", player)),
+                        org.bukkit.scoreboard.RenderType.HEARTS);
+                objVida.setDisplaySlot(DisplaySlot.PLAYER_LIST);
+            }
+        } else {
+            if (objVida != null) objVida.unregister();
+        }
+
+        if (!partidaActiva) {
+            obj.getScore("§1 ").setScore(5);
+            obj.getScore(lang.get("scoreboard.waiting", player)).setScore(4);
+            obj.getScore("§2 ").setScore(3);
+            obj.getScore(lang.get("scoreboard.players", player).replace("%online%", String.valueOf(Bukkit.getOnlinePlayers().size()))).setScore(2);
+            obj.getScore("§3 ").setScore(1);
+        } else {
+            Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(player.getName());
+            int capitulo = rpm.getCapitulo();
+            String pvpStatus = (capitulo < 4) ? lang.get("scoreboard.pvp-pact", player) : lang.get("scoreboard.pvp-active", player);
+
+            obj.getScore("§4 ").setScore(23);
+            if (capitulo < 10) obj.getScore(lang.get("scoreboard.phase", player).replace("%chapter%", String.valueOf(capitulo))).setScore(22);
+            else {
+                obj.getScore(lang.get("scoreboard.finalized", player)).setScore(21);
+                obj.getScore(lang.get("scoreboard.go-center", player)).setScore(20);
+                obj.getScore("§5 ").setScore(19);
+            }
+            obj.getScore(lang.get("scoreboard.pvp-label", player).replace("%status%", pvpStatus)).setScore(18);
+            obj.getScore("§6 ").setScore(17);
+
+            int next = 16;
+            int teamSize = plugin.getTeamManager().getTeamSize();
+            if (teamSize == 1) {
+                String line = (team != null && !team.getPrefix().contains("team_")) ?
+                        lang.get("scoreboard.team-label", player).replace("%color%", team.getColor().toString()).replace("%name%", team.getDisplayName()) : lang.get("scoreboard.team-rename-warn", player);
+                obj.getScore(line).setScore(next--);
+            } else {
+                if (capitulo < 3) {
+                    for (int i = 1; i < teamSize; i++) obj.getScore(" §d👥 §f: §k??????" + (" ".repeat(i))).setScore(next--);
+                } else {
+                    String line = (team != null && !team.getPrefix().contains("team_")) ? lang.get("scoreboard.team-mates-label", player).replace("%color%", team.getColor().toString()).replace("%name%", team.getDisplayName()) :
+                            (team != null ? lang.get("scoreboard.team-rename-warn", player) : lang.get("scoreboard.team-assigning", player));
+                    obj.getScore(line).setScore(next--);
+                    if (team != null) {
+                        for (String entry : team.getEntries()) {
+                            if (entry.equals(player.getName())) continue;
+                            String healthText; String colorPrefix = "§f";
+                            if (rpm.getJugadoresEliminados().contains(entry)) { colorPrefix = "§7§m"; healthText = lang.get("scoreboard.mate-dead", player); }
+                            else {
+                                Player m = Bukkit.getPlayer(entry);
+                                if (m != null && m.isOnline()) {
+                                    double h = m.getHealth();
+                                    String c = (h > 15) ? "§a" : (h > 10) ? "§2" : (h > 5) ? "§e" : "§c";
+                                    healthText = " " + c + (int)h + "§4❤";
+                                } else healthText = lang.get("scoreboard.mate-offline", player);
+                            }
+                            obj.getScore("§6> " + colorPrefix + entry + healthText).setScore(next--);
+                        }
+                    }
+                }
+            }
+            obj.getScore("§6 ").setScore(next--);
+            obj.getScore(lang.get("scoreboard.time-total-label", player)).setScore(next--);
+            obj.getScore("§6> §f" + tiempoTotal).setScore(next--);
+            obj.getScore("§7 ").setScore(next--);
+            if (capitulo < 10) {
+                obj.getScore(lang.get("scoreboard.time-next-label", player)).setScore(next--);
+                obj.getScore("§6> §f" + tiempo).setScore(next--);
+            }
+
+            // Lógica de TAB y Nametags (Global Scoreboard)
+            actualizarNametags(player, board);
+        }
+    }
+
+    private void actualizarNametags(Player player, Scoreboard board) {
+        Team myTeam = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(player.getName());
+        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            onlinePlayer.setPlayerListName(onlinePlayer.getName());
+            String teamKey = "h_" + onlinePlayer.getName();
+            Team t = board.getTeam(teamKey);
+            if (t == null) {
+                t = board.registerNewTeam(teamKey);
+                t.addEntry(onlinePlayer.getName());
+            }
+            t.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
+            boolean esCompanero = (myTeam != null && myTeam.hasEntry(onlinePlayer.getName()));
+            boolean soyYo = onlinePlayer.equals(player);
+            t.setColor((soyYo || esCompanero) ? ChatColor.LIGHT_PURPLE : ChatColor.RED);
+        }
+    }
+
+    @Override
+    public void checkVictory() {
+        if (rpm.getTiempoTotalSegundos() <= 0) return;
+
+        List<Player> jugadoresVivos = Bukkit.getOnlinePlayers().stream()
+                .filter(p -> p.getGameMode() == GameMode.SURVIVAL)
+                .filter(p -> !rpm.getJugadoresEliminados().contains(p.getName()))
+                .collect(Collectors.toList());
+
+        if (jugadoresVivos.isEmpty()) {
+            finalizarPartida(null);
+            return;
+        }
+
+        int episodioActual = rpm.getCapitulo();
+        if (episodioActual < 3) {
+            if (jugadoresVivos.size() == 1) {
+                Player ganador = jugadoresVivos.get(0);
+                Team equipo = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(ganador.getName());
+                if (equipo == null) {
+                    Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
+                    Team tempTeam = board.getTeam("ganador_temp");
+                    if (tempTeam == null) tempTeam = board.registerNewTeam("ganador_temp");
+                    tempTeam.addEntry(ganador.getName());
+                    tempTeam.setDisplayName(ganador.getName());
+                    tempTeam.setColor(ChatColor.GOLD);
+                    finalizarPartida(tempTeam);
+                } else finalizarPartida(equipo);
+            }
+        } else {
+            Map<String, Team> equiposVivos = new HashMap<>();
+            for (Player p : jugadoresVivos) {
+                Team equipo = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
+                if (equipo != null) equiposVivos.put(equipo.getName(), equipo);
+                else equiposVivos.put("SOLO_" + p.getName(), null);
+            }
+            if (equiposVivos.size() == 1) {
+                String key = equiposVivos.keySet().iterator().next();
+                Team equipoGanador = equiposVivos.get(key);
+                if (equipoGanador == null) finalizarPartidaIndividual(key.replace("SOLO_", ""));
+                else finalizarPartida(equipoGanador);
+            }
+        }
+    }
+
+    private void finalizarPartidaIndividual(String nombreGanador) {
+        Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
+        if (board.getTeam("ganador_temp") != null) board.getTeam("ganador_temp").unregister();
+        Team tempTeam = board.registerNewTeam("ganador_temp");
+        tempTeam.addEntry(nombreGanador);
+        tempTeam.setDisplayName(nombreGanador);
+        tempTeam.setColor(ChatColor.GOLD);
+        finalizarPartida(tempTeam);
+    }
+
+    private void finalizarPartida(Team ganador) {
+        LanguageManager lang = plugin.getLang();
+        rpm.detenerPartidaTask();
+
+        if (ganador != null) {
+            List<String> nombresFormateados = new ArrayList<>();
+            List<Player> vivosParaCohetes = new ArrayList<>();
+            for (String entry : ganador.getEntries()) {
+                if (rpm.getJugadoresEliminados().contains(entry)) {
+                    nombresFormateados.add("§7§m" + entry + "§r");
+                } else {
+                    nombresFormateados.add("§f" + entry);
+                    Player p = Bukkit.getPlayer(entry);
+                    if (p != null) {
+                        vivosParaCohetes.add(p);
+                        p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 600, 255));
+                    }
+                }
+            }
+            String listaFinal = String.join("§7, ", nombresFormateados);
+
+            String nombreEquipo = ganador.getDisplayName();
+            String color = ganador.getColor().toString();
+
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                p.sendMessage("");
+                p.sendMessage(lang.get("victory.broadcast-header", p)
+                        .replace("%color%", color)
+                        .replace("%team%", nombreEquipo));
+
+                p.sendMessage("§7Integrantes: " + listaFinal);
+                p.sendMessage(lang.get("victory.broadcast-footer", p));
+                p.sendMessage("");
+
+                p.sendTitle(lang.get("victory.title", p),
+                        lang.get("victory.subtitle", p)
+                                .replace("%color%", color)
+                                .replace("%team%", nombreEquipo),
+                        10, 100, 20);
+                p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+                mostrarScoreboardVictoria(p, ganador, lang);
+            }
+
+            new BukkitRunnable() {
+                int seg = 0;
+                public void run() {
+                    if (seg++ >= 10) { this.cancel(); return; }
+                    for (Player w : vivosParaCohetes) if (w.isOnline()) lanzarCohete(w.getLocation());
+                }
+            }.runTaskTimer(plugin, 0L, 20L);
+        }
+    }
+
+    private void mostrarScoreboardVictoria(Player player, Team ganador, LanguageManager lang) {
+        Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
+        Objective obj = board.registerNewObjective("victoria", "dummy", lang.get("victory.scoreboard-title", player));
+        obj.setDisplaySlot(DisplaySlot.SIDEBAR);
+        obj.numberFormat(NumberFormat.blank());
+        obj.getScore(lang.get("victory.scoreboard-winner", player).replace("%color%", ganador.getColor().toString()).replace("%team%", ganador.getDisplayName())).setScore(1);
+        player.setScoreboard(board);
+    }
+
+    @Override
+    public void onReset() {
+        this.shulkerEntregado = false;
+        this.equiposFormados = false;
+    }
+
+    private void lanzarCohete(Location loc) {
+        Firework fw = loc.getWorld().spawn(loc, Firework.class);
+        FireworkMeta fwm = fw.getFireworkMeta();
+        fwm.addEffect(FireworkEffect.builder().withColor(Color.GREEN).withFade(Color.YELLOW).with(FireworkEffect.Type.BALL_LARGE).build());
+        fw.setFireworkMeta(fwm);
+    }
+
+    private void entregarObjetoGlobal(String nombreKey, Material material) {
+        LanguageManager lang = plugin.getLang();
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (rpm.getJugadoresEliminados().contains(p.getName())) continue;
+            ItemStack item = new ItemStack(material);
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null) meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', lang.get(nombreKey, p)));
+            item.setItemMeta(meta);
+            p.getInventory().addItem(item);
+        }
+    }
+
+    private void entregarBrujulasDeSeguimiento(LanguageManager lang) {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (rpm.getJugadoresEliminados().contains(p.getName())) continue;
+            ItemStack compass = new ItemStack(Material.COMPASS);
+            ItemMeta meta = compass.getItemMeta();
+            if (meta != null) {
+                meta.setDisplayName(lang.get("tracking-compass.name", p));
+                meta.setLore(lang.getList("tracking-compass.lore", p));
+                meta.addEnchant(org.bukkit.enchantments.Enchantment.LUCK_OF_THE_SEA, 1, true);
+                meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
+                compass.setItemMeta(meta);
+            }
+            p.getInventory().addItem(compass);
+        }
+    }
+}

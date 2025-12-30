@@ -1,6 +1,7 @@
 package me.dalibex.UHC_DBasic.managers;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
+import me.dalibex.UHC_DBasic.gamemodes.UHCGameMode;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
@@ -55,26 +56,26 @@ public class UHC_EventManager implements Listener {
         }
 
         new BukkitRunnable() {
-            @Override public void run() { plugin.getRightPanelManager().comprobarVictoria(); }
+            @Override public void run() { plugin.getRightPanelManager().getModoActual().checkVictory(); }
         }.runTaskLater(plugin, 1L);
     }
 
     // --- BLOQUEOS DE MANO SECUNDARIA Y ESCUDOS ---
     @EventHandler
     public void onOffhandSwap(PlayerSwapHandItemsEvent event) {
-        if (AdminPanel.bloquearManoSecundaria) event.setCancelled(true);
+        if (AdminPanelManager.bloquearManoSecundaria) event.setCancelled(true);
     }
 
     @EventHandler
     public void onSweepAttack(org.bukkit.event.entity.EntityDamageByEntityEvent event) {
-        if (AdminPanel.combate18 && event.getCause() == org.bukkit.event.entity.EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) {
+        if (AdminPanelManager.combate18 && event.getCause() == org.bukkit.event.entity.EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) {
             event.setCancelled(true);
         }
     }
 
     @EventHandler
     public void onShieldUse(PlayerInteractEvent event) {
-        if (AdminPanel.bloquearManoSecundaria) {
+        if (AdminPanelManager.bloquearManoSecundaria) {
             Player p = event.getPlayer();
             // Si el jugador intenta usar el escudo (Click derecho) teniendo uno en cualquier mano, se cancela
             if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK) {
@@ -88,7 +89,7 @@ public class UHC_EventManager implements Listener {
 
     @EventHandler
     public void onOffhandBlock(InventoryClickEvent event) {
-        if (!AdminPanel.bloquearManoSecundaria) return;
+        if (!AdminPanelManager.bloquearManoSecundaria) return;
         if (event.getWhoClicked().getGameMode() == org.bukkit.GameMode.CREATIVE) return;
         if (event.getView().getTitle().contains(plugin.getLang().get("menus.main-admin.title", null))) return;
 
@@ -110,7 +111,7 @@ public class UHC_EventManager implements Listener {
 
     @EventHandler
     public void onAxeDamage(org.bukkit.event.entity.EntityDamageByEntityEvent event) {
-        if (!AdminPanel.combate18) return;
+        if (!AdminPanelManager.combate18) return;
         if (!(event.getDamager() instanceof Player attacker)) return;
 
         ItemStack item = attacker.getInventory().getItemInMainHand();
@@ -135,7 +136,7 @@ public class UHC_EventManager implements Listener {
         LanguageManager lang = plugin.getLang();
         String title = event.getView().getTitle();
         ItemStack item = event.getCurrentItem();
-        AdminPanel admin = plugin.getAdminPanel();
+        AdminPanelManager admin = plugin.getAdminPanel();
 
         if (item == null || item.getType() == Material.AIR) return;
 
@@ -155,7 +156,7 @@ public class UHC_EventManager implements Listener {
             else if (slot == 4) admin.openBarrierRulesPanel(p);
             else if (slot == 6) admin.openTimePanel(p);
             else if (slot == 8) {
-                RightPanelManager rpm = plugin.getRightPanelManager();
+                GameManager rpm = plugin.getRightPanelManager();
                 if (rpm.getTiempoTotalSegundos() > 0) {
                     p.sendMessage(lang.get("menus.common.locked", p));
                     p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
@@ -251,7 +252,7 @@ public class UHC_EventManager implements Listener {
         // PANEL TIMER
         else if (title.equals(lang.get("menus.time.title", p))) {
             event.setCancelled(true);
-            RightPanelManager rpm = plugin.getRightPanelManager();
+            GameManager rpm = plugin.getRightPanelManager();
             if (item.getType() == Material.BARRIER) { p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1); return; }
 
             int change = 0, slot = event.getSlot();
@@ -300,7 +301,9 @@ public class UHC_EventManager implements Listener {
     @EventHandler
     public void onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent event) {
         Player p = event.getPlayer();
-        RightPanelManager rpm = plugin.getRightPanelManager();
+
+        GameManager rpm = plugin.getRightPanelManager();
+        UHCGameMode modo = rpm.getModoActual();
 
         p.setGameMode(GameMode.ADVENTURE);
 
@@ -313,18 +316,21 @@ public class UHC_EventManager implements Listener {
             p.teleport(spawnLoc);
         }
 
-        double attackSpeedValue = AdminPanel.combate18 ? 1024.0 : 4.0;
+        double attackSpeedValue = AdminPanelManager.combate18 ? 1024.0 : 4.0;
         p.getAttribute(Attribute.ATTACK_SPEED).setBaseValue(attackSpeedValue);
 
         if (rpm.getTiempoTotalSegundos() > 0) {
-            int restante = rpm.getSegundosPorCapitulo() - (rpm.getTiempoTotalSegundos() % rpm.getSegundosPorCapitulo());
-            rpm.actualizarScoreboard(p, formatTime(restante), formatTime(rpm.getTiempoTotalSegundos()), true);
+            int crono = rpm.getTiempoTotalSegundos();
+            int segundosCap = rpm.getSegundosPorCapitulo();
+            int restante = segundosCap - (crono % segundosCap);
+
+            modo.updateScoreboard(p, formatTime(restante), formatTime(crono), true);
         } else {
-            rpm.actualizarScoreboard(p, "00:00", "00:00", false);
+            modo.updateScoreboard(p, "00:00", "00:00", false);
         }
 
         for (Player online : Bukkit.getOnlinePlayers()) {
-            rpm.actualizarScoreboard(online, "Sincronizando...", "...", rpm.getTiempoTotalSegundos() > 0);
+            modo.updateScoreboard(online, "...", "...", rpm.getTiempoTotalSegundos() > 0);
         }
     }
 

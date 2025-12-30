@@ -2,7 +2,7 @@ package me.dalibex.UHC_DBasic.commands;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
-import me.dalibex.UHC_DBasic.managers.RightPanelManager;
+import me.dalibex.UHC_DBasic.managers.GameManager;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.command.Command;
@@ -34,7 +34,7 @@ public class TiempoPartesCommand implements CommandExecutor {
         int totalSegundos = validarTodo(sender, args, player);
         if (totalSegundos == -1) return true;
 
-        RightPanelManager rpm = plugin.getRightPanelManager();
+        GameManager rpm = plugin.getRightPanelManager();
         rpm.setSegundosPorCapitulo(totalSegundos);
 
         enviarFeedback(sender, args, player, totalSegundos);

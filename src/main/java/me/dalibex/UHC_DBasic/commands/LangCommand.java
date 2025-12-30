@@ -38,7 +38,7 @@ public class LangCommand implements CommandExecutor, TabCompleter {
         lang.setPlayerLanguage(player, langCode);
 
         if (player.getScoreboard().getObjective(DisplaySlot.SIDEBAR) != null) {
-            plugin.getRightPanelManager().actualizarScoreboard(player, "00:00", "00:00", false);
+            plugin.getRightPanelManager().getModoActual().updateScoreboard(player, "00:00", "00:00", false);
         }
 
         String prefix = lang.get("general.prefix", player);
