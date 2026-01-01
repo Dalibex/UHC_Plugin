@@ -12,11 +12,9 @@ import org.bukkit.scoreboard.Team;
 public class ChatManager implements Listener {
 
     private final UHC_DBasic plugin;
-    private final GameManager gm;
 
-    public ChatManager(UHC_DBasic plugin, GameManager gm) {
+    public ChatManager(UHC_DBasic plugin) {
         this.plugin = plugin;
-        this.gm = gm;
     }
 
     @EventHandler
@@ -25,7 +23,7 @@ public class ChatManager implements Listener {
         Player p = event.getPlayer();
         String mensaje = event.getMessage();
         Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
-        boolean partidaActiva = gm.isPartidaIniciada();
+        boolean partidaActiva = plugin.getGameManager().isPartidaIniciada();
 
         event.setCancelled(true);
 

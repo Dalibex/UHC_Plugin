@@ -28,7 +28,7 @@ public final class UHC_DBasic extends JavaPlugin {
         teamManager = new TeamManager();
         gameManager = new GameManager(this);
         adminPanelManager = new AdminPanelManager(this);
-        chatManager = new ChatManager(this, gameManager);
+        chatManager = new ChatManager(this);
         eventHandler = new UHC_EventManager(this);
         specialCraftsManager = new SpecialCraftsManager(this);
         resourceRushListener = new ResourceRushListener(this);
@@ -88,6 +88,10 @@ public final class UHC_DBasic extends JavaPlugin {
 
     public UHC_EventManager getEventHandler() {
         return eventHandler;
+    }
+
+    public GameManager getGameManager() {
+        return gameManager;
     }
 
     @Override

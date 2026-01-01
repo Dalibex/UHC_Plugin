@@ -454,6 +454,38 @@ public class ResourceRush implements UHCGameMode {
                         .replace("%color%", color)
                         .replace("%team%", nombreFin));
 
+                // --- CAMBIO A ESPECTADOR TRAS 10s AL TERMINAR ---
+                String alertMsg = lang.get("resource-rush.finish-alert", p);
+                if (team != null) {
+                    for (String entry : team.getEntries()) {
+                        Player m = Bukkit.getPlayer(entry);
+                        if (m != null) m.sendMessage(alertMsg);
+                    }
+                } else {
+                    p.sendMessage(alertMsg);
+                }
+
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        String specMsg = lang.get("resource-rush.spectator-message", null);
+                        if (team != null) {
+                            for (String entry : team.getEntries()) {
+                                Player member = Bukkit.getPlayer(entry);
+                                if (member != null && member.isOnline()) {
+                                    member.setGameMode(GameMode.SPECTATOR);
+                                    member.sendMessage(ChatColor.translateAlternateColorCodes('&', specMsg));
+                                }
+                            }
+                        } else {
+                            if (p.isOnline()) {
+                                p.setGameMode(GameMode.SPECTATOR);
+                                p.sendMessage(ChatColor.translateAlternateColorCodes('&', specMsg));
+                            }
+                        }
+                    }
+                }.runTaskLater(plugin, 200L);
+
                 for (Player all : Bukkit.getOnlinePlayers()) {
                     all.playSound(all.getLocation(), Sound.ENTITY_WITHER_SPAWN, 0.7f, 1f);
                 }
@@ -584,6 +616,12 @@ public class ResourceRush implements UHCGameMode {
             }
             p.getInventory().addItem(compass);
         }
+    }
+
+    public List<Material> getLogrosJugador(Player p) {
+        Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
+        String clave = (team != null) ? team.getName() : p.getName();
+        return progresoGlobal.getOrDefault(clave, new ArrayList<>());
     }
 
     public List<Material> getObjetivosActivos() { return objetivosActivos; }
