@@ -1,6 +1,7 @@
 package me.dalibex.UHC_DBasic;
 
 import me.dalibex.UHC_DBasic.commands.*;
+import me.dalibex.UHC_DBasic.listeners.ResourceRushListener;
 import me.dalibex.UHC_DBasic.managers.*;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -13,6 +14,7 @@ public final class UHC_DBasic extends JavaPlugin {
     private UHC_EventManager eventHandler;
     private SpecialCraftsManager specialCraftsManager;
     private LanguageManager languageManager;
+    private ResourceRushListener resourceRushListener;
 
     @Override
     public void onEnable() {
@@ -26,12 +28,14 @@ public final class UHC_DBasic extends JavaPlugin {
         teamManager = new TeamManager();
         gameManager = new GameManager(this);
         adminPanelManager = new AdminPanelManager(this);
-        chatManager = new ChatManager(this);
+        chatManager = new ChatManager(this, gameManager);
         eventHandler = new UHC_EventManager(this);
         specialCraftsManager = new SpecialCraftsManager(this);
+        resourceRushListener = new ResourceRushListener(this);
 
         // 4. REGISTRAR EVENTOS
         getServer().getPluginManager().registerEvents(eventHandler, this);
+        getServer().getPluginManager().registerEvents(resourceRushListener, this);
         getServer().getPluginManager().registerEvents(chatManager, this);
 
         // 5. REGISTRAR COMANDOS

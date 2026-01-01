@@ -12,9 +12,11 @@ import org.bukkit.scoreboard.Team;
 public class ChatManager implements Listener {
 
     private final UHC_DBasic plugin;
+    private final GameManager gm;
 
-    public ChatManager(UHC_DBasic plugin) {
+    public ChatManager(UHC_DBasic plugin, GameManager gm) {
         this.plugin = plugin;
+        this.gm = gm;
     }
 
     @EventHandler
@@ -23,6 +25,7 @@ public class ChatManager implements Listener {
         Player p = event.getPlayer();
         String mensaje = event.getMessage();
         Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
+        boolean partidaActiva = gm.isPartidaIniciada();
 
         event.setCancelled(true);
 
@@ -35,9 +38,12 @@ public class ChatManager implements Listener {
                 return;
             }
 
-            enviarMensajeGlobal(p, team, mensajeLimpio, lang);
+            enviarMensajeGlobal(p, team, mensajeLimpio, lang, partidaActiva);
             return;
         }
+
+        // --- PARA CHAT DE EQUIPO Y PRIVADO ---
+        String nombreBlanco = "§f" + p.getName() + "§r";
 
         // 2. LOGICA DE CHAT DE EQUIPO
         if (team != null && team.getEntries().size() > 1) {
@@ -46,39 +52,47 @@ public class ChatManager implements Listener {
                 if (member != null && member.isOnline()) {
                     String formatoTeam = lang.get("chat.format-team", member)
                             .replace("%team%", team.getDisplayName())
-                            .replace("%player%", p.getName())
+                            .replace("%player%", nombreBlanco) // Blanco
                             .replace("%msg%", mensaje);
-                    member.sendMessage(formatoTeam);
+                    member.sendMessage(ChatColor.translateAlternateColorCodes('&', formatoTeam));
                 }
             }
             Bukkit.getConsoleSender().sendMessage("[TeamChat] " + team.getName() + " - " + p.getName() + ": " + mensaje);
 
         } else {
+            // CHAT PRIVADO SIN EQUIPO
             String formatoPrivado = lang.get("chat.format-private", p)
                     .replace("%tag%", lang.get("chat.private-tag", p))
-                    .replace("%player%", p.getName())
+                    .replace("%player%", nombreBlanco) // Blanco
                     .replace("%msg%", mensaje);
 
-            p.sendMessage(formatoPrivado);
+            p.sendMessage(ChatColor.translateAlternateColorCodes('&', formatoPrivado));
         }
     }
 
-    private void enviarMensajeGlobal(Player p, Team team, String msg, LanguageManager lang) {
-        ChatColor colorName = (team != null) ? team.getColor() : ChatColor.WHITE;
+    private void enviarMensajeGlobal(Player p, Team team, String msg, LanguageManager lang, boolean partidaActiva) {
+        String tagGlobal = lang.get("chat.global-tag", null);
+        String modoActual = plugin.getRightPanelManager().getModoActual().getName();
 
-        for (Player receptor : Bukkit.getOnlinePlayers()) {
-            String formatoGlobal = lang.get("chat.format-global", receptor);
+        String textoAMostrar;
 
-            formatoGlobal = formatoGlobal.replace("[%team%]", "").replace("[%team% ]", "").replace("%team%", "");
-
-            formatoGlobal = formatoGlobal.replace("%tag%", lang.get("chat.global-tag", receptor))
-                    .replace("%color%", colorName.toString())
-                    .replace("%player%", p.getName())
-                    .replace("%msg%", msg);
-
-            receptor.sendMessage(formatoGlobal.replace("  ", " ").trim());
+        if (partidaActiva) {
+            if (modoActual.equalsIgnoreCase("Resource Rush")) {
+                textoAMostrar = "§k" + ((team != null) ? team.getDisplayName() : "SOLO");
+            } else {
+                textoAMostrar = "§kUHCELOUD";
+            }
+        } else {
+            textoAMostrar = p.getName();
         }
 
-        Bukkit.getConsoleSender().sendMessage("[GlobalChat] " + p.getName() + ": " + msg);
+        String formatoFinal = ChatColor.translateAlternateColorCodes('&',
+                "&8[&c" + tagGlobal + "&8] &6" + textoAMostrar + "§r: &7" + msg);
+
+        for (Player receptor : Bukkit.getOnlinePlayers()) {
+            receptor.sendMessage(formatoFinal);
+        }
+
+        Bukkit.getConsoleSender().sendMessage("[GlobalChat] [" + p.getName() + "]: " + msg);
     }
 }

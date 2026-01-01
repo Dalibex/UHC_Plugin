@@ -1,6 +1,8 @@
 package me.dalibex.UHC_DBasic.managers;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
+import me.dalibex.UHC_DBasic.gamemodes.Classic;
+import me.dalibex.UHC_DBasic.gamemodes.ResourceRush;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -55,15 +57,34 @@ public class AdminPanelManager {
         mainGui.setItem(0, pvpItem);
 
         // Otros Items
-        mainGui.setItem(1, createSimpleItem(Material.BELL, "menus.main-admin.general-rules-item", player));
+        mainGui.setItem(1, createSimpleItem(Material.PAPER, "menus.main-admin.general-rules-item", player));
         mainGui.setItem(2, createSimpleItem(Material.BOOK, "menus.main-admin.rules-item", player));
         mainGui.setItem(4, createSimpleItem(Material.EMERALD_BLOCK, "menus.main-admin.border-item", player));
         mainGui.setItem(6, createSimpleItem(Material.CLOCK, "menus.main-admin.time-item", player));
 
-        // Item de Equipos (Bloqueado si hay partida)
+        // Items (Bloqueados si hay partida en curso)
         GameManager rpm = plugin.getRightPanelManager();
         boolean partidaEnCurso = rpm.getTiempoTotalSegundos() > 0;
 
+        // Item de Modo de Juego
+        ItemStack gmItem = new ItemStack(partidaEnCurso ? Material.BARRIER : Material.NETHER_STAR);
+        ItemMeta gmMeta = gmItem.getItemMeta();
+        gmMeta.setDisplayName(lang.get("menus.main-admin.gamemode-item.name", player));
+
+        List<String> gmLore = new ArrayList<>();
+        for (String line : lang.getList("menus.main-admin.gamemode-item.lore", player)) {
+            gmLore.add(line.replace("%mode%", rpm.getModoActual().getName()));
+        }
+
+        if (partidaEnCurso) {
+            gmLore.add("");
+            gmLore.add(lang.get("menus.common.locked", player));
+        }
+        gmMeta.setLore(gmLore);
+        gmItem.setItemMeta(gmMeta);
+        mainGui.setItem(3, gmItem);
+
+        // Item de tamaño de equipos
         ItemStack teamItem = new ItemStack(partidaEnCurso ? Material.BARRIER : Material.WHITE_BANNER);
         ItemMeta cMeta = teamItem.getItemMeta();
 
@@ -124,6 +145,32 @@ public class AdminPanelManager {
         backMeta.setDisplayName(lang.get("menus.common.back", player));
         back.setItemMeta(backMeta);
         rulesGui.setItem(27, back);
+
+        player.openInventory(rulesGui);
+    }
+
+    public void openGamemodePanel(Player player) {
+        LanguageManager lang = plugin.getLang();
+        GameManager gm = plugin.getRightPanelManager();
+
+        Inventory rulesGui = Bukkit.createInventory(null, 9, lang.get("menus.gamemode.title", player));
+
+        boolean isClassic = gm.getModoActual() instanceof Classic;
+        boolean isResourceRush = gm.getModoActual() instanceof ResourceRush;
+
+        // Slot 2: Classic
+        rulesGui.setItem(2, createGamemodeItem(Material.ENCHANTED_GOLDEN_APPLE,
+                "classic", isClassic, player, lang));
+
+        // Slot 4: Resource Rush
+        rulesGui.setItem(4, createGamemodeItem(Material.HONEY_BLOCK,
+                "resource-rush", isResourceRush, player, lang));
+
+        ItemStack back = new ItemStack(Material.ARROW);
+        ItemMeta backMeta = back.getItemMeta();
+        backMeta.setDisplayName(lang.get("menus.common.back", player));
+        back.setItemMeta(backMeta);
+        rulesGui.setItem(0, back);
 
         player.openInventory(rulesGui);
     }
@@ -206,7 +253,6 @@ public class AdminPanelManager {
     }
 
     // ------------------------------ MÉTODOS AUXILIARES ------------------------------
-
     private ItemStack createSimpleItem(Material mat, String langKey, Player p) {
         ItemStack item = new ItemStack(mat);
         ItemMeta meta = item.getItemMeta();
@@ -259,6 +305,37 @@ public class AdminPanelManager {
         meta.setDisplayName(name);
         String status = state ? lang.get("menus.common.enabled", player) : lang.get("menus.common.disabled", player);
         meta.setLore(Arrays.asList(lang.get("menus.common.status", player) + status, "", lang.get("menus.common.click-to-toggle", player)));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack createGamemodeItem(Material mat, String modeKey, boolean isSelected, Player player, LanguageManager lang) {
+        ItemStack item = new ItemStack(mat);
+        ItemMeta meta = item.getItemMeta();
+
+        String name = lang.get("menus.gamemode." + modeKey + ".name", player);
+        List<String> descLore = lang.getList("menus.gamemode." + modeKey + ".lore", player);
+
+        meta.setDisplayName((isSelected ? "§6§l" : "§f") + name);
+
+        List<String> finalLore = new ArrayList<>();
+
+        if (isSelected) {
+            finalLore.add(lang.get("menus.gamemode.selected-status", player));
+            finalLore.add("");
+            finalLore.addAll(descLore);
+
+            meta.addEnchant(org.bukkit.enchantments.Enchantment.LUCK_OF_THE_SEA, 1, true);
+            meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
+        } else {
+            finalLore.add(lang.get("menus.gamemode.not-selected-status", player));
+            finalLore.add("");
+            finalLore.addAll(descLore);
+            finalLore.add("");
+            finalLore.add(lang.get("menus.gamemode.click-to-select", player));
+        }
+
+        meta.setLore(finalLore);
         item.setItemMeta(meta);
         return item;
     }

@@ -104,6 +104,8 @@ public class GameManager {
         this.jugadoresEliminados.clear();
         this.participantesIniciales.clear();
 
+        limpiarEquiposScoreboard();
+
         // Lógica de Lobby (Teletransporte al centro)
         World world = Bukkit.getWorlds().get(0);
         int y = world.getHighestBlockYAt(0, 0);
@@ -113,7 +115,6 @@ public class GameManager {
         if (managerBoard.getObjective("uhc") != null) managerBoard.getObjective("uhc").unregister();
         if (managerBoard.getObjective("vida_tab") != null) managerBoard.getObjective("vida_tab").unregister();
 
-        // Limpieza de Nametags temporales
         for (Team team : new HashSet<>(managerBoard.getTeams())) {
             if (team.getName().startsWith("h_")) team.unregister();
         }
@@ -129,6 +130,17 @@ public class GameManager {
         if (this.partidaTask != null) {
             this.partidaTask.cancel();
             this.partidaTask = null;
+        }
+    }
+
+    public void limpiarEquiposScoreboard() {
+        Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
+        for (Team team : board.getTeams()) {
+            team.unregister();
+        }
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            p.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
+            p.setPlayerListName(p.getName());
         }
     }
 
@@ -160,6 +172,15 @@ public class GameManager {
     public void setPartidaIniciada(boolean estado) {
         this.partidaIniciada = estado;
     }
-    public void setModoActual(UHCGameMode modo) { this.modoActual = modo; }
+    public void cambiarModo(UHCGameMode nuevoModo) {
+        this.modoActual = nuevoModo;
+        this.modoActual.onReset();
+
+        if (!partidaIniciada) {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                modoActual.updateScoreboard(p, "00:00", "00:00", false);
+            }
+        }
+    }
     public UHCGameMode getModoActual() { return modoActual; }
 }

@@ -11,6 +11,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerAdvancementDoneEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
@@ -153,6 +154,14 @@ public class UHC_EventManager implements Listener {
             }
             else if (slot == 1) admin.openGeneralRulesPanel(p);
             else if (slot == 2) admin.openGameRulesPanel(p);
+            else if (slot == 3) {
+                if (plugin.getRightPanelManager().getTiempoTotalSegundos() > 0) {
+                    p.sendMessage(lang.get("menus.common.locked", p));
+                    p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
+                    return;
+                }
+                admin.openGamemodePanel(p);
+            }
             else if (slot == 4) admin.openBarrierRulesPanel(p);
             else if (slot == 6) admin.openTimePanel(p);
             else if (slot == 8) {
@@ -223,6 +232,36 @@ public class UHC_EventManager implements Listener {
             }
             p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
             admin.openGameRulesPanel(p);
+        }
+
+        // PANEL DE SELECCION DE GAMEMODE
+        else if (title.equals(lang.get("menus.gamemode.title", p))) {
+            event.setCancelled(true);
+            GameManager gm = plugin.getRightPanelManager();
+            int slot = event.getSlot();
+
+            if (slot == 0) { // BOTÓN ATRÁS
+                admin.openMainAdminPanel(p);
+                p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
+                return;
+            }
+
+            if (slot == 2) { // SELECCIÓN CLASSIC
+                if (!(gm.getModoActual() instanceof me.dalibex.UHC_DBasic.gamemodes.Classic)) {
+                    gm.cambiarModo(new me.dalibex.UHC_DBasic.gamemodes.Classic(plugin, gm));
+                    p.sendMessage(lang.get("general.prefix", p) + lang.get("menus.gamemode.classic-activated", p));
+                    p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
+                    admin.openGamemodePanel(p);
+                }
+            }
+            else if (slot == 4) { // SELECCIÓN RESOURCE RUSH
+                if (!(gm.getModoActual() instanceof me.dalibex.UHC_DBasic.gamemodes.ResourceRush)) {
+                    gm.cambiarModo(new me.dalibex.UHC_DBasic.gamemodes.ResourceRush(plugin, gm));
+                    p.sendMessage(lang.get("general.prefix", p) + lang.get("menus.gamemode.resource-rush-activated", p));
+                    p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
+                    admin.openGamemodePanel(p);
+                }
+            }
         }
 
         // PANEL BARRERA (AFECTA AL MUNDO PRINCIPAL)

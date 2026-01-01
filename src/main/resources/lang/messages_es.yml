@@ -134,6 +134,12 @@ menus:
     rules-item:
       name: "&bCambiar GameRules"
       lore: ["&7Haz click para ver y editar", "&7las reglas del servidor."]
+    gamemode-item:
+      name: "&bSelector de Modo de Juego"
+      lore:
+        - "&7Elige la experiencia de este UHC."
+        - ""
+        - "&fModo actual: &e%mode%"
     border-item:
       name: "&5Ajustes del Borde"
       lore: ["&7Gestiona el tamaño ", "&7de la zona de juego."]
@@ -155,6 +161,29 @@ menus:
         - "&bClick Derecho: &7Reducir (-1)"
       balance-warning: "&e⚠ &iEl reparto será equilibrado (ej: 3, 2, 2)"
 
+  gamemode:
+    title: "&8🕹️ Seleccionar Modo"
+    selected-status: "&a● &lSeleccionado"
+    not-selected-status: "&7○ No seleccionado"
+    click-to-select: "&eClick para seleccionar"
+    classic-activated: "&aModo Clásico seleccionado!"
+    resource-rush-activated: "&6Modo Resource Rush seleccionado!"
+    classic:
+      name: "UHC Clásico"
+      lore:
+        - "&7La experiencia tradicional de UHC."
+        - ""
+        - "&f• &7Gana el último equipo o jugador en pie."
+        - ""
+    resource-rush:
+      name: "Resource Rush"
+      lore:
+        - "&7¡Carrera por recursos y combate!"
+        - ""
+        - "&f• &7Cada episodio se revelan &6objetos &7al azar, hasta un total de 12."
+        - "&f• &7Sé el primero en conseguirlos para ganar!"
+        - "&f• &7Combina el modo clásico con búsqueda de objetos."
+        - ""
   generalrules:
     title: "&8⚙ Ajustes Generales"
     settings:
@@ -211,6 +240,7 @@ chat:
 victory:
   broadcast-header: "&e&l🎉 FELICIDADES, %color%%team%&e:"
   broadcast-footer: "&6&l¡Han sido los ganadores del UHC!"
+  team-members: "&7Integrantes: &f%members%"
   title: "&6🏆 ¡VICTORIA! 🏆"
   subtitle: "%color%%team% &fha ganado"
   no-survivors: "&c☠ La partida ha terminado sin supervivientes."
@@ -233,6 +263,21 @@ game-events:
     - "&c&l¡EL PVP SE HA ACTIVADO! &c⚔"
     - "&fEl pacto de caballeros ha finalizado"
     - "&8&m------------------------------------"
+
+# Mensajes específicos de Resource Rush
+resource-rush:
+  ruleta-anuncio: "&6Resource Rush > &fNuevo objetivo desbloqueado: "
+  objective-global: "&6Resource Rush > %color%%team% &fha conseguido: &e%item% &7(%done%/12)"
+  objective-reached: "&a¡Has conseguido el objetivo: &f%item%!"
+  team-finished: "&6&l[!] &fEl equipo %color%%team% &fha terminado los &e12 objetivos&f!"
+  podio-header: "&7&m------------------------------------"
+  podio-title: "&6&l¡RESOURCE RUSH HA TERMINADO!"
+  podio-line: "%medal% &e%team%"
+  podio-footer: "&7&m------------------------------------"
+  medals:
+    1: "§6①"
+    2: "§f②"
+    3: "§c③"
 
 # Scoreboard (Panel lateral derecho)
 scoreboard:
@@ -257,6 +302,14 @@ scoreboard:
   anonymous-prefix: "&7Jugador %id% &8["
   anonymous-suffix: "&8]"
   health-icon: "&c❤"
+  mode-label: " §fModo: &b%mode%"
+
+scoreboard-rr:
+  rr-counter: " &6&lObjetivos: &f%done%/%total%"
+  rr-objectives-title: " &6&lObjetivos:"
+  rr-waiting: " &7Esperando parte... "
+  rr-completed: " &a✔ &8&m%item%"
+  rr-pending: " &f• &7%item%"
 
 # Ítems especiales
 tracking-compass:

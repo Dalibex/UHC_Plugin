@@ -134,6 +134,12 @@ menus:
     rules-item:
       name: "&bChange GameRules"
       lore: ["&7Click to view and edit", "&7server rules."]
+    gamemode-item:
+      name: "&bGamemode Selector"
+      lore:
+        - "&7Choose the experience for this UHC."
+        - ""
+        - "&fCurrent mode: &e%mode%"
     border-item:
       name: "&5Border Settings"
       lore: ["&7Manage the size ", "&7of the play zone."]
@@ -155,6 +161,29 @@ menus:
         - "&bRight Click: &7Decrease (-1)"
       balance-warning: "&e⚠ &iDistribution will be balanced (ex: 3, 2, 2)"
 
+  gamemode:
+    title: "&8🕹️ Select Mode"
+    selected-status: "&a● &lSelected"
+    not-selected-status: "&7○ Not selected"
+    click-to-select: "&eClick to select"
+    classic-activated: "&aClassic mode selected!"
+    resource-rush-activated: "&6Resource Rush mode selected!"
+    classic:
+      name: "Classic UHC"
+      lore:
+        - "&7The traditional UHC experience."
+        - ""
+        - "&f• &7Win as the last team or player standing."
+        - ""
+    resource-rush:
+      name: "Resource Rush"
+      lore:
+        - "&7Race for resources and combat!"
+        - ""
+        - "&f• &7Each episode reveals &6random items&7, up to 12 total."
+        - "&f• &7Be the first to get them to win!"
+        - "&f• &7Combines classic mode with item hunting."
+        - ""
   generalrules:
     title: "&8⚙ Global Settings"
     settings:
@@ -210,12 +239,13 @@ chat:
 # Victory and endgame announcements
 victory:
   broadcast-header: "&e&l🎉 CONGRATULATIONS, %color%%team%&e:"
-  broadcast-footer: "&6&lThey are the UHC winners!"
+  broadcast-footer: "&6&lThey are the winners of the UHC!"
+  team-members: "&7Members: &f%members%"
   title: "&6🏆 VICTORY! 🏆"
   subtitle: "%color%%team% &fhas won"
-  no-survivors: "&c☠ The game ended with no survivors."
-  scoreboard-title: "&6&l!VICTORIA!"
-  scoreboard-winner: "&fWinning team: %color%%team%"
+  no-survivors: "&c☠ The game has ended with no survivors."
+  scoreboard-title: "&6&l!VICTORY!"
+  scoreboard-winner: "&fWinner Team: %color%%team%"
 
 # Chapter and event announcements
 game-events:
@@ -233,6 +263,21 @@ game-events:
     - "&c&lPVP HAS BEEN ENABLED! &c⚔"
     - "&fThe gentleman's agreement has ended"
     - "&8&m------------------------------------"
+
+# Resource Rush specific messages
+resource-rush:
+  ruleta-anuncio: "&6Resource Rush > &fNew objective unlocked: "
+  objective-global: "&6Resource Rush > %color%%team% &fhas obtained: &e%item% &7(%done%/12)"
+  objective-reached: "&aObjective reached: &f%item%!"
+  team-finished: "&6&l[!] &fTeam %color%%team% &fhas finished all &e12 objectives&f!"
+  podio-header: "&7&m------------------------------------"
+  podio-title: "&6&lRESOURCE RUSH FINISHED!"
+  podio-line: "%medal% &e%team%"
+  podio-footer: "&7&m------------------------------------"
+  medals:
+    1: "§6①"
+    2: "§f②"
+    3: "§c③"
 
 # Scoreboard (Right sidebar)
 scoreboard:
@@ -257,6 +302,14 @@ scoreboard:
   anonymous-prefix: "&7Player %id% &8["
   anonymous-suffix: "&8]"
   health-icon: "&c❤"
+  mode-label: " §fMode: &b%mode%"
+
+scoreboard-rr:
+  rr-counter: " &6&lObjectives: &f%done%/%total%"
+  rr-objectives-title: "&6&lObjectives:"
+  rr-waiting: " &7Waiting for part... "
+  rr-completed: " &a✔ &8&m%item%"
+  rr-pending: " &f• &7%item%"
 
 
 # Special items

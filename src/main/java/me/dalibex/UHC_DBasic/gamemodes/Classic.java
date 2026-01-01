@@ -131,27 +131,32 @@ public class Classic implements UHCGameMode {
         }
 
         if (!partidaActiva) {
-            obj.getScore("§1 ").setScore(5);
+            obj.getScore("§1 ").setScore(7);
+            obj.getScore(lang.get("scoreboard.mode-label", player).replace("%mode%", getName())).setScore(6);
+            obj.getScore("§2 ").setScore(5);
             obj.getScore(lang.get("scoreboard.waiting", player)).setScore(4);
-            obj.getScore("§2 ").setScore(3);
+            obj.getScore("§3 ").setScore(3);
             obj.getScore(lang.get("scoreboard.players", player).replace("%online%", String.valueOf(Bukkit.getOnlinePlayers().size()))).setScore(2);
-            obj.getScore("§3 ").setScore(1);
+            obj.getScore("§4 ").setScore(1);
         } else {
             Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(player.getName());
             int capitulo = rpm.getCapitulo();
             String pvpStatus = (capitulo < 4) ? lang.get("scoreboard.pvp-pact", player) : lang.get("scoreboard.pvp-active", player);
 
-            obj.getScore("§4 ").setScore(23);
-            if (capitulo < 10) obj.getScore(lang.get("scoreboard.phase", player).replace("%chapter%", String.valueOf(capitulo))).setScore(22);
-            else {
-                obj.getScore(lang.get("scoreboard.finalized", player)).setScore(21);
-                obj.getScore(lang.get("scoreboard.go-center", player)).setScore(20);
-                obj.getScore("§5 ").setScore(19);
+            int next = 30;
+            // SECCIÓN SUPERIOR
+            obj.getScore("§1 ").setScore(next--);
+            if (capitulo < 10) {
+                obj.getScore(lang.get("scoreboard.phase", player).replace("%chapter%", String.valueOf(capitulo))).setScore(next--);
+            } else {
+                obj.getScore(lang.get("scoreboard.finalized", player)).setScore(next--);
+                obj.getScore(lang.get("scoreboard.go-center", player)).setScore(next--);
+                obj.getScore("§2 ").setScore(next--);
             }
-            obj.getScore(lang.get("scoreboard.pvp-label", player).replace("%status%", pvpStatus)).setScore(18);
-            obj.getScore("§6 ").setScore(17);
+            obj.getScore(lang.get("scoreboard.pvp-label", player).replace("%status%", pvpStatus)).setScore(next--);
+            obj.getScore("§3 ").setScore(next--);
 
-            int next = 16;
+            // BLOQUE EQUIPOS
             int teamSize = plugin.getTeamManager().getTeamSize();
             if (teamSize == 1) {
                 String line = (team != null && !team.getPrefix().contains("team_")) ?
@@ -182,6 +187,7 @@ public class Classic implements UHCGameMode {
                     }
                 }
             }
+
             obj.getScore("§6 ").setScore(next--);
             obj.getScore(lang.get("scoreboard.time-total-label", player)).setScore(next--);
             obj.getScore("§6> §f" + tiempoTotal).setScore(next--);
@@ -191,7 +197,6 @@ public class Classic implements UHCGameMode {
                 obj.getScore("§6> §f" + tiempo).setScore(next--);
             }
 
-            // Lógica de TAB y Nametags (Global Scoreboard)
             actualizarNametags(player, board);
         }
     }
