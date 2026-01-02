@@ -48,56 +48,85 @@ public class Classic implements UHCGameMode {
         int segundosCap = rpm.getSegundosPorCapitulo();
         int capituloActual = rpm.getCapitulo();
 
-        // Lógica de Shulker 1 (Episodio 1)
+        // 1. Lógica de Shulker 1 (Episodio 1)
         if (plugin.getAdminPanel().isShulkerOneEnabled() && !shulkerEntregado && cronometroSegundos > 1) {
             entregarObjetoGlobal("items.shulker.name", Material.ORANGE_SHULKER_BOX);
             shulkerEntregado = true;
         }
 
-        // Cambio de Capítulo
-        if (cronometroSegundos % segundosCap == 0 && cronometroSegundos != 0) {
-            rpm.setCapitulo(capituloActual + 1);
-            int nuevoCap = rpm.getCapitulo();
+        // 3. Sistema Robusto de Cambio de Capítulo (Previene saltos por lag)
+        int capituloCalculado = (cronometroSegundos / segundosCap) + 1;
 
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                if (nuevoCap < 10) {
-                    p.sendMessage(lang.get("game-events.chapter-start", p)
-                            .replace("%prefix%", lang.get("general.prefix", p))
-                            .replace("%chapter%", String.valueOf(nuevoCap)));
-                    p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
-                } else if (nuevoCap == 10) {
-                    for (String s : lang.getList("game-events.final-phase", p)) p.sendMessage(s);
-                    p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
-                }
-            }
-
-            // Lógica de Shulker 2 (Episodio 8)
-            if (nuevoCap == 8 && plugin.getAdminPanel().isShulkerTwoEnabled()) {
-                entregarObjetoGlobal("items.shulker.name", Material.LIGHT_BLUE_SHULKER_BOX);
-            }
-
-            // Formación de Equipos (Episodio 3)
-            if (nuevoCap == 3 && tm.getTeamSize() > 1 && !equiposFormados) {
-                tm.shuffleTeams();
-                entregarBrujulasDeSeguimiento(lang);
-                equiposFormados = true;
-                for (Player p : Bukkit.getOnlinePlayers()) p.sendMessage(lang.get("game-events.teams-formed", p));
-            }
-
-            // Activación de PVP (Episodio 4)
-            if (nuevoCap == 4) {
-                for (World w : Bukkit.getWorlds()) w.setGameRule(PVP, true);
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    for (String s : lang.getList("game-events.pvp-enabled", p)) p.sendMessage(s);
-                    p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
-                }
-            }
+        if (capituloCalculado > capituloActual) {
+            rpm.setCapitulo(capituloCalculado);
+            procesarCambioDeCapitulo(capituloCalculado, lang, tm);
         }
 
-        // Caso especial: Solo (TeamSize 1) al segundo 1
+        // 4. Caso especial: Solo (TeamSize 1) al segundo 1
         if (cronometroSegundos == 1 && tm.getTeamSize() == 1 && !equiposFormados) {
             tm.shuffleTeams();
             equiposFormados = true;
+        }
+    }
+
+    private void procesarCambioDeCapitulo(int nuevoCap, LanguageManager lang, TeamManager tm) {
+        // Mensajes de inicio de capítulo
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (nuevoCap < 10) {
+                p.sendMessage(lang.get("game-events.chapter-start", p)
+                        .replace("%prefix%", lang.get("general.prefix", p))
+                        .replace("%chapter%", String.valueOf(nuevoCap)));
+                p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
+            } else if (nuevoCap == 10) {
+                for (String s : lang.getList("game-events.final-phase", p)) p.sendMessage(s);
+                p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
+            }
+        }
+
+        // Rotación de Skins (Capítulos 2 al 10)
+        if (nuevoCap <= 10) {
+            ejecutarRotacionDeSkins();
+        }
+
+        // Shulker 2 (Episodio 8)
+        if (nuevoCap == 8 && plugin.getAdminPanel().isShulkerTwoEnabled()) {
+            entregarObjetoGlobal("items.shulker.name", Material.LIGHT_BLUE_SHULKER_BOX);
+        }
+
+        // Formación de Equipos (Episodio 3)
+        if (nuevoCap == 3 && tm.getTeamSize() > 1 && !equiposFormados) {
+            tm.shuffleTeams();
+            entregarBrujulasDeSeguimiento(lang);
+            equiposFormados = true;
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                p.sendMessage(lang.get("game-events.teams-formed", p));
+                p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, 1f, 1f);
+            }
+        }
+
+        // Activación de PVP (Episodio 4)
+        if (nuevoCap == 4) {
+            for (World w : Bukkit.getWorlds()) w.setGameRule(PVP, true);
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                for (String s : lang.getList("game-events.pvp-enabled", p)) p.sendMessage(s);
+                p.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1f, 1f);
+            }
+        }
+    }
+
+    private void ejecutarRotacionDeSkins() {
+        rpm.rotarSkins();
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (p.getGameMode() == GameMode.SURVIVAL) {
+                String nombreSkinNueva = rpm.getUltimaSkinAsignada()
+                        .getOrDefault(p.getUniqueId(), "???");
+                String rawMsg = plugin.getLang()
+                        .get("game-events.skins.identity-changed", p);
+                String mensajePersonalizado =
+                        rawMsg.replace("%player%", nombreSkinNueva);
+                p.sendMessage(ChatColor.translateAlternateColorCodes('&', mensajePersonalizado));
+                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1f, 1f);
+            }
         }
     }
 
@@ -144,7 +173,6 @@ public class Classic implements UHCGameMode {
             String pvpStatus = (capitulo < 4) ? lang.get("scoreboard.pvp-pact", player) : lang.get("scoreboard.pvp-active", player);
 
             int next = 30;
-            // SECCIÓN SUPERIOR
             obj.getScore("§1 ").setScore(next--);
             if (capitulo < 10) {
                 obj.getScore(lang.get("scoreboard.phase", player).replace("%chapter%", String.valueOf(capitulo))).setScore(next--);
@@ -156,33 +184,42 @@ public class Classic implements UHCGameMode {
             obj.getScore(lang.get("scoreboard.pvp-label", player).replace("%status%", pvpStatus)).setScore(next--);
             obj.getScore("§3 ").setScore(next--);
 
-            // BLOQUE EQUIPOS
             int teamSize = plugin.getTeamManager().getTeamSize();
             if (teamSize == 1) {
-                String line = (team != null && !team.getPrefix().contains("team_")) ?
+                String line = (team != null) ?
                         lang.get("scoreboard.team-label", player).replace("%color%", team.getColor().toString()).replace("%name%", team.getDisplayName()) : lang.get("scoreboard.team-rename-warn", player);
                 obj.getScore(line).setScore(next--);
             } else {
                 if (capitulo < 3) {
                     for (int i = 1; i < teamSize; i++) obj.getScore(" §d👥 §f: §k??????" + (" ".repeat(i))).setScore(next--);
                 } else {
-                    String line = (team != null && !team.getPrefix().contains("team_")) ? lang.get("scoreboard.team-mates-label", player).replace("%color%", team.getColor().toString()).replace("%name%", team.getDisplayName()) :
-                            (team != null ? lang.get("scoreboard.team-rename-warn", player) : lang.get("scoreboard.team-assigning", player));
+                    String line = (team != null) ? lang.get("scoreboard.team-mates-label", player).replace("%color%", team.getColor().toString()).replace("%name%", team.getDisplayName()) :
+                            lang.get("scoreboard.team-assigning", player);
                     obj.getScore(line).setScore(next--);
                     if (team != null) {
                         for (String entry : team.getEntries()) {
                             if (entry.equals(player.getName())) continue;
-                            String healthText; String colorPrefix = "§f";
-                            if (rpm.getJugadoresEliminados().contains(entry)) { colorPrefix = "§7§m"; healthText = lang.get("scoreboard.mate-dead", player); }
-                            else {
-                                Player m = Bukkit.getPlayer(entry);
+
+                            String healthText;
+                            String colorPrefix = "§f";
+                            String nombreParaMostrar = entry;
+                            Player m = Bukkit.getPlayer(entry);
+
+                            if (rpm.getJugadoresEliminados().contains(entry)) {
+                                colorPrefix = "§7§m";
+                                healthText = lang.get("scoreboard.mate-dead", player);
+                            } else {
                                 if (m != null && m.isOnline()) {
+                                    nombreParaMostrar = m.getName();
+                                    colorPrefix = "§f";
                                     double h = m.getHealth();
                                     String c = (h > 15) ? "§a" : (h > 10) ? "§2" : (h > 5) ? "§e" : "§c";
                                     healthText = " " + c + (int)h + "§4❤";
-                                } else healthText = lang.get("scoreboard.mate-offline", player);
+                                } else {
+                                    healthText = lang.get("scoreboard.mate-offline", player);
+                                }
                             }
-                            obj.getScore("§6> " + colorPrefix + entry + healthText).setScore(next--);
+                            obj.getScore("§6> " + colorPrefix + nombreParaMostrar + healthText).setScore(next--);
                         }
                     }
                 }
@@ -196,31 +233,12 @@ public class Classic implements UHCGameMode {
                 obj.getScore(lang.get("scoreboard.time-next-label", player)).setScore(next--);
                 obj.getScore("§6> §f" + tiempo).setScore(next--);
             }
-
-            actualizarNametags(player, board);
-        }
-    }
-
-    private void actualizarNametags(Player player, Scoreboard board) {
-        Team myTeam = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(player.getName());
-        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
-            onlinePlayer.setPlayerListName(onlinePlayer.getName());
-            String teamKey = "h_" + onlinePlayer.getName();
-            Team t = board.getTeam(teamKey);
-            if (t == null) {
-                t = board.registerNewTeam(teamKey);
-                t.addEntry(onlinePlayer.getName());
-            }
-            t.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
-            boolean esCompanero = (myTeam != null && myTeam.hasEntry(onlinePlayer.getName()));
-            boolean soyYo = onlinePlayer.equals(player);
-            t.setColor((soyYo || esCompanero) ? ChatColor.LIGHT_PURPLE : ChatColor.RED);
         }
     }
 
     @Override
     public void checkVictory() {
-        if (rpm.getTiempoTotalSegundos() <= 0) return;
+        if (rpm.getTiempoTotalSegundos() <= 5) return;
 
         List<Player> jugadoresVivos = Bukkit.getOnlinePlayers().stream()
                 .filter(p -> p.getGameMode() == GameMode.SURVIVAL)
@@ -276,6 +294,11 @@ public class Classic implements UHCGameMode {
     private void finalizarPartida(Team ganador) {
         LanguageManager lang = plugin.getLang();
         rpm.detenerPartidaTask();
+        rpm.setPartidaIniciada(false); // Detener lógica de identidades
+
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            rpm.revelarIdentidad(online);
+        }
 
         if (ganador != null) {
             List<String> nombresFormateados = new ArrayList<>();

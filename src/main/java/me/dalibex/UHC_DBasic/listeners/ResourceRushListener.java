@@ -61,8 +61,8 @@ public class ResourceRushListener implements Listener {
     }
 
     private void checkItem(Player player, Material material) {
-        if (plugin.getRightPanelManager().getTiempoTotalSegundos() > 0 &&
-                plugin.getRightPanelManager().getModoActual() instanceof ResourceRush rr) {
+        if (plugin.getGameManager().getTiempoTotalSegundos() > 0 &&
+                plugin.getGameManager().getModoActual() instanceof ResourceRush rr) {
 
             if (rr.getObjetivosActivos().contains(material)) {
                 rr.completarObjetivo(player, material);
@@ -95,8 +95,8 @@ public class ResourceRushListener implements Listener {
 
     private void mostrarResumenObjetivos(Player p) {
         LanguageManager lang = plugin.getLang();
-        if (!(plugin.getRightPanelManager().getModoActual() instanceof ResourceRush)) return;
-        ResourceRush rr = (ResourceRush) plugin.getRightPanelManager().getModoActual();
+        if (!(plugin.getGameManager().getModoActual() instanceof ResourceRush)) return;
+        ResourceRush rr = (ResourceRush) plugin.getGameManager().getModoActual();
 
         List<Material> activos = rr.getObjetivosActivos();
         List<Material> conseguidos = rr.getLogrosJugador(p);

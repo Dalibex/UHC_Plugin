@@ -1,17 +1,22 @@
-package me.dalibex.UHC_DBasic.managers;
+package me.dalibex.UHC_DBasic.listeners;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.gamemodes.UHCGameMode;
+import me.dalibex.UHC_DBasic.managers.AdminPanelManager;
+import me.dalibex.UHC_DBasic.managers.GameManager;
+import me.dalibex.UHC_DBasic.managers.LanguageManager;
+import me.dalibex.UHC_DBasic.managers.TeamManager;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.player.PlayerAdvancementDoneEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
@@ -22,11 +27,11 @@ import org.bukkit.scoreboard.Team;
 
 import static org.bukkit.GameRules.*;
 
-public class UHC_EventManager implements Listener {
+public class UHC_EventManagerListener implements Listener {
 
     private final UHC_DBasic plugin;
 
-    public UHC_EventManager(UHC_DBasic plugin) {
+    public UHC_EventManagerListener(UHC_DBasic plugin) {
         this.plugin = plugin;
     }
 
@@ -37,7 +42,7 @@ public class UHC_EventManager implements Listener {
         LanguageManager lang = plugin.getLang();
 
         muerto.setGameMode(org.bukkit.GameMode.SPECTATOR);
-        plugin.getRightPanelManager().getJugadoresEliminados().add(muerto.getName());
+        plugin.getGameManager().getJugadoresEliminados().add(muerto.getName());
         muerto.getWorld().strikeLightningEffect(muerto.getLocation());
 
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
@@ -57,7 +62,7 @@ public class UHC_EventManager implements Listener {
         }
 
         new BukkitRunnable() {
-            @Override public void run() { plugin.getRightPanelManager().getModoActual().checkVictory(); }
+            @Override public void run() { plugin.getGameManager().getModoActual().checkVictory(); }
         }.runTaskLater(plugin, 1L);
     }
 
@@ -66,14 +71,12 @@ public class UHC_EventManager implements Listener {
     public void onOffhandSwap(PlayerSwapHandItemsEvent event) {
         if (AdminPanelManager.bloquearManoSecundaria) event.setCancelled(true);
     }
-
     @EventHandler
     public void onSweepAttack(org.bukkit.event.entity.EntityDamageByEntityEvent event) {
         if (AdminPanelManager.combate18 && event.getCause() == org.bukkit.event.entity.EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) {
             event.setCancelled(true);
         }
     }
-
     @EventHandler
     public void onShieldUse(PlayerInteractEvent event) {
         if (AdminPanelManager.bloquearManoSecundaria) {
@@ -87,7 +90,6 @@ public class UHC_EventManager implements Listener {
             }
         }
     }
-
     @EventHandler
     public void onOffhandBlock(InventoryClickEvent event) {
         if (!AdminPanelManager.bloquearManoSecundaria) return;
@@ -109,7 +111,6 @@ public class UHC_EventManager implements Listener {
             }
         }
     }
-
     @EventHandler
     public void onAxeDamage(org.bukkit.event.entity.EntityDamageByEntityEvent event) {
         if (!AdminPanelManager.combate18) return;
@@ -129,6 +130,7 @@ public class UHC_EventManager implements Listener {
             event.setDamage(Math.max(0, event.getDamage() - reduction));
         }
     }
+    // ---------------------------------------------
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
@@ -155,7 +157,7 @@ public class UHC_EventManager implements Listener {
             else if (slot == 1) admin.openGeneralRulesPanel(p);
             else if (slot == 2) admin.openGameRulesPanel(p);
             else if (slot == 3) {
-                if (plugin.getRightPanelManager().getTiempoTotalSegundos() > 0) {
+                if (plugin.getGameManager().getTiempoTotalSegundos() > 0) {
                     p.sendMessage(lang.get("menus.common.locked", p));
                     p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
                     return;
@@ -165,7 +167,7 @@ public class UHC_EventManager implements Listener {
             else if (slot == 4) admin.openBarrierRulesPanel(p);
             else if (slot == 6) admin.openTimePanel(p);
             else if (slot == 8) {
-                GameManager rpm = plugin.getRightPanelManager();
+                GameManager rpm = plugin.getGameManager();
                 if (rpm.getTiempoTotalSegundos() > 0) {
                     p.sendMessage(lang.get("menus.common.locked", p));
                     p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
@@ -237,7 +239,7 @@ public class UHC_EventManager implements Listener {
         // PANEL DE SELECCION DE GAMEMODE
         else if (title.equals(lang.get("menus.gamemode.title", p))) {
             event.setCancelled(true);
-            GameManager gm = plugin.getRightPanelManager();
+            GameManager gm = plugin.getGameManager();
             int slot = event.getSlot();
 
             if (slot == 0) { // BOTÓN ATRÁS
@@ -291,7 +293,7 @@ public class UHC_EventManager implements Listener {
         // PANEL TIMER
         else if (title.equals(lang.get("menus.time.title", p))) {
             event.setCancelled(true);
-            GameManager rpm = plugin.getRightPanelManager();
+            GameManager rpm = plugin.getGameManager();
             if (item.getType() == Material.BARRIER) { p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1); return; }
 
             int change = 0, slot = event.getSlot();
@@ -341,7 +343,7 @@ public class UHC_EventManager implements Listener {
     public void onPlayerJoin(org.bukkit.event.player.PlayerJoinEvent event) {
         Player p = event.getPlayer();
 
-        GameManager rpm = plugin.getRightPanelManager();
+        GameManager rpm = plugin.getGameManager();
         UHCGameMode modo = rpm.getModoActual();
 
         p.setGameMode(GameMode.ADVENTURE);
@@ -373,15 +375,59 @@ public class UHC_EventManager implements Listener {
         }
     }
 
+    @EventHandler
+    public void onIdentityHit(EntityDamageByEntityEvent event) {
+        if (!plugin.getGameManager().isPartidaIniciada()) return;
+        if (!(event.getEntity() instanceof Player victim)) return;
+
+        Player attacker = null;
+
+        if (event.getDamager() instanceof Player p) {
+            attacker = p;
+        } else if (event.getDamager() instanceof Projectile proj
+                && proj.getShooter() instanceof Player p) {
+            attacker = p;
+        }
+
+        if (attacker == null || attacker.equals(victim)) return;
+
+        GameManager gm = plugin.getGameManager();
+
+        if (gm.getJugadoresRevelados().contains(victim.getUniqueId())) return;
+
+        if (plugin.getTeamManager().areInSameTeam(attacker, victim)) return;
+
+        // --- PROCESO DE REVELACIÓN ---
+        gm.revelarIdentidad(victim);
+
+        String msgVictim = plugin.getLang()
+                .get("game-events.skins.revealed-victim", victim)
+                .replace("%player%", attacker.getName());
+
+        String msgAttacker = plugin.getLang()
+                .get("game-events.skins.revealed-attacker", attacker)
+                .replace("%player%", victim.getName());
+
+        victim.sendMessage(ChatColor.translateAlternateColorCodes('&', msgVictim));
+        attacker.sendMessage(ChatColor.translateAlternateColorCodes('&', msgAttacker));
+
+        victim.getWorld().playSound(
+                victim.getLocation(),
+                Sound.ENTITY_ZOMBIE_VILLAGER_CURE,
+                1.0f,
+                0.8f
+        );
+    }
+
+    // AUXILIAR
     private String formatTime(int s) {
         int h = s / 3600; int m = (s % 3600) / 60; int sec = s % 60;
         return (h > 0) ? String.format("%02d:%02d:%02d", h, m, sec) : String.format("%02d:%02d", m, sec);
     }
-
     public void onCompassTrack() {
         LanguageManager lang = plugin.getLang();
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if (plugin.getRightPanelManager().getJugadoresEliminados().contains(p.getName())) continue;
+            if (plugin.getGameManager().getJugadoresEliminados().contains(p.getName())) continue;
             Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
             if (team == null || team.getEntries().size() <= 1) {
                 p.setCompassTarget(new Location(p.getWorld(), 0, 100, 0));
@@ -391,7 +437,7 @@ public class UHC_EventManager implements Listener {
             for (String entry : team.getEntries()) {
                 if (entry.equals(p.getName())) continue;
                 Player comp = Bukkit.getPlayer(entry);
-                if (comp != null && comp.isOnline() && !plugin.getRightPanelManager().getJugadoresEliminados().contains(entry) && comp.getWorld().equals(p.getWorld())) {
+                if (comp != null && comp.isOnline() && !plugin.getGameManager().getJugadoresEliminados().contains(entry) && comp.getWorld().equals(p.getWorld())) {
                     double d = p.getLocation().distance(comp.getLocation());
                     if (d < distMin) { distMin = d; cercano = comp; }
                 }

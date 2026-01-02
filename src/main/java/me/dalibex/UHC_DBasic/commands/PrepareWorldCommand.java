@@ -37,7 +37,7 @@ public class PrepareWorldCommand implements CommandExecutor {
         resetearJugadores();
         resetearMundos();
 
-        plugin.getRightPanelManager().setStandBy();
+        plugin.getGameManager().setStandBy();
         plugin.getTeamManager().borrarTodosLosEquipos();
 
         String prefix = lang.get("general.prefix", player);

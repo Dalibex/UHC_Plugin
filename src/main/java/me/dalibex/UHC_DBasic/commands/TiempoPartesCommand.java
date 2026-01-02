@@ -34,7 +34,7 @@ public class TiempoPartesCommand implements CommandExecutor {
         int totalSegundos = validarTodo(sender, args, player);
         if (totalSegundos == -1) return true;
 
-        GameManager rpm = plugin.getRightPanelManager();
+        GameManager rpm = plugin.getGameManager();
         rpm.setSegundosPorCapitulo(totalSegundos);
 
         enviarFeedback(sender, args, player, totalSegundos);
@@ -55,7 +55,7 @@ public class TiempoPartesCommand implements CommandExecutor {
             return -1;
         }
 
-        if (plugin.getRightPanelManager().getTiempoTotalSegundos() > 0) {
+        if (plugin.getGameManager().getTiempoTotalSegundos() > 0) {
             sender.sendMessage(lang.get("timer.already-started", player));
             return -1;
         }

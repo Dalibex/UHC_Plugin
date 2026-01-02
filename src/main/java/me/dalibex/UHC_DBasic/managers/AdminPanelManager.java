@@ -63,7 +63,7 @@ public class AdminPanelManager {
         mainGui.setItem(6, createSimpleItem(Material.CLOCK, "menus.main-admin.time-item", player));
 
         // Items (Bloqueados si hay partida en curso)
-        GameManager rpm = plugin.getRightPanelManager();
+        GameManager rpm = plugin.getGameManager();
         boolean partidaEnCurso = rpm.getTiempoTotalSegundos() > 0;
 
         // Item de Modo de Juego
@@ -151,7 +151,7 @@ public class AdminPanelManager {
 
     public void openGamemodePanel(Player player) {
         LanguageManager lang = plugin.getLang();
-        GameManager gm = plugin.getRightPanelManager();
+        GameManager gm = plugin.getGameManager();
 
         Inventory rulesGui = Bukkit.createInventory(null, 9, lang.get("menus.gamemode.title", player));
 
@@ -211,7 +211,7 @@ public class AdminPanelManager {
         LanguageManager lang = plugin.getLang();
         Inventory timeGui = Bukkit.createInventory(null, 27, lang.get("menus.time.title", player));
 
-        GameManager rpm = plugin.getRightPanelManager();
+        GameManager rpm = plugin.getGameManager();
         boolean estaPausado = rpm.isPausado();
         boolean partidaEnCurso = rpm.getTiempoTotalSegundos() > 0;
         int totalSecs = rpm.getSegundosPorCapitulo();

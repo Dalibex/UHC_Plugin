@@ -69,7 +69,7 @@ public class StartCommand implements CommandExecutor {
             return -1;
         }
 
-        if (plugin.getRightPanelManager().isPartidaIniciada()) {
+        if (plugin.getGameManager().isPartidaIniciada()) {
             player.sendMessage(errorPrefix + lang.get("game.game-already-started", player));
             return -1;
         }

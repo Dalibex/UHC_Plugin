@@ -70,7 +70,7 @@ public class ChatManager implements Listener {
 
     private void enviarMensajeGlobal(Player p, Team team, String msg, LanguageManager lang, boolean partidaActiva) {
         String tagGlobal = lang.get("chat.global-tag", null);
-        String modoActual = plugin.getRightPanelManager().getModoActual().getName();
+        String modoActual = plugin.getGameManager().getModoActual().getName();
 
         String textoAMostrar;
 

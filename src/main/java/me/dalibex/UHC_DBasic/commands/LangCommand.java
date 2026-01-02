@@ -38,7 +38,7 @@ public class LangCommand implements CommandExecutor, TabCompleter {
         lang.setPlayerLanguage(player, langCode);
 
         if (player.getScoreboard().getObjective(DisplaySlot.SIDEBAR) != null) {
-            plugin.getRightPanelManager().getModoActual().updateScoreboard(player, "00:00", "00:00", false);
+            plugin.getGameManager().getModoActual().updateScoreboard(player, "00:00", "00:00", false);
         }
 
         String prefix = lang.get("general.prefix", player);
@@ -62,7 +62,7 @@ public class LangCommand implements CommandExecutor, TabCompleter {
             return null;
         }
 
-        if (plugin.getRightPanelManager().getTiempoTotalSegundos() > 0) {
+        if (plugin.getGameManager().getTiempoTotalSegundos() > 0) {
             player.sendMessage(lang.get("lang.already-started", player).replace("%error-prefix%", errorPrefix));
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
             return null;

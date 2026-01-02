@@ -263,6 +263,10 @@ game-events:
     - "&c&lPVP HAS BEEN ENABLED! &c⚔"
     - "&fThe gentleman's agreement has ended"
     - "&8&m------------------------------------"
+  skins:
+    identity-changed: "&d&l» &7Your Skin has now changed to: &f%player%"
+    revealed-attacker: "&d&l» &7Revealed identity of: &f%player%"
+    revealed-victim: "&d&l» &7Your identity was revealed by: &f%player%"
 
 # Resource Rush specific messages
 resource-rush:

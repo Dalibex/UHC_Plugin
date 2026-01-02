@@ -263,6 +263,10 @@ game-events:
     - "&c&l¡EL PVP SE HA ACTIVADO! &c⚔"
     - "&fEl pacto de caballeros ha finalizado"
     - "&8&m------------------------------------"
+  skins:
+    identity-changed: "&d&l» &7Tu identidad ha cambiado a: &f%player%"
+    revealed-attacker: "&d&l» &7Has revelado la identidad de: &f%player%"
+    revealed-victim: "&d&l» &7Tu identidad ha sido revelada por: &f%player%"
 
 # Mensajes específicos de Resource Rush
 resource-rush:

@@ -41,8 +41,8 @@ public class TeamManager {
         List<String> vivosNames = new ArrayList<>();
         List<String> muertosNames = new ArrayList<>();
 
-        for (String name : plugin.getRightPanelManager().getParticipantesIniciales()) {
-            if (plugin.getRightPanelManager().getJugadoresEliminados().contains(name)) {
+        for (String name : plugin.getGameManager().getParticipantesIniciales()) {
+            if (plugin.getGameManager().getJugadoresEliminados().contains(name)) {
                 muertosNames.add(name);
             } else {
                 vivosNames.add(name);
@@ -106,6 +106,17 @@ public class TeamManager {
                     .replace("%name%", team.getDisplayName());
             p.sendMessage(msg);
         }
+    }
+
+    public boolean areInSameTeam(Player a, Player b) {
+        if (a == null || b == null) return false;
+
+        Team teamA = board.getEntryTeam(a.getName());
+        Team teamB = board.getEntryTeam(b.getName());
+
+        if (teamA == null || teamB == null) return false;
+
+        return teamA.equals(teamB);
     }
 
     public boolean renombrarEquipo(Player player, String nuevoNombre) {

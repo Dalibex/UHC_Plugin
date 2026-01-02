@@ -21,7 +21,7 @@ public class CancelarStartCommand implements CommandExecutor {
         if (!(sender instanceof Player player)) return true;
         if (!player.isOp()) return true;
 
-        if (plugin.getRightPanelManager().isPartidaIniciada()) {
+        if (plugin.getGameManager().isPartidaIniciada()) {
             return true;
         }
 
@@ -30,7 +30,7 @@ public class CancelarStartCommand implements CommandExecutor {
         }
 
         startCommand.setConfirmacionPendiente(false);
-        plugin.getRightPanelManager().setPartidaIniciada(false);
+        plugin.getGameManager().setPartidaIniciada(false);
 
         player.sendMessage(plugin.getLang().get("start-menu.cancelled", player));
 

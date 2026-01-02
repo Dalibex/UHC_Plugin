@@ -32,11 +32,11 @@ public class ConfirmStartCommand implements CommandExecutor {
         if (!(sender instanceof Player player)) return true;
         if (args.length == 0) return true;
 
-        if (!startCmd.getConfirmacionPendiente() || plugin.getRightPanelManager().isPartidaIniciada()) {
+        if (!startCmd.getConfirmacionPendiente() || plugin.getGameManager().isPartidaIniciada()) {
             return true;
         }
 
-        plugin.getRightPanelManager().setPartidaIniciada(true);
+        plugin.getGameManager().setPartidaIniciada(true);
         startCmd.setConfirmacionPendiente(false);
 
         iniciarProcesoUHC(player, Integer.parseInt(args[0]));
@@ -177,7 +177,7 @@ public class ConfirmStartCommand implements CommandExecutor {
                         w.setDifficulty(Difficulty.HARD);
                     }
 
-                    plugin.getRightPanelManager().iniciarPartida();
+                    plugin.getGameManager().iniciarPartida();
                     this.cancel();
                 }
             }
