@@ -4,9 +4,7 @@ import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.gamemodes.Classic;
 import me.dalibex.UHC_DBasic.gamemodes.UHCGameMode;
 import me.neznamy.tab.api.TabAPI;
-import me.neznamy.tab.api.TabPlayer;
 import me.neznamy.tab.api.nametag.NameTagManager;
-import me.neznamy.tab.api.scoreboard.ScoreboardManager;
 import me.neznamy.tab.api.tablist.TabListFormatManager;
 import net.skinsrestorer.api.exception.DataRequestException;
 import net.skinsrestorer.api.exception.MineSkinException;
@@ -42,7 +40,6 @@ public class GameManager {
     private final Set<String> jugadoresEliminados = new HashSet<>();
     private final List<String> participantesIniciales = new ArrayList<>();
 
-    private final Map<UUID, String> skinAsignada = new HashMap<>();
     private final Set<UUID> jugadoresRevelados = new HashSet<>();
     private final Map<UUID, String> ultimaSkinAsignada = new HashMap<>();
 
@@ -195,21 +192,17 @@ public class GameManager {
                 .collect(Collectors.toList());
 
         if (vivos.size() < 2) return;
-
         List<String> poolNombres = vivos.stream().map(Player::getName).collect(Collectors.toList());
         jugadoresRevelados.clear();
 
         boolean asignacionValida = false;
         int intentos = 0;
-
         while (!asignacionValida && intentos < 10) {
             Collections.shuffle(poolNombres);
             asignacionValida = true;
-
             for (int i = 0; i < vivos.size(); i++) {
                 String skinAsignada = poolNombres.get(i);
                 String skinAnterior = ultimaSkinAsignada.get(vivos.get(i).getUniqueId());
-
                 if (skinAsignada.equals(skinAnterior)) {
                     asignacionValida = false;
                     break;
@@ -218,34 +211,47 @@ public class GameManager {
             intentos++;
         }
 
-        for (int i = 0; i < vivos.size(); i++) {
-            Player p = vivos.get(i);
-            String nombreSkinElegida = poolNombres.get(i);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            for (int i = 0; i < vivos.size(); i++) {
+                Player p = vivos.get(i);
+                String nombreSkinElegida = poolNombres.get(i);
+                ultimaSkinAsignada.put(p.getUniqueId(), nombreSkinElegida);
 
-            ultimaSkinAsignada.put(p.getUniqueId(), nombreSkinElegida);
-            aplicarCambiosTab(p);
+                try {
+                    SkinStorage skinStorage = skinsApi.getSkinStorage();
+                    PlayerStorage playerStorage = skinsApi.getPlayerStorage();
+                    Optional<InputDataResult> result = skinStorage.findOrCreateSkinData(nombreSkinElegida);
 
-            try {
-                SkinStorage skinStorage = skinsApi.getSkinStorage();
-                PlayerStorage playerStorage = skinsApi.getPlayerStorage();
-                Optional<InputDataResult> result = skinStorage.findOrCreateSkinData(nombreSkinElegida);
-
-                if (result.isPresent()) {
-                    playerStorage.setSkinIdOfPlayer(p.getUniqueId(), result.get().getIdentifier());
-                    skinsApi.getSkinApplier(Player.class).applySkin(p);
+                    if (result.isPresent()) {
+                        playerStorage.setSkinIdOfPlayer(p.getUniqueId(), result.get().getIdentifier());
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            try {
+                                skinsApi.getSkinApplier(Player.class).applySkin(p);
+                            } catch (DataRequestException e) {
+                                plugin.getLogger().warning("Error aplicando skin: " + e.getMessage());
+                            }
+                            actualizarIdentidadVisual(p);
+                        });
+                    }
+                } catch (DataRequestException | MineSkinException e) {
+                    plugin.getLogger().warning("Error al rotar skin para " + p.getName() + ": " + e.getMessage());
                 }
-            } catch (DataRequestException | MineSkinException e) {
-                plugin.getLogger().warning("Error al rotar skin para " + p.getName() + ": " + e.getMessage());
+
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                }
             }
-        }
+        });
     }
 
     public void revelarIdentidad(Player p) {
         if (jugadoresRevelados.contains(p.getUniqueId())) return;
+
         jugadoresRevelados.add(p.getUniqueId());
 
         actualizarIdentidadVisual(p);
-        aplicarCambiosTab(p);
 
         try {
             PlayerStorage playerStorage = skinsApi.getPlayerStorage();
@@ -260,30 +266,11 @@ public class GameManager {
         }
     }
 
-    private void aplicarCambiosTab(Player p) {
+    public void actualizarIdentidadVisual(Player p) {
         if (p == null) return;
 
-        TabAPI api = TabAPI.getInstance();
-        me.neznamy.tab.api.TabPlayer tabPlayer = api.getPlayer(p.getUniqueId());
-        if (tabPlayer == null) return;
-
-        if (api.getTabListFormatManager() != null) {
-            api.getTabListFormatManager().setName(tabPlayer, "%rel_uhc_identidad%");
-        }
-
-        if (api.getNameTagManager() != null) {
-            api.getNameTagManager().setPrefix(tabPlayer, "");
-            api.getNameTagManager().setSuffix(tabPlayer, "");
-        }
-
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                "tab player " + p.getName() + " customtabname %rel_uhc_identidad%");
-    }
-
-    public void actualizarIdentidadVisual(Player p) {
         TabAPI tabApi = TabAPI.getInstance();
         me.neznamy.tab.api.TabPlayer tabPlayer = tabApi.getPlayer(p.getUniqueId());
-
         if (tabPlayer == null) return;
 
         TabListFormatManager tfm = tabApi.getTabListFormatManager();
@@ -292,26 +279,19 @@ public class GameManager {
         if (partidaIniciada) {
             if (tfm != null) {
                 tfm.setName(tabPlayer, "%rel_uhc_identidad%");
+                ntm.setPrefix(tabPlayer, "%%rel_nametag_color%");
             }
-
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                    "tab player " + p.getName() + " customtabname %rel_uhc_identidad%");
-
-            if (ntm != null) {
-                ntm.setPrefix(tabPlayer, "");
+        }
+        if (partidaIniciada) {
+            if (jugadoresRevelados.contains(p.getUniqueId())) {
+                String nombreRojo = "§c" + p.getName();
+                p.setDisplayName(nombreRojo);
+            } else {
+                String nombreFalso = ultimaSkinAsignada.getOrDefault(p.getUniqueId(), p.getName());
+                p.setDisplayName("§c" + nombreFalso);
             }
-
         } else {
-            if (tfm != null) {
-                tfm.setName(tabPlayer, null);
-            }
-
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                    "tab player " + p.getName() + " customtabname");
-
-            if (ntm != null) {
-                ntm.setPrefix(tabPlayer, null);
-            }
+            p.setDisplayName("§f" + p.getName());
         }
     }
     // -----------------------------------------------------------------------

@@ -48,13 +48,11 @@ public class Classic implements UHCGameMode {
         int segundosCap = rpm.getSegundosPorCapitulo();
         int capituloActual = rpm.getCapitulo();
 
-        // 1. Lógica de Shulker 1 (Episodio 1)
         if (plugin.getAdminPanel().isShulkerOneEnabled() && !shulkerEntregado && cronometroSegundos > 1) {
             entregarObjetoGlobal("items.shulker.name", Material.ORANGE_SHULKER_BOX);
             shulkerEntregado = true;
         }
 
-        // 3. Sistema Robusto de Cambio de Capítulo (Previene saltos por lag)
         int capituloCalculado = (cronometroSegundos / segundosCap) + 1;
 
         if (capituloCalculado > capituloActual) {
@@ -62,7 +60,6 @@ public class Classic implements UHCGameMode {
             procesarCambioDeCapitulo(capituloCalculado, lang, tm);
         }
 
-        // 4. Caso especial: Solo (TeamSize 1) al segundo 1
         if (cronometroSegundos == 1 && tm.getTeamSize() == 1 && !equiposFormados) {
             tm.shuffleTeams();
             equiposFormados = true;
@@ -70,7 +67,6 @@ public class Classic implements UHCGameMode {
     }
 
     private void procesarCambioDeCapitulo(int nuevoCap, LanguageManager lang, TeamManager tm) {
-        // Mensajes de inicio de capítulo
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (nuevoCap < 10) {
                 p.sendMessage(lang.get("game-events.chapter-start", p)
@@ -294,10 +290,11 @@ public class Classic implements UHCGameMode {
     private void finalizarPartida(Team ganador) {
         LanguageManager lang = plugin.getLang();
         rpm.detenerPartidaTask();
-        rpm.setPartidaIniciada(false); // Detener lógica de identidades
+        rpm.setPartidaIniciada(false);
 
         for (Player online : Bukkit.getOnlinePlayers()) {
             rpm.revelarIdentidad(online);
+            rpm.actualizarIdentidadVisual(online);
         }
 
         if (ganador != null) {

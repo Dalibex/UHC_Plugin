@@ -23,7 +23,7 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-    compileOnly 'net.skinsrestorer:skinsrestorer-api:15.9.1'
+    compileOnly 'net.skinsrestorer:skinsrestorer-api:15.9.2'
     compileOnly 'com.github.NEZNAMY:TAB-API:5.4.0'
 }
 

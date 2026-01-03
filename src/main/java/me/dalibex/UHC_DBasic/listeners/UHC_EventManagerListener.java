@@ -346,7 +346,9 @@ public class UHC_EventManagerListener implements Listener {
         GameManager rpm = plugin.getGameManager();
         UHCGameMode modo = rpm.getModoActual();
 
-        p.setGameMode(GameMode.ADVENTURE);
+        if (p.getGameMode() != GameMode.SPECTATOR) {
+            p.setGameMode(GameMode.ADVENTURE);
+        }
 
         if (rpm.getTiempoTotalSegundos() == 0) {
             World world = p.getWorld();
@@ -413,7 +415,7 @@ public class UHC_EventManagerListener implements Listener {
 
         victim.getWorld().playSound(
                 victim.getLocation(),
-                Sound.ENTITY_ZOMBIE_VILLAGER_CURE,
+                Sound.BLOCK_NOTE_BLOCK_BIT,
                 1.0f,
                 0.8f
         );
