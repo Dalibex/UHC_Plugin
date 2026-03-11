@@ -52,7 +52,7 @@ public class AsignarEquipoCommand implements CommandExecutor, TabCompleter {
         }
 
         String targetName = args[0];
-        String teamId = args[1];
+        String colorInput = args[1];
 
         // Buscar al jugador
         Player target = Bukkit.getPlayer(targetName);
@@ -63,12 +63,11 @@ public class AsignarEquipoCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // Buscar el equipo por número
-        String teamName = "team_" + teamId;
-        Team team = Bukkit.getScoreboardManager().getMainScoreboard().getTeam(teamName);
+        // Buscar el equipo por color/ID
+        Team team = tm.getTeamByColorSearch(colorInput);
         if (team == null) {
             admin.sendMessage(lang.get("game.assign-team-not-found", admin)
-                    .replace("%team%", teamId));
+                    .replace("%team%", colorInput));
             admin.playSound(admin.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
             return true;
         }
@@ -116,13 +115,10 @@ public class AsignarEquipoCommand implements CommandExecutor, TabCompleter {
                     .filter(name -> name.toLowerCase().startsWith(partial))
                     .collect(Collectors.toList());
         } else if (args.length == 2) {
-            // Autocompletar números de equipo
-            String partial = args[1];
+            // Autocompletar nombres de colores (Solo nombres internos/en inglés)
+            String partial = args[1].toLowerCase();
             for (Team team : Bukkit.getScoreboardManager().getMainScoreboard().getTeams()) {
-                String num = team.getName().replace("team_", "");
-                if (num.startsWith(partial)) {
-                    completions.add(num);
-                }
+                if (team.getName().toLowerCase().startsWith(partial)) completions.add(team.getName());
             }
         }
 

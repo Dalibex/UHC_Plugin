@@ -13,6 +13,7 @@ import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
 import java.util.*;
+import java.util.Arrays;
 
 public class TeamManager {
 
@@ -30,9 +31,9 @@ public class TeamManager {
             Material.LIGHT_BLUE_DYE, Material.MAGENTA_DYE, Material.WHITE_DYE
     };
 
-    private static final String[] TEAM_COLOR_NAMES = {
-            "Rojo", "Azul", "Verde", "Amarillo", "Naranja", "Morado",
-            "Cian", "Rosa", "Lima", "Celeste", "Magenta", "Blanco"
+    private static final String[] TEAM_COLOR_KEYS = {
+            "red", "blue", "green", "yellow", "orange", "purple",
+            "cyan", "pink", "lime", "light_blue", "magenta", "white"
     };
 
     private static final ChatColor[] TEAM_CHAT_COLORS = {
@@ -41,6 +42,7 @@ public class TeamManager {
             ChatColor.DARK_AQUA, ChatColor.LIGHT_PURPLE, ChatColor.GREEN,
             ChatColor.AQUA, ChatColor.LIGHT_PURPLE, ChatColor.WHITE
     };
+
 
     public TeamManager() {
         this.board = Bukkit.getScoreboardManager().getMainScoreboard();
@@ -78,19 +80,31 @@ public class TeamManager {
         int numeroDeEquipos = (int) Math.ceil((double) jugadoresOnline / teamSize);
 
         for (int i = 0; i < numeroDeEquipos; i++) {
-            String idEquipo = "team_" + (i + 1);
-            Team team = board.registerNewTeam(idEquipo);
+            String colorKey = TEAM_COLOR_KEYS[i % TEAM_COLOR_KEYS.length];
+            Team team = board.registerNewTeam(colorKey);
             ChatColor color = TEAM_CHAT_COLORS[i % TEAM_CHAT_COLORS.length];
             team.setColor(color);
-            team.setDisplayName(TEAM_COLOR_NAMES[i % TEAM_COLOR_NAMES.length]);
-
+            
             LanguageManager lang = plugin.getLang();
+            String localizedName = lang.get("teams.colors." + colorKey, null);
+            team.setDisplayName(localizedName != null ? localizedName : colorKey);
+
             String prefix = lang.get("teams.prefix-format", null)
                     .replace("%color%", color.toString())
                     .replace("%name%", team.getDisplayName());
             team.setPrefix(prefix);
             team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
         }
+    }
+
+    // --- Buscar equipo por nombre localizado o ID ---
+    public Team getTeamByColorSearch(String input) {
+        String lower = input.toLowerCase();
+        for (Team team : board.getTeams()) {
+            if (team.getName().equalsIgnoreCase(lower)) return team;
+            if (team.getDisplayName().equalsIgnoreCase(input)) return team;
+        }
+        return null;
     }
 
     // --- Dar item selector de equipo a un jugador ---
@@ -230,6 +244,21 @@ public class TeamManager {
         return true;
     }
 
+    // --- Intentar que un jugador abandone su equipo ---
+    public boolean tryLeaveTeam(Player p) {
+        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
+        LanguageManager lang = plugin.getLang();
+
+        Team currentTeam = board.getEntryTeam(p.getName());
+        if (currentTeam != null) {
+            currentTeam.removeEntry(p.getName());
+            p.sendMessage(lang.get("menus.team-selector.left", p));
+            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1f, 0.5f);
+            return true;
+        }
+        return false;
+    }
+
     // --- Verificar si todos los jugadores tienen equipo ---
     public boolean allPlayersHaveTeam() {
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -268,12 +297,10 @@ public class TeamManager {
 
     // --- Índice del equipo basado en su ID ---
     private int getTeamIndex(Team team) {
-        String name = team.getName(); // "team_1", "team_2", etc.
-        try {
-            return Integer.parseInt(name.replace("team_", "")) - 1;
-        } catch (NumberFormatException e) {
-            return 0;
-        }
+        String name = team.getName(); // "red", "blue", etc.
+        List<String> keys = Arrays.asList(TEAM_COLOR_KEYS);
+        int index = keys.indexOf(name.toLowerCase());
+        return Math.max(0, index);
     }
 
     // --- SISTEMA ORIGINAL: shuffleTeams (equipos aleatorios) ---

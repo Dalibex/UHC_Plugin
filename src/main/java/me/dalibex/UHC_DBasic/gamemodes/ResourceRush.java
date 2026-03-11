@@ -104,59 +104,28 @@ public class ResourceRush implements UHCGameMode {
             shulkerEntregado = true;
         }
 
-        if (cronometroSegundos % segundosCap == 0 && cronometroSegundos != 0) {
-            gm.setCapitulo(capituloActual + 1);
-            int nuevoCap = gm.getCapitulo();
+        int capituloCalculado = (cronometroSegundos / segundosCap) + 1;
 
-            // Delay de 5s para la ruleta
-            Bukkit.getScheduler().runTaskLater(plugin, () -> actualizarObjetivosActivos(nuevoCap), 100L);
-
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                p.sendMessage(lang.get("game-events.chapter-start", p)
-                        .replace("%prefix%", lang.get("general.prefix", p))
-                        .replace("%chapter%", String.valueOf(nuevoCap)));
-                p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
-            }
-
-            if (nuevoCap == 8 && plugin.getAdminPanel().isShulkerTwoEnabled()) {
-                entregarObjetoGlobal("items.shulker.name", Material.LIGHT_BLUE_SHULKER_BOX);
-            }
-
-            // FORMACIÓN DE EQUIPOS
-            if (nuevoCap == 3 && tm.getTeamSize() > 1 && !equiposFormados) {
-                tm.shuffleTeams();
-
-                // Sincronizar objetivos de Resource Rush
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    Team t = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
-                    if (t != null) {
-                        List<Material> progresoIndiv = progresoGlobal.get(p.getName());
-                        if (progresoIndiv != null) {
-                            List<Material> progresoEq = progresoGlobal.computeIfAbsent(t.getName(), k -> new ArrayList<>());
-                            for (Material m : progresoIndiv) {
-                                if (!progresoEq.contains(m)) progresoEq.add(m);
-                            }
-                            progresoGlobal.remove(p.getName());
-                        }
-                    }
-                }
-
-                entregarBrujulasDeSeguimiento(lang);
-                equiposFormados = true;
-                for (Player p : Bukkit.getOnlinePlayers()) p.sendMessage(lang.get("game-events.teams-formed", p));
-            }
-
-            if (nuevoCap == 4) {
-                for (World w : Bukkit.getWorlds()) w.setGameRule(PVP, true);
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    for (String s : lang.getList("game-events.pvp-enabled", p)) p.sendMessage(s);
-                    p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
-                }
-            }
+        if (capituloCalculado > capituloActual) {
+            gm.setCapitulo(capituloCalculado);
+            procesarCambioDeCapitulo(capituloCalculado, lang, tm);
         }
 
-        if (cronometroSegundos == 1) {
-            if (tm.getTeamSize() == 1) {
+        // --- INICIALIZACIÓN CAPÍTULO 1 (Brújula, Equipos Manuales, etc) ---
+        if (cronometroSegundos >= 1 && cronometroSegundos <= 5 && !equiposFormados) {
+            if (tm.getTeamSize() > 1 && tm.isCustomTeamsEnabled()) {
+                // Equipos manuales -> Brújulas ya en Ep 1
+                entregarBrujulasDeSeguimiento(lang);
+                equiposFormados = true;
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    p.sendMessage(lang.get("game-events.chapter-start", p)
+                            .replace("%prefix%", lang.get("general.prefix", p))
+                            .replace("%chapter%", "1"));
+                    p.sendMessage(lang.get("game-events.teams-formed", p));
+                    p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, 1f, 1f);
+                }
+            } else if (tm.getTeamSize() == 1) {
+                // Modo Solos (o si se forzó manual de tamaño 1)
                 tm.shuffleTeams();
                 equiposFormados = true;
             }
@@ -166,6 +135,45 @@ public class ResourceRush implements UHCGameMode {
                     actualizarObjetivosActivos(1);
                 }
             }, 100L); // 5 segundos
+        }
+    }
+
+    private void procesarCambioDeCapitulo(int nuevoCap, LanguageManager lang, TeamManager tm) {
+        // Delay de 5s para la ruleta
+        Bukkit.getScheduler().runTaskLater(plugin, () -> actualizarObjetivosActivos(nuevoCap), 100L);
+
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            p.sendMessage(lang.get("game-events.chapter-start", p)
+                    .replace("%prefix%", lang.get("general.prefix", p))
+                    .replace("%chapter%", String.valueOf(nuevoCap)));
+            p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
+        }
+
+        // Rotación de Skins
+        ejecutarRotacionDeSkins();
+
+        if (nuevoCap == 8 && plugin.getAdminPanel().isShulkerTwoEnabled()) {
+            entregarObjetoGlobal("items.shulker.name", Material.LIGHT_BLUE_SHULKER_BOX);
+        }
+
+        // FORMACIÓN DE EQUIPOS ALEATORIOS (Ep 3)
+        if (tm.getTeamSize() > 1 && !equiposFormados && !tm.isCustomTeamsEnabled() && nuevoCap == 3) {
+            tm.shuffleTeams();
+            sincronizarEquiposResourceRush();
+            entregarBrujulasDeSeguimiento(lang);
+            equiposFormados = true;
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                p.sendMessage(lang.get("game-events.teams-formed", p));
+                p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, 1f, 1f);
+            }
+        }
+
+        if (nuevoCap == 4) {
+            for (World w : Bukkit.getWorlds()) w.setGameRule(PVP, true);
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                for (String s : lang.getList("game-events.pvp-enabled", p)) p.sendMessage(s);
+                p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
+            }
         }
     }
 
@@ -279,7 +287,8 @@ public class ResourceRush implements UHCGameMode {
                         lang.get("scoreboard.team-label", player).replace("%color%", team.getColor().toString()).replace("%name%", team.getDisplayName()) : lang.get("scoreboard.team-rename-warn", player);
                 obj.getScore(line).setScore(next--);
             } else {
-                if (capitulo < 3) {
+                boolean manual = plugin.getTeamManager().isCustomTeamsEnabled();
+                if (capitulo < 3 && !manual) {
                     for (int i = 1; i < teamSize; i++) obj.getScore(" §d👥 §f: §k??????" + (" ".repeat(i))).setScore(next--);
                 } else {
                     String line = (team != null && !team.getPrefix().contains("team_")) ? lang.get("scoreboard.team-mates-label", player).replace("%color%", team.getColor().toString()).replace("%name%", team.getDisplayName()) :
@@ -501,8 +510,6 @@ public class ResourceRush implements UHCGameMode {
         this.progresoGlobal.clear();
         this.podioFinal.clear();
         this.objetivosActivos.clear();
-        Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
-        for (Team t : new HashSet<>(board.getTeams())) t.unregister();
         for (Player p : Bukkit.getOnlinePlayers()) p.setPlayerListName(p.getName());
         inicializarPool();
     }
@@ -599,6 +606,38 @@ public class ResourceRush implements UHCGameMode {
             if (meta != null) meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', lang.get(nombreKey, p)));
             item.setItemMeta(meta);
             p.getInventory().addItem(item);
+        }
+    }
+
+    private void sincronizarEquiposResourceRush() {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            Team t = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
+            if (t != null) {
+                List<Material> progresoIndiv = progresoGlobal.get(p.getName());
+                if (progresoIndiv != null) {
+                    List<Material> progresoEq = progresoGlobal.computeIfAbsent(t.getName(), k -> new ArrayList<>());
+                    for (Material m : progresoIndiv) {
+                        if (!progresoEq.contains(m)) progresoEq.add(m);
+                    }
+                    progresoGlobal.remove(p.getName());
+                }
+            }
+        }
+    }
+
+    private void ejecutarRotacionDeSkins() {
+        gm.rotarSkins();
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (p.getGameMode() == GameMode.SURVIVAL) {
+                String nombreSkinNueva = gm.getUltimaSkinAsignada()
+                        .getOrDefault(p.getUniqueId(), "???");
+                String rawMsg = plugin.getLang()
+                        .get("game-events.skins.identity-changed", p);
+                String mensajePersonalizado =
+                        rawMsg.replace("%player%", nombreSkinNueva);
+                p.sendMessage(ChatColor.translateAlternateColorCodes('&', mensajePersonalizado));
+                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1f, 1f);
+            }
         }
     }
 

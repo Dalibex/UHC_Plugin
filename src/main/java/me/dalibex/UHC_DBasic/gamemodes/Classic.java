@@ -60,9 +60,24 @@ public class Classic implements UHCGameMode {
             procesarCambioDeCapitulo(capituloCalculado, lang, tm);
         }
 
-        if (cronometroSegundos == 1 && tm.getTeamSize() == 1 && !equiposFormados) {
-            tm.shuffleTeams();
-            equiposFormados = true;
+        // --- INICIALIZACIÓN CAPÍTULO 1 (Brújula, Equipos Manuales, etc) ---
+        if (cronometroSegundos >= 1 && cronometroSegundos <= 5 && !equiposFormados) {
+            if (tm.getTeamSize() > 1 && tm.isCustomTeamsEnabled()) {
+                // Equipos manuales -> Brújulas ya en Ep 1
+                entregarBrujulasDeSeguimiento(lang);
+                equiposFormados = true;
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    p.sendMessage(lang.get("game-events.chapter-start", p)
+                            .replace("%prefix%", lang.get("general.prefix", p))
+                            .replace("%chapter%", "1"));
+                    p.sendMessage(lang.get("game-events.teams-formed", p));
+                    p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, 1f, 1f);
+                }
+            } else if (tm.getTeamSize() == 1) {
+                // Modo Solos (o si se forzó manual de tamaño 1)
+                tm.shuffleTeams();
+                equiposFormados = true;
+            }
         }
     }
 
@@ -89,14 +104,17 @@ public class Classic implements UHCGameMode {
             entregarObjetoGlobal("items.shulker.name", Material.LIGHT_BLUE_SHULKER_BOX);
         }
 
-        // Formación de Equipos (Episodio 3)
-        if (nuevoCap == 3 && tm.getTeamSize() > 1 && !equiposFormados) {
-            tm.shuffleTeams();
-            entregarBrujulasDeSeguimiento(lang);
-            equiposFormados = true;
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                p.sendMessage(lang.get("game-events.teams-formed", p));
-                p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, 1f, 1f);
+        // Formación de Equipos (Condicional: Ep 1 para manual, Ep 3 para aleatorio)
+        if (tm.getTeamSize() > 1 && !equiposFormados) {
+            boolean manual = tm.isCustomTeamsEnabled();
+            if ((manual && nuevoCap == 1) || (!manual && nuevoCap == 3)) {
+                if (!manual) tm.shuffleTeams();
+                entregarBrujulasDeSeguimiento(lang);
+                equiposFormados = true;
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    p.sendMessage(lang.get("game-events.teams-formed", p));
+                    p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, 1f, 1f);
+                }
             }
         }
 
@@ -186,7 +204,8 @@ public class Classic implements UHCGameMode {
                         lang.get("scoreboard.team-label", player).replace("%color%", team.getColor().toString()).replace("%name%", team.getDisplayName()) : lang.get("scoreboard.team-rename-warn", player);
                 obj.getScore(line).setScore(next--);
             } else {
-                if (capitulo < 3) {
+                boolean manual = plugin.getTeamManager().isCustomTeamsEnabled();
+                if (capitulo < 3 && !manual) {
                     for (int i = 1; i < teamSize; i++) obj.getScore(" §d👥 §f: §k??????" + (" ".repeat(i))).setScore(next--);
                 } else {
                     String line = (team != null) ? lang.get("scoreboard.team-mates-label", player).replace("%color%", team.getColor().toString()).replace("%name%", team.getDisplayName()) :

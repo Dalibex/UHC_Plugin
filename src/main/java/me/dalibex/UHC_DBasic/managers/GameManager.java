@@ -42,6 +42,7 @@ public class GameManager {
 
     private final Set<UUID> jugadoresRevelados = new HashSet<>();
     private final Map<UUID, String> ultimaSkinAsignada = new HashMap<>();
+    private final Map<UUID, String> penultimaSkinAsignada = new HashMap<>();
 
     public GameManager(UHC_DBasic plugin) {
         this.plugin = plugin;
@@ -67,19 +68,18 @@ public class GameManager {
 
         registrarParticipantes();
 
+        // 1. Rotar identidades Sincrónicamente antes de empezar
+        rotarSkins();
+
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.setPlayerListName(p.getName());
             p.damage(0.01);
             actualizarIdentidadVisual(p);
-            rotarSkins();
 
             if (p.getGameMode() == GameMode.SURVIVAL) {
-                String nombreSkinNueva = getUltimaSkinAsignada()
-                        .getOrDefault(p.getUniqueId(), "???");
-                String rawMsg = plugin.getLang()
-                        .get("game-events.skins.identity-changed", p);
-                String mensajePersonalizado =
-                        rawMsg.replace("%player%", nombreSkinNueva);
+                String nombreSkinNueva = ultimaSkinAsignada.getOrDefault(p.getUniqueId(), p.getName());
+                String rawMsg = plugin.getLang().get("game-events.skins.identity-changed", p);
+                String mensajePersonalizado = rawMsg.replace("%player%", nombreSkinNueva);
                 p.sendMessage(ChatColor.translateAlternateColorCodes('&', mensajePersonalizado));
                 p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1f, 1f);
             }
@@ -129,7 +129,7 @@ public class GameManager {
         detenerPartidaTask();
         this.cronometroSegundos = 0;
         this.tiempoTotalSegundos = 0;
-        this.capitulo = 1;
+        this.capitulo = 0;
         this.partidaIniciada = false;
         this.pausado = false;
 
@@ -201,13 +201,18 @@ public class GameManager {
 
         boolean asignacionValida = false;
         int intentos = 0;
-        while (!asignacionValida && intentos < 10) {
+        
+        while (!asignacionValida && intentos < 30) {
             Collections.shuffle(poolNombres);
             asignacionValida = true;
+            
             for (int i = 0; i < vivos.size(); i++) {
                 String skinAsignada = poolNombres.get(i);
-                String skinAnterior = ultimaSkinAsignada.get(vivos.get(i).getUniqueId());
-                if (skinAsignada.equals(skinAnterior)) {
+                UUID uuid = vivos.get(i).getUniqueId();
+                
+                // Evitar la última y la penúltima skin si es posible
+                if (skinAsignada.equalsIgnoreCase(ultimaSkinAsignada.get(uuid)) || 
+                    skinAsignada.equalsIgnoreCase(penultimaSkinAsignada.get(uuid))) {
                     asignacionValida = false;
                     break;
                 }
@@ -215,11 +220,20 @@ public class GameManager {
             intentos++;
         }
 
+        // Si después de 20 intentos no hay suerte (ej: pocos jugadores), usamos el shuffle que haya quedado
+        
+        // Guardar historial y asignar nombres inmediatamente (Sincrónico)
+        for (int i = 0; i < vivos.size(); i++) {
+            UUID uuid = vivos.get(i).getUniqueId();
+            penultimaSkinAsignada.put(uuid, ultimaSkinAsignada.get(uuid));
+            ultimaSkinAsignada.put(uuid, poolNombres.get(i));
+        }
+
+        // Aplicar skins asíncronamente
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            for (int i = 0; i < vivos.size(); i++) {
-                Player p = vivos.get(i);
-                String nombreSkinElegida = poolNombres.get(i);
-                ultimaSkinAsignada.put(p.getUniqueId(), nombreSkinElegida);
+            for (Player p : vivos) {
+                String nombreSkinElegida = ultimaSkinAsignada.get(p.getUniqueId());
+                if (nombreSkinElegida == null) continue;
 
                 try {
                     SkinStorage skinStorage = skinsApi.getSkinStorage();
@@ -241,11 +255,7 @@ public class GameManager {
                     plugin.getLogger().warning("Error al rotar skin para " + p.getName() + ": " + e.getMessage());
                 }
 
-                try {
-                    Thread.sleep(200);
-                } catch (InterruptedException ignored) {
-                    Thread.currentThread().interrupt();
-                }
+                try { Thread.sleep(200); } catch (InterruptedException ignored) {}
             }
         });
     }

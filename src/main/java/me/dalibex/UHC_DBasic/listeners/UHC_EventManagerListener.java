@@ -264,6 +264,14 @@ public class UHC_EventManagerListener implements Listener {
             event.setCancelled(true);
             TeamManager tm = plugin.getTeamManager();
             int slot = event.getSlot();
+
+            if (event.getClick().isRightClick()) {
+                if (tm.tryLeaveTeam(p)) {
+                    tm.openTeamSelectorGUI(p);
+                }
+                return;
+            }
+
             if (tm.tryJoinTeam(p, slot)) {
                 // Reabrir el GUI actualizado
                 tm.openTeamSelectorGUI(p);

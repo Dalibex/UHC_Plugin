@@ -2,6 +2,7 @@ package me.dalibex.UHC_DBasic.commands;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
+import me.dalibex.UHC_DBasic.managers.TeamManager;
 import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -39,6 +40,13 @@ public class PrepareWorldCommand implements CommandExecutor {
 
         plugin.getGameManager().setStandBy();
         plugin.getTeamManager().borrarTodosLosEquipos();
+        
+        // Repartir estrella si custom teams está activo
+        TeamManager tm = plugin.getTeamManager();
+        if (tm.isCustomTeamsEnabled()) {
+            tm.initializeCustomTeams();
+            tm.giveAllSelectorItems();
+        }
 
         String prefix = lang.get("general.prefix", player);
         player.sendMessage(lang.get("lobby.reset-success", player).replace("%prefix%", prefix));

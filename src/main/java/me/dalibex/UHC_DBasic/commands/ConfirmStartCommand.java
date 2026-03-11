@@ -61,6 +61,9 @@ public class ConfirmStartCommand implements CommandExecutor {
         World world = admin.getWorld();
         LanguageManager lang = plugin.getLang();
 
+        // Limpiar ítems de selector de equipo INMEDIATAMENTE al confirmar
+        plugin.getTeamManager().removeAllSelectorItems();
+
         world.getWorldBorder().setCenter(0, 0);
         world.getWorldBorder().setSize(size);
 

@@ -29,7 +29,7 @@ game:
   time-button-name-plural: "%prefix%%amount% Minutes"
   border-button-name: "%prefix%%amount% Blocks"
   assign-team-disabled: "&cCustom teams is not enabled."
-  assign-team-usage: "&cUsage: /asignarequipo <player> <team_number>"
+  assign-team-usage: "&cUsage: /asignarequipo <player> <color>"
   assign-team-player-not-found: "&cPlayer %player% not found."
   assign-team-not-found: "&cTeam %team% not found."
   assign-team-success: "&aYou have assigned %player% to team %team%."
@@ -52,6 +52,8 @@ help:
     - ""
     - "&e/tpartes <H> <M> <S> &7- &fManually adjust part durations."
     - ""
+    - "&e/asignarequipo <player> <color> &7- &fAssign players to teams."
+    - ""
     - "&e/lang <language> &7- &fChange language."
     - ""
 
@@ -64,6 +66,20 @@ teams:
   assigned: "%prefix%&fYou have been assigned to %color%%name%"
   founded: "%prefix%&fThe team %color%%name% &fhas been founded!"
   renamed: "%prefix%&fThe team %color%%old% &fnow is known as: %color%%new%"
+  colors:
+    red: "Red"
+    blue: "Blue"
+    green: "Green"
+    yellow: "Yellow"
+    orange: "Orange"
+    purple: "Purple"
+    cyan: "Cyan"
+    pink: "Pink"
+    lime: "Lime"
+    light_blue: "Light Blue"
+    magenta: "Magenta"
+    white: "White"
+
 
 # /reset usage
 lobby:
@@ -256,8 +272,9 @@ menus:
     empty-slot: "&7- &oSlot available"
     member-format: "&7- &f%player%"
     already-full: "&cThis team is already full."
-    already-in-team: "&cYou are already on this team."
     joined: "&aYou have joined team %name%."
+    left: "&eYou have left your team."
+    already-in-team: "&cYou are already on this team."
 
 chat:
   global-tag: "&cGLOBAL"
