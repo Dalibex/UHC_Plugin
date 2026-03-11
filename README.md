@@ -1,44 +1,42 @@
 # ⚔️ UHC ELOUD
 
-![Plugin Version](https://img.shields.io/badge/Plugin_Version-1.4.5--SNAPSHOT-orange)
+![Plugin Version](https://img.shields.io/badge/Plugin_Version-1.5.2--SNAPSHOT-orange)
 ![Minecraft Version](https://img.shields.io/badge/Minecraft_Version-1.21.11-gold)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Platform](https://img.shields.io/badge/Platform-Spigot%20%7C%20Paper-blue)
 
-Un plugin de **UHC (Ultra Hardcore)** ligero y eficiente. Este plugin gestiona automáticamente las fases de la partida, el panel de puntuación dinámico, el sistema de victoria y un sistema avanzado de anonimato visual.
+Un plugin de **UHC (Ultra Hardcore)** ligero y eficiente. Este plugin gestiona automáticamente las fases de la partida, el panel de puntuación dinámico, el sistema de victoria y un sistema de anonimato visual.
 
 Basado en **UHC ESPAÑA** creado por **ElRichMC**.
 
 ---
 
-## ✨ Novedades de la Versión 1.4.5 (Actual)
+## 🚀 Novedades de la Versión 1.5.2-SNAPSHOT (Actual)
 
-* ⚖️ **Sistema de Equipos Equitativo:**
-  * **Balanceo Vivos/Muertos:** Nuevo algoritmo de reparto que garantiza que los jugadores vivos se distribuyan equitativamente entre los equipos, evitando que los jugadores eliminados concentren un solo bando.
-  * **Consistencia Competitiva:** Si quedan 7 vivos para 4 equipos, el sistema garantiza un reparto de (2, 2, 2, 1) vivos, rellenando los huecos con espectadores.
+Esta versión representa una evolución significativa en la arquitectura del plugin, mejorando la escalabilidad y la experiencia del usuario.
 
-* 🛡️ **Blindaje de Comandos y Seguridad:**
-  * **Validación Global:** Implementación de un sistema estricto para evitar errores por números negativos, letras en argumentos numéricos o tamaños de borde excesivamente pequeños (Mínimo 20 bloques).
-  * **Confirmación de Inicio:** Actualizado el sistema interactivo en chat para `/start`. Ahora se cancela el inicio correctamente al pulsar el botón de *Cancelar*.
-  * **Protección de Estado:** Bloqueo inteligente de comandos (`/tpartes`, `/lang`, `/start`) una vez iniciada la partida para evitar corromper el Scoreboard o el estado del juego.
+* 💎 **Nuevo Modo: Resource Rush:**
+  - Compite por ser el primer equipo en conseguir 10 objetos aleatorios.
+  - El Scoreboard se adapta dinámicamente para mostrar el progreso de recolección en tiempo real.
+  - Finalización automática al completar la lista de recursos.
 
-* 🌐 **Sincronización Multilingüe:**
-  * Rediseño de los archivos `messages_es.yml` y `messages_en.yml`.
-  * Todos los mensajes han sido revisados y ajustados para consistencia en formato y colores.
+* 🎭 **Sistema de Identidades Dinámicas (SkinsRestorer):**
+  - Rotación automática de skins en cada cambio de capítulo.
+  - Sistema inteligente que evita asignar la propia skin o repetir skins recientes.
+  - Integración con **SkinsRestorer API** para un anonimato visual perfecto.
 
----
+* 📊 **Integración Avanzada con TAB:**
+  - Prefijos coloreados y nombres dinámicos sincronizados con el sistema de identidades.
+  - Visualización de salud en tiempo real en la lista de jugadores.
 
-## ✨ Novedades de la Versión 1.4.4
+* 🛡️ **Gestión de Equipos Refinada:**
+  - **Equipos Personalizados:** Interfaz visual con estrella del nether para elegir bando.
+  - **Validación Automática:** Bloqueo de modos incompatibles (ej. Equipos en Solos).
+  - **Nombres Estandarizados:** Los equipos aleatorios ahora usan nombres de colores coherentes (Rojo, Azul, etc.).
 
-* 🏆 **Fix Sistema de Victoria:**
-  * El chat muestra a todos los integrantes del equipo ganador. Los compañeros caídos aparecen tachados (`§7§m`).
-  * **Inmunidad de Campeón:** Los ganadores reciben Resistencia 255 y curación instantánea durante la celebración.
-
-* 🏨 **Lobby & Reset Fix:**
-  * El comando `/reset` realiza una limpieza profunda: inventarios, XP, estados de victoria y teletransporte automático al spawn (`0, 0`).
-
-* 💉 **Control Estricto de Salud:**
-  * Desactivación forzada de la regeneración natural en todos los mundos al iniciar. Sincronización optimizada de corazones en el TAB.
+* ⚙️ **Arquitectura Modular:**
+  - Refactorización interna para permitir la adición sencilla de nuevos modos de juego en el futuro.
+  - Centralización de lógicas de tiempo, scoreboards y eventos.
 
 ---
 
@@ -48,33 +46,40 @@ Basado en **UHC ESPAÑA** creado por **ElRichMC**.
 * 📊 **Scoreboard Dinámico:** Muestra fase, timer de capítulo, tiempo total acumulado y vida de aliados con iconos de salud en tiempo real.
 * 🍎 **Golden Heads:** Crafteo de cabezas de jugadores caídos con 8 lingotes de oro. Otorga Regeneración II (12s) y Absorción II (5 min).
 * ⚔️ **Combate Híbrido 1.8:** Configurable desde el panel: Spam-click habilitado, daño de hachas ajustado y eliminación de *Sweep Attack*.
-* 🧭 **Rastreo Automático:** Brújula que apunta automáticamente al aliado más cercano de forma constante.
-* 🏨 **Sistema de Lobby:** Modo standby con `/reset` que otorga Resistencia e Invulnerabilidad infinita en modo aventura hasta el inicio.
-* 💬 **Gestión de Chat:** Chat global mediante el prefijo `!` y chat privado de equipo automático por defecto para una comunicación estratégica rápida.
-* 📦 **Suministros Automáticos:** Entrega programada de *Shulker Boxes* en episodios clave (1 y 8) para facilitar la gestión del inventario.
-* ⚙️ **Panel Admin (GUI):** Interfaz visual (`/uhcadmin`) para gestionar todas las reglas, bordes y configuraciones de la partida.
+* 🧭 **Rastreo Automático:** Brújula que apunta automáticamente al aliado más cercano.
+* 🏨 **Sistema de Lobby:** Modo standby con `/reset` que prepara el mundo y los jugadores para el inicio.
+* 💬 **Gestión de Chat:** Chat por equipos por defecto y chat global mediante el prefijo `!`.
+* 📦 **Suministros Automáticos:** Entrega programada de *Shulker Boxes* en episodios clave.
+* ⚙️ **Panel Admin (GUI):** Interfaz visual poderosa (`/uhcadmin`) para gestionar todas las reglas y configuraciones.
 
 ---
 
 ## 🛠️ Comandos
 
-| Comando                | Descripción | Permiso |
-|:-----------------------|:---|:--------|
-| `/uhcadmin`            | Abre el panel de administración principal. | `admin` |
-| `/start <size>`        | Inicia validación y confirmación de comienzo. | `admin` |
-| `/tpartes <H> <M> <S>` | Ajusta el tiempo de capítulos con validación de límites. | `admin` |
-| `/reset`               | Prepara el mundo, reglas y limpia estados para el lobby. | `admin` |
-| `/lang <idioma>`       | Cambia el idioma personal del jugador. | `user`  |
-| `/nequipo <nombre>`    | Renombra o funda el nombre de tu equipo. | `user`  |
+| Comando                 | Descripción                                       | Permiso |
+|:------------------------|:--------------------------------------------------|:--------|
+| `/uhcadmin`             | Abre el panel de administración principal.        | `admin` |
+| `/start <size>`         | Inicia la partida con el tamaño de equipo elegido.| `admin` |
+| `/tpartes <M>`          | Ajusta el tiempo de capítulos en minutos.        | `admin` |
+| `/reset`                | Limpia estados y prepara el lobby.                | `admin` |
+| `/asignarequipo <P> <C>`| Asigna un jugador a un equipo específico.         | `admin` |
+| `/lang <idioma>`        | Cambia el idioma personal (`es` / `en`).          | `user`  |
+| `/nequipo <nombre>`     | Renombra tu equipo.                               | `user`  |
 
 ---
 
-## 🚀 Instalación
+## 🚀 Instalación y Requisitos
 
-* **Requisito:** Java 21 o superior.
-* **API:** Paper / Spigot / Purpur para MC 1.21.11
+* **Requisitos:** 
+  - Java 21+
+  - [SkinsRestorer](https://skinsrestorer.net/) (Obligatorio para rotación de skins)
+  - [TAB](https://github.com/NEZNAMY/TAB) (Recomendado para visualización pro)
+* **PLATAFORMA/API:** Paper / Spigot / Purpur para MC 1.21.11
 
-1. Coloca el archivo `.jar` en la carpeta `/plugins`.
-2. Reinicia el servidor.
-3. Ejecuta `/reset` para preparar el Lobby una vez estén todos los jugadores.
+1. Coloca `ELOUD_UHC.jar` en la carpeta `/plugins`.
+2. Asegúrate de tener instalados SkinsRestorer y TAB.
+3. Reinicia el servidor.
+4. Usa `/reset` para preparar el mundo.
+5. Usa `/uhcadmin` para elegir el modo y configurar las reglas antes de empezar.
+. Ejecuta `/reset` para preparar el Lobby una vez estén todos los jugadores.
 4. Ejecuta `/start [tamaño]` para iniciar la partida.
