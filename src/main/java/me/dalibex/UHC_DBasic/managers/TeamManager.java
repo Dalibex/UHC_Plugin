@@ -13,17 +13,14 @@ import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
 import java.util.*;
-import java.util.Arrays;
 
 public class TeamManager {
 
+    private final UHC_DBasic plugin;
     private final Scoreboard board;
     private int teamSize = 1;
-    private final ChatColor COLOR_UNICO = ChatColor.AQUA;
-
     private boolean customTeamsEnabled = false;
 
-    // Colores de tinte para asignar a cada equipo (máximo razonable)
     private static final Material[] TEAM_DYES = {
             Material.RED_DYE, Material.BLUE_DYE, Material.GREEN_DYE,
             Material.YELLOW_DYE, Material.ORANGE_DYE, Material.PURPLE_DYE,
@@ -43,36 +40,19 @@ public class TeamManager {
             ChatColor.AQUA, ChatColor.LIGHT_PURPLE, ChatColor.WHITE
     };
 
-
-    public TeamManager() {
+    public TeamManager(UHC_DBasic plugin) {
+        this.plugin = plugin;
         this.board = Bukkit.getScoreboardManager().getMainScoreboard();
     }
 
-    // --- Estado de equipos personalizados ---
-    public boolean isCustomTeamsEnabled() {
-        return customTeamsEnabled;
-    }
+    public boolean isCustomTeamsEnabled() { return customTeamsEnabled; }
+    public void setCustomTeamsEnabled(boolean enabled) { this.customTeamsEnabled = enabled; }
+    public void setTeamSize(int size) { this.teamSize = size; }
+    public int getTeamSize() { return teamSize; }
 
-    public void setCustomTeamsEnabled(boolean enabled) {
-        this.customTeamsEnabled = enabled;
-    }
-
-    public void setTeamSize(int size) {
-        this.teamSize = size;
-    }
-
-    public int getTeamSize() {
-        return teamSize;
-    }
-
-    // --- Inicializar equipos para modo personalizado ---
     public void initializeCustomTeams() {
-        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
-
-        // Limpiar equipos anteriores
-        for (Team team : board.getTeams()) {
-            team.unregister();
-        }
+        borrarTodosLosEquipos();
+        LanguageManager lang = plugin.getLang();
 
         int jugadoresOnline = Bukkit.getOnlinePlayers().size();
         if (jugadoresOnline == 0 || teamSize <= 1) return;
@@ -85,7 +65,6 @@ public class TeamManager {
             ChatColor color = TEAM_CHAT_COLORS[i % TEAM_CHAT_COLORS.length];
             team.setColor(color);
             
-            LanguageManager lang = plugin.getLang();
             String localizedName = lang.get("teams.colors." + colorKey, null);
             team.setDisplayName(localizedName != null ? localizedName : colorKey);
 
@@ -97,7 +76,6 @@ public class TeamManager {
         }
     }
 
-    // --- Buscar equipo por nombre localizado o ID ---
     public Team getTeamByColorSearch(String input) {
         String lower = input.toLowerCase();
         for (Team team : board.getTeams()) {
@@ -107,12 +85,8 @@ public class TeamManager {
         return null;
     }
 
-    // --- Dar item selector de equipo a un jugador ---
     public void giveTeamSelectorItem(Player p) {
-        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
         LanguageManager lang = plugin.getLang();
-
-        // Primero quitar si ya tiene uno
         removeTeamSelectorItem(p);
 
         ItemStack selector = new ItemStack(Material.NETHER_STAR);
@@ -124,9 +98,7 @@ public class TeamManager {
         p.getInventory().setItem(8, selector);
     }
 
-    // --- Quitar item selector de equipo ---
     public void removeTeamSelectorItem(Player p) {
-        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
         LanguageManager lang = plugin.getLang();
         String selectorName = lang.get("items.team-selector.name", p);
 
@@ -140,52 +112,31 @@ public class TeamManager {
         }
     }
 
-    // --- Abrir GUI selector de equipo ---
     public void openTeamSelectorGUI(Player p) {
-        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
         LanguageManager lang = plugin.getLang();
-
         Set<Team> teams = board.getTeams();
-        int size = teams.size();
-        // Calcular tamaño del inventario (múltiplo de 9, mínimo 9)
-        int invSize = Math.max(9, (int) Math.ceil(size / 9.0) * 9);
-
-        Inventory gui = Bukkit.createInventory(null, invSize,
-                lang.get("menus.team-selector.title", p));
+        int invSize = Math.max(9, (int) Math.ceil(teams.size() / 9.0) * 9);
+        Inventory gui = Bukkit.createInventory(null, invSize, lang.get("menus.team-selector.title", p));
 
         int slot = 0;
         for (Team team : teams) {
-            int teamIndex = getTeamIndex(team);
+            int teamIndex = getTeamIndexForGui(team);
             Material dyeMat = TEAM_DYES[teamIndex % TEAM_DYES.length];
+            ItemStack item = new ItemStack(dyeMat);
+            ItemMeta meta = item.getItemMeta();
 
-            ItemStack dyeItem = new ItemStack(dyeMat);
-            ItemMeta meta = dyeItem.getItemMeta();
-
-            String teamName = team.getDisplayName();
-            meta.setDisplayName(lang.get("menus.team-selector.team-item.name", p)
-                    .replace("%name%", teamName));
-
+            meta.setDisplayName(lang.get("menus.team-selector.team-item.name", p).replace("%name%", team.getDisplayName()));
             List<String> lore = new ArrayList<>();
-            int currentMembers = team.getEntries().size();
-
-            for (String line : lang.getList("menus.team-selector.team-item.lore", p)) {
-                lore.add(line.replace("%current%", String.valueOf(currentMembers))
-                        .replace("%max%", String.valueOf(teamSize)));
+            int current = team.getEntries().size();
+            for (String l : lang.getList("menus.team-selector.team-item.lore", p)) {
+                lore.add(l.replace("%current%", String.valueOf(current)).replace("%max%", String.valueOf(teamSize)));
             }
-
-            // Mostrar miembros actuales
             for (String entry : team.getEntries()) {
-                lore.add(lang.get("menus.team-selector.member-format", p)
-                        .replace("%player%", entry));
+                lore.add(lang.get("menus.team-selector.member-format", p).replace("%player%", entry));
             }
-
-            // Mostrar huecos disponibles
-            int huecos = teamSize - currentMembers;
-            for (int h = 0; h < huecos; h++) {
-                lore.add(lang.get("menus.team-selector.empty-slot", p));
-            }
-
-            // Si el jugador ya está en este equipo, resaltar
+            int huecos = teamSize - current;
+            for (int h = 0; h < huecos; h++) lore.add(lang.get("menus.team-selector.empty-slot", p));
+            
             Team playerTeam = board.getEntryTeam(p.getName());
             if (playerTeam != null && playerTeam.equals(team)) {
                 lore.add("");
@@ -193,253 +144,178 @@ public class TeamManager {
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.LUCK_OF_THE_SEA, 1, true);
                 meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
             }
-
             meta.setLore(lore);
-            dyeItem.setItemMeta(meta);
-            gui.setItem(slot, dyeItem);
-            slot++;
+            item.setItemMeta(meta);
+            gui.setItem(slot++, item);
         }
-
         p.openInventory(gui);
     }
 
-    // --- Intentar unir un jugador a un equipo por slot ---
     public boolean tryJoinTeam(Player p, int slot) {
-        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
         LanguageManager lang = plugin.getLang();
-
         List<Team> teamList = new ArrayList<>(board.getTeams());
         if (slot < 0 || slot >= teamList.size()) return false;
+        Team target = teamList.get(slot);
+        Team current = board.getEntryTeam(p.getName());
 
-        Team targetTeam = teamList.get(slot);
-
-        // Si ya está en este equipo
-        Team currentTeam = board.getEntryTeam(p.getName());
-        if (currentTeam != null && currentTeam.equals(targetTeam)) {
+        if (current != null && current.equals(target)) {
             p.sendMessage(lang.get("menus.team-selector.already-in-team", p));
             p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
             return false;
         }
-
-        // Si el equipo está lleno
-        if (targetTeam.getEntries().size() >= teamSize) {
+        if (target.getEntries().size() >= teamSize) {
             p.sendMessage(lang.get("menus.team-selector.already-full", p));
             p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
             return false;
         }
-
-        // Quitar del equipo anterior si tenía uno
-        if (currentTeam != null) {
-            currentTeam.removeEntry(p.getName());
-        }
-
-        // Asignar al nuevo equipo
-        targetTeam.addEntry(p.getName());
-
-        String joinedMsg = lang.get("menus.team-selector.joined", p)
-                .replace("%name%", targetTeam.getColor() + targetTeam.getDisplayName());
-        p.sendMessage(joinedMsg);
+        if (current != null) current.removeEntry(p.getName());
+        target.addEntry(p.getName());
+        p.sendMessage(lang.get("menus.team-selector.joined", p).replace("%name%", target.getColor() + target.getDisplayName()));
         p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
-
         return true;
     }
 
-    // --- Intentar que un jugador abandone su equipo ---
     public boolean tryLeaveTeam(Player p) {
-        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
-        LanguageManager lang = plugin.getLang();
-
-        Team currentTeam = board.getEntryTeam(p.getName());
-        if (currentTeam != null) {
-            currentTeam.removeEntry(p.getName());
-            p.sendMessage(lang.get("menus.team-selector.left", p));
+        Team current = board.getEntryTeam(p.getName());
+        if (current != null) {
+            current.removeEntry(p.getName());
+            p.sendMessage(plugin.getLang().get("menus.team-selector.left", p));
             p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1f, 0.5f);
             return true;
         }
         return false;
     }
 
-    // --- Verificar si todos los jugadores tienen equipo ---
     public boolean allPlayersHaveTeam() {
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (p.getGameMode() == org.bukkit.GameMode.SPECTATOR) continue;
-            Team team = board.getEntryTeam(p.getName());
-            if (team == null) return false;
+            if (board.getEntryTeam(p.getName()) == null) return false;
         }
         return true;
     }
 
-    // --- Limpiar equipos personalizados y quitar ítems ---
-    public void clearCustomTeams() {
-        for (Team team : board.getTeams()) {
-            team.unregister();
-        }
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            removeTeamSelectorItem(p);
-        }
-    }
-
-    // --- Quitar ítems de selector a todos ---
     public void removeAllSelectorItems() {
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            removeTeamSelectorItem(p);
-        }
+        for (Player p : Bukkit.getOnlinePlayers()) removeTeamSelectorItem(p);
     }
 
-    // --- Dar selector a todos los jugadores online ---
+    public void clearCustomTeams() {
+        borrarTodosLosEquipos();
+        removeAllSelectorItems();
+    }
+
+
     public void giveAllSelectorItems() {
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if (p.getGameMode() != org.bukkit.GameMode.SPECTATOR) {
-                giveTeamSelectorItem(p);
-            }
+            if (p.getGameMode() != org.bukkit.GameMode.SPECTATOR) giveTeamSelectorItem(p);
         }
     }
 
-    // --- Índice del equipo basado en su ID ---
-    private int getTeamIndex(Team team) {
-        String name = team.getName(); // "red", "blue", etc.
-        List<String> keys = Arrays.asList(TEAM_COLOR_KEYS);
-        int index = keys.indexOf(name.toLowerCase());
-        return Math.max(0, index);
+    private int getTeamIndexForGui(Team team) {
+        String name = team.getName().toLowerCase();
+        for (int i = 0; i < TEAM_COLOR_KEYS.length; i++) {
+            if (TEAM_COLOR_KEYS[i].equalsIgnoreCase(name)) return i;
+        }
+        return 0;
     }
 
-    // --- SISTEMA ORIGINAL: shuffleTeams (equipos aleatorios) ---
     public void shuffleTeams() {
-        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
+        borrarTodosLosEquipos();
         LanguageManager lang = plugin.getLang();
-
-        for (Team team : board.getTeams()) {
-            team.unregister();
-        }
-
-        List<String> vivosNames = new ArrayList<>();
-        List<String> muertosNames = new ArrayList<>();
-
+        List<String> vivos = new ArrayList<>();
+        List<String> muertos = new ArrayList<>();
         for (String name : plugin.getGameManager().getParticipantesIniciales()) {
-            if (plugin.getGameManager().getJugadoresEliminados().contains(name)) {
-                muertosNames.add(name);
-            } else {
-                vivosNames.add(name);
-            }
+            if (plugin.getGameManager().getJugadoresEliminados().contains(name)) muertos.add(name);
+            else vivos.add(name);
         }
+        if (vivos.isEmpty() && muertos.isEmpty()) return;
+        Collections.shuffle(vivos);
+        Collections.shuffle(muertos);
 
-        int totalJugadores = vivosNames.size() + muertosNames.size();
-        if (totalJugadores == 0) return;
-
-        Collections.shuffle(vivosNames);
-        Collections.shuffle(muertosNames);
-
-        int numeroDeEquipos = (int) Math.ceil((double) totalJugadores / teamSize);
+        int total = vivos.size() + muertos.size();
+        int numeroDeEquipos = (int) Math.ceil((double) total / teamSize);
         List<Team> listaEquipos = new ArrayList<>();
 
-        for (int i = 1; i <= numeroDeEquipos; i++) {
-            String idEquipo = "team_" + i;
-            Team team = board.registerNewTeam(idEquipo);
-            team.setColor(COLOR_UNICO);
-            team.setDisplayName(idEquipo);
-
-            String prefix = lang.get("teams.prefix-format", null)
-                    .replace("%color%", COLOR_UNICO.toString())
-                    .replace("%name%", idEquipo);
+        for (int i = 0; i < numeroDeEquipos; i++) {
+            String colorKey = TEAM_COLOR_KEYS[i % TEAM_COLOR_KEYS.length];
+            Team team = board.registerNewTeam(colorKey);
+            ChatColor color = TEAM_CHAT_COLORS[i % TEAM_CHAT_COLORS.length];
+            team.setColor(color);
+            String localizedName = lang.get("teams.colors." + colorKey, null);
+            team.setDisplayName(localizedName != null ? localizedName : colorKey);
+            String prefix = lang.get("teams.prefix-format", null).replace("%color%", color.toString()).replace("%name%", team.getDisplayName());
             team.setPrefix(prefix);
             team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
             listaEquipos.add(team);
         }
 
-        // REPARTO DE VIVOS
-        for (int i = 0; i < vivosNames.size(); i++) {
-            Team teamAsignado = listaEquipos.get(i % numeroDeEquipos);
-            String name = vivosNames.get(i);
-            asignarEquipoPorNombre(name, teamAsignado, lang);
-        }
-
-        // REPARTO DE MUERTOS
+        for (int i = 0; i < vivos.size(); i++) asignarEquipoPorNombre(vivos.get(i), listaEquipos.get(i % numeroDeEquipos), lang);
         if (!listaEquipos.isEmpty()) {
-            for (String name : muertosNames) {
-                Team equipoMasVacio = listaEquipos.stream()
-                        .min(Comparator.comparingInt(t -> t.getEntries().size()))
-                        .orElse(listaEquipos.get(0));
-
-                asignarEquipoPorNombre(name, equipoMasVacio, lang);
+            for (String m : muertos) {
+                Team MasVacio = listaEquipos.stream().min(Comparator.comparingInt(t -> t.getEntries().size())).get();
+                asignarEquipoPorNombre(m, MasVacio, lang);
             }
         }
     }
 
-    /**
-     * Método auxiliar corregido para aceptar Nombres (String)
-     * Maneja automáticamente si el jugador está online u offline
-     */
     private void asignarEquipoPorNombre(String name, Team team, LanguageManager lang) {
         team.addEntry(name);
-
         Player p = Bukkit.getPlayer(name);
         if (p != null && p.isOnline()) {
-            String msg = lang.get("teams.assigned", p)
-                    .replace("%prefix%", lang.get("general.prefix", p))
-                    .replace("%color%", team.getColor().toString())
-                    .replace("%name%", team.getDisplayName());
-            p.sendMessage(msg);
+            p.sendMessage(lang.get("teams.assigned", p).replace("%prefix%", lang.get("general.prefix", p)).replace("%color%", team.getColor().toString()).replace("%name%", team.getDisplayName()));
         }
     }
 
     public boolean areInSameTeam(Player a, Player b) {
         if (a == null || b == null) return false;
-
-        Team teamA = board.getEntryTeam(a.getName());
-        Team teamB = board.getEntryTeam(b.getName());
-
-        if (teamA == null || teamB == null) return false;
-
-        return teamA.equals(teamB);
+        Team ta = board.getEntryTeam(a.getName());
+        Team tb = board.getEntryTeam(b.getName());
+        return ta != null && ta.equals(tb);
     }
 
     public boolean renombrarEquipo(Player player, String nuevoNombre) {
-        UHC_DBasic plugin = UHC_DBasic.getPlugin(UHC_DBasic.class);
-        LanguageManager lang = plugin.getLang();
         Team team = board.getEntryTeam(player.getName());
-
         if (team == null) return false;
-
+        LanguageManager lang = plugin.getLang();
         if (nuevoNombre.length() > 16) nuevoNombre = nuevoNombre.substring(0, 16);
-
         String nombreAnterior = team.getDisplayName();
         team.setDisplayName(nuevoNombre);
-
-        String prefix = lang.get("teams.prefix-format", null)
-                .replace("%color%", team.getColor().toString())
-                .replace("%name%", nuevoNombre);
+        String prefix = lang.get("teams.prefix-format", null).replace("%color%", team.getColor().toString()).replace("%name%", nuevoNombre);
         team.setPrefix(prefix);
 
-        for (String entry : team.getEntries()) {
-            Player member = Bukkit.getPlayer(entry);
-            if (member != null) {
-                member.playSound(member.getLocation(), org.bukkit.Sound.ENTITY_VILLAGER_YES, 1, 1);
-            }
-        }
-
         for (Player all : Bukkit.getOnlinePlayers()) {
-            if (nombreAnterior.contains("team_")) {
-                String foundedMsg = lang.get("teams.founded", all)
-                        .replace("%prefix%", lang.get("general.prefix", all))
-                        .replace("%color%", team.getColor().toString())
-                        .replace("%name%", nuevoNombre);
-                all.sendMessage(foundedMsg);
+            if (isDefaultName(team, nombreAnterior)) {
+                all.sendMessage(lang.get("teams.founded", all).replace("%prefix%", lang.get("general.prefix", all)).replace("%color%", team.getColor().toString()).replace("%name%", nuevoNombre));
             } else {
-                String renamedMsg = lang.get("teams.renamed", all)
-                        .replace("%prefix%", lang.get("general.prefix", all))
-                        .replace("%color%", team.getColor().toString())
-                        .replace("%old%", nombreAnterior)
-                        .replace("%new%", nuevoNombre);
-                all.sendMessage(renamedMsg);
+                all.sendMessage(lang.get("teams.renamed", all).replace("%prefix%", lang.get("general.prefix", all)).replace("%color%", team.getColor().toString()).replace("%old%", nombreAnterior).replace("%new%", nuevoNombre));
             }
-            all.playSound(all.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_CHIME, 0.5f, 1.2f);
+            all.playSound(all.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.5f, 1.2f);
         }
         return true;
     }
 
-    public void borrarTodosLosEquipos() {
-        for (Team team : board.getTeams()) {
-            team.unregister();
+    public boolean isDefaultName(Team team) { return isDefaultName(team, team.getDisplayName()); }
+
+    private boolean isDefaultName(Team team, String displayNameToCheck) {
+        if (team == null) return true;
+        String name = team.getName().toLowerCase();
+        LanguageManager lang = plugin.getLang();
+        for (String key : TEAM_COLOR_KEYS) {
+            if (key.equalsIgnoreCase(name)) {
+                String localizedDefault = lang.get("teams.colors." + key, null);
+                if (displayNameToCheck.equalsIgnoreCase(localizedDefault) || displayNameToCheck.equalsIgnoreCase(key)) return true;
+            }
         }
+        return name.startsWith("team_");
+    }
+
+    public int getTeamIndex(String colorKey) {
+        for (int i = 0; i < TEAM_COLOR_KEYS.length; i++) {
+            if (TEAM_COLOR_KEYS[i].equalsIgnoreCase(colorKey)) return i;
+        }
+        return -1;
+    }
+
+    public void borrarTodosLosEquipos() {
+        for (Team team : board.getTeams()) team.unregister();
     }
 }

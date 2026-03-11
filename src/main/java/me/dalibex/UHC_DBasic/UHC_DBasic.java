@@ -39,7 +39,7 @@ public final class UHC_DBasic extends JavaPlugin {
         logBanner(); // Banner de UHC en console
 
         // INICIALIZAR MANAGERS
-        teamManager = new TeamManager();
+        teamManager = new TeamManager(this);
         gameManager = new GameManager(this);
 
         crearAnimacionesTab();

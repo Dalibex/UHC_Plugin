@@ -191,12 +191,14 @@ public class GameManager {
 
     // -------------------- LOGICA PARA SKINS / IDENTIDAD --------------------
     public void rotarSkins() {
-        List<Player> vivos = Bukkit.getOnlinePlayers().stream()
-                .filter(p -> p.getGameMode() == GameMode.SURVIVAL)
+        // Obtenemos todos los jugadores que siguen "vivos" internamente
+        List<String> vivosNombres = participantesIniciales.stream()
+                .filter(name -> !jugadoresEliminados.contains(name))
                 .collect(Collectors.toList());
 
-        if (vivos.size() < 2) return;
-        List<String> poolNombres = vivos.stream().map(Player::getName).collect(Collectors.toList());
+        if (vivosNombres.size() < 2) return;
+        
+        List<String> poolNombres = new ArrayList<>(vivosNombres);
         jugadoresRevelados.clear();
 
         boolean asignacionValida = false;
@@ -206,12 +208,13 @@ public class GameManager {
             Collections.shuffle(poolNombres);
             asignacionValida = true;
             
-            for (int i = 0; i < vivos.size(); i++) {
+            for (int i = 0; i < vivosNombres.size(); i++) {
                 String skinAsignada = poolNombres.get(i);
-                UUID uuid = vivos.get(i).getUniqueId();
+                UUID uuid = Bukkit.getOfflinePlayer(vivosNombres.get(i)).getUniqueId();
                 
-                // Evitar la última y la penúltima skin si es posible
-                if (skinAsignada.equalsIgnoreCase(ultimaSkinAsignada.get(uuid)) || 
+                // Evitar su propia skin, la última y la penúltima skin si es posible
+                if (skinAsignada.equalsIgnoreCase(vivosNombres.get(i)) ||
+                    skinAsignada.equalsIgnoreCase(ultimaSkinAsignada.get(uuid)) || 
                     skinAsignada.equalsIgnoreCase(penultimaSkinAsignada.get(uuid))) {
                     asignacionValida = false;
                     break;
@@ -220,18 +223,35 @@ public class GameManager {
             intentos++;
         }
 
-        // Si después de 20 intentos no hay suerte (ej: pocos jugadores), usamos el shuffle que haya quedado
-        
+        // Si después de 30 intentos no hay suerte (ej: muy pocos jugadores para tantas reglas),
+        // hacemos un último esfuerzo para al menos evitar la propia skin.
+        if (!asignacionValida) {
+            for (int k = 0; k < 100; k++) {
+                Collections.shuffle(poolNombres);
+                boolean noPropia = true;
+                for (int i = 0; i < vivosNombres.size(); i++) {
+                    if (poolNombres.get(i).equalsIgnoreCase(vivosNombres.get(i))) {
+                        noPropia = false;
+                        break;
+                    }
+                }
+                if (noPropia) break;
+            }
+        }
+
         // Guardar historial y asignar nombres inmediatamente (Sincrónico)
-        for (int i = 0; i < vivos.size(); i++) {
-            UUID uuid = vivos.get(i).getUniqueId();
+        for (int i = 0; i < vivosNombres.size(); i++) {
+            UUID uuid = Bukkit.getOfflinePlayer(vivosNombres.get(i)).getUniqueId();
             penultimaSkinAsignada.put(uuid, ultimaSkinAsignada.get(uuid));
             ultimaSkinAsignada.put(uuid, poolNombres.get(i));
         }
 
-        // Aplicar skins asíncronamente
+        // Aplicar skins asíncronamente solo a los que están online
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            for (Player p : vivos) {
+            for (String name : vivosNombres) {
+                Player p = Bukkit.getPlayer(name);
+                if (p == null || !p.isOnline()) continue;
+
                 String nombreSkinElegida = ultimaSkinAsignada.get(p.getUniqueId());
                 if (nombreSkinElegida == null) continue;
 
@@ -259,6 +279,7 @@ public class GameManager {
             }
         });
     }
+
 
     public void revelarIdentidad(Player p) {
         if (jugadoresRevelados.contains(p.getUniqueId())) return;

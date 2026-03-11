@@ -217,6 +217,7 @@ public class UHC_EventManagerListener implements Listener {
                 }
                 p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
                 admin.openMainAdminPanel(p);
+
             }
             else if (slot == 8) {
                 GameManager rpm = plugin.getGameManager();
@@ -245,16 +246,25 @@ public class UHC_EventManagerListener implements Listener {
                         p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
                     }
                 } else if (event.isRightClick() && current > 1) {
-                    tm.setTeamSize(current - 1);
+                    int next = current - 1;
+                    tm.setTeamSize(next);
                     p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 1, 1);
+                    
+                    // Si al bajar el tamaño es 1 (Solos), desactivar equipos personalizados automáticamente
+                    if (next == 1 && tm.isCustomTeamsEnabled()) {
+                        tm.setCustomTeamsEnabled(false);
+                        tm.clearCustomTeams();
+                        p.sendMessage(lang.get("game.custom-teams-solos-error", p));
+                    }
                 }
 
-                // Si custom teams está activo, reinicializar equipos con nuevo tamaño
+                // Si custom teams sigue activo, reinicializar equipos con nuevo tamaño
                 if (tm.isCustomTeamsEnabled()) {
                     tm.initializeCustomTeams();
                     tm.giveAllSelectorItems();
                 }
                 admin.openMainAdminPanel(p);
+
             }
             p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
         }
@@ -424,12 +434,25 @@ public class UHC_EventManagerListener implements Listener {
         UHCGameMode modo = rpm.getModoActual();
         TeamManager tm = plugin.getTeamManager();
 
-        // Si la partida está en curso, el jugador entra como espectador
+        // Manejo de reingreso a partida iniciada
         if (rpm.isPartidaIniciada()) {
-            p.setGameMode(GameMode.SPECTATOR);
+            boolean eraParticipante = rpm.getParticipantesIniciales().contains(p.getName());
+            boolean estaEliminado = rpm.getJugadoresEliminados().contains(p.getName());
+            
+            if (!eraParticipante || estaEliminado) {
+                p.setGameMode(GameMode.SPECTATOR);
+            } else {
+                // El jugador vuelve a la vida, asegurar modo supervivencia
+                p.setGameMode(GameMode.SURVIVAL);
+                // Si no tiene skin asignada todavía (raro), se la damos
+                if (!rpm.getJugadoresRevelados().contains(p.getUniqueId())) {
+                    rpm.actualizarIdentidadVisual(p);
+                }
+            }
         } else if (p.getGameMode() != GameMode.SPECTATOR) {
             p.setGameMode(GameMode.ADVENTURE);
         }
+
 
         if (rpm.getTiempoTotalSegundos() == 0) {
             World world = p.getWorld();

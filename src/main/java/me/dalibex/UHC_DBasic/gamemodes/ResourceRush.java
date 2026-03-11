@@ -112,22 +112,24 @@ public class ResourceRush implements UHCGameMode {
         }
 
         // --- INICIALIZACIÓN CAPÍTULO 1 (Brújula, Equipos Manuales, etc) ---
-        if (cronometroSegundos >= 1 && cronometroSegundos <= 5 && !equiposFormados) {
-            if (tm.getTeamSize() > 1 && tm.isCustomTeamsEnabled()) {
-                // Equipos manuales -> Brújulas ya en Ep 1
-                entregarBrujulasDeSeguimiento(lang);
-                equiposFormados = true;
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    p.sendMessage(lang.get("game-events.chapter-start", p)
-                            .replace("%prefix%", lang.get("general.prefix", p))
-                            .replace("%chapter%", "1"));
-                    p.sendMessage(lang.get("game-events.teams-formed", p));
-                    p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, 1f, 1f);
+        if (cronometroSegundos == 1) {
+            if (tm.getTeamSize() > 1 && !equiposFormados) {
+                if (tm.isCustomTeamsEnabled()) {
+                    // Equipos manuales -> Brújulas ya en Ep 1
+                    entregarBrujulasDeSeguimiento(lang);
+                    equiposFormados = true;
+                    for (Player p : Bukkit.getOnlinePlayers()) {
+                        p.sendMessage(lang.get("game-events.chapter-start", p)
+                                .replace("%prefix%", lang.get("general.prefix", p))
+                                .replace("%chapter%", "1"));
+                        p.sendMessage(lang.get("game-events.teams-formed", p));
+                        p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, 1f, 1f);
+                    }
+                } else if (tm.getTeamSize() == 1) {
+                    // Modo Solos (o si se forzó manual de tamaño 1)
+                    tm.shuffleTeams();
+                    equiposFormados = true;
                 }
-            } else if (tm.getTeamSize() == 1) {
-                // Modo Solos (o si se forzó manual de tamaño 1)
-                tm.shuffleTeams();
-                equiposFormados = true;
             }
 
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
@@ -270,9 +272,11 @@ public class ResourceRush implements UHCGameMode {
             obj.getScore(lang.get("scoreboard.players", player).replace("%online%", String.valueOf(Bukkit.getOnlinePlayers().size()))).setScore(2);
             obj.getScore("§4 ").setScore(1);
         } else {
+            TeamManager tm = plugin.getTeamManager();
             Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(player.getName());
             int capitulo = gm.getCapitulo();
             String pvpStatus = (capitulo < 4) ? lang.get("scoreboard.pvp-pact", player) : lang.get("scoreboard.pvp-active", player);
+
 
             int next = 35;
             obj.getScore("§4 ").setScore(next--);
@@ -283,15 +287,15 @@ public class ResourceRush implements UHCGameMode {
             // BLOQUE EQUIPOS
             int teamSize = plugin.getTeamManager().getTeamSize();
             if (teamSize == 1) {
-                String line = (team != null && !team.getPrefix().contains("team_")) ?
+                String line = (team != null && !tm.isDefaultName(team)) ?
                         lang.get("scoreboard.team-label", player).replace("%color%", team.getColor().toString()).replace("%name%", team.getDisplayName()) : lang.get("scoreboard.team-rename-warn", player);
                 obj.getScore(line).setScore(next--);
             } else {
-                boolean manual = plugin.getTeamManager().isCustomTeamsEnabled();
+                boolean manual = tm.isCustomTeamsEnabled();
                 if (capitulo < 3 && !manual) {
                     for (int i = 1; i < teamSize; i++) obj.getScore(" §d👥 §f: §k??????" + (" ".repeat(i))).setScore(next--);
                 } else {
-                    String line = (team != null && !team.getPrefix().contains("team_")) ? lang.get("scoreboard.team-mates-label", player).replace("%color%", team.getColor().toString()).replace("%name%", team.getDisplayName()) :
+                    String line = (team != null && !tm.isDefaultName(team)) ? lang.get("scoreboard.team-mates-label", player).replace("%color%", team.getColor().toString()).replace("%name%", team.getDisplayName()) :
                             (team != null ? lang.get("scoreboard.team-rename-warn", player) : lang.get("scoreboard.team-assigning", player));
                     obj.getScore(line).setScore(next--);
                     if (team != null) {
@@ -584,8 +588,9 @@ public class ResourceRush implements UHCGameMode {
 
     private void mostrarScoreboardVictoria(Player player, Team ganador, LanguageManager lang) {
         Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
-        Objective obj = board.registerNewObjective("victoria", "dummy", lang.get("victory.scoreboard-title", player));
+        Objective obj = board.registerNewObjective("victoria", "dummy", ChatColor.translateAlternateColorCodes('&', lang.get("victory.scoreboard-title", player)));
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
+        obj.numberFormat(NumberFormat.blank());
         obj.getScore(lang.get("victory.scoreboard-winner", player).replace("%color%", ganador.getColor().toString()).replace("%team%", ganador.getDisplayName())).setScore(1);
         player.setScoreboard(board);
     }
