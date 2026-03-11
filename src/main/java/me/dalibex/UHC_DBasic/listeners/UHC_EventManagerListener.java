@@ -91,6 +91,21 @@ public class UHC_EventManagerListener implements Listener {
         }
     }
     @EventHandler
+    public void onTeamSelectorUse(PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+
+        Player p = event.getPlayer();
+        ItemStack hand = p.getInventory().getItemInMainHand();
+        if (hand.getType() != Material.NETHER_STAR) return;
+        if (!hand.hasItemMeta() || !hand.getItemMeta().hasDisplayName()) return;
+
+        String selectorName = plugin.getLang().get("items.team-selector.name", p);
+        if (hand.getItemMeta().getDisplayName().equals(selectorName)) {
+            event.setCancelled(true);
+            plugin.getTeamManager().openTeamSelectorGUI(p);
+        }
+    }
+    @EventHandler
     public void onOffhandBlock(InventoryClickEvent event) {
         if (!AdminPanelManager.bloquearManoSecundaria) return;
         if (event.getWhoClicked().getGameMode() == org.bukkit.GameMode.CREATIVE) return;
@@ -166,6 +181,43 @@ public class UHC_EventManagerListener implements Listener {
             }
             else if (slot == 4) admin.openBarrierRulesPanel(p);
             else if (slot == 6) admin.openTimePanel(p);
+            else if (slot == 7) {
+                GameManager rpm = plugin.getGameManager();
+                if (rpm.getTiempoTotalSegundos() > 0) {
+                    p.sendMessage(lang.get("menus.common.locked", p));
+                    p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
+                    return;
+                }
+                TeamManager tm = plugin.getTeamManager();
+                boolean newState = !tm.isCustomTeamsEnabled();
+
+                if (newState) {
+                    // Validar que haya suficientes jugadores y que no sea solos
+                    int online = Bukkit.getOnlinePlayers().size();
+                    int tSize = tm.getTeamSize();
+                    if (tSize <= 1) {
+                        p.sendMessage(lang.get("game.custom-teams-solos-error", p));
+                        p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
+                        return;
+                    }
+                    if (online < tSize * 2) {
+                        p.sendMessage(lang.get("game.team-size-error", p)
+                                .replace("%min%", String.valueOf(tSize * 2))
+                                .replace("%n%", String.valueOf(tSize)));
+                        p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
+                        return;
+                    }
+                    tm.setCustomTeamsEnabled(true);
+                    tm.initializeCustomTeams();
+                    tm.giveAllSelectorItems();
+                } else {
+                    // Desactivar: limpiar equipos y quitar ítems
+                    tm.setCustomTeamsEnabled(false);
+                    tm.clearCustomTeams();
+                }
+                p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
+                admin.openMainAdminPanel(p);
+            }
             else if (slot == 8) {
                 GameManager rpm = plugin.getGameManager();
                 if (rpm.getTiempoTotalSegundos() > 0) {
@@ -196,9 +248,26 @@ public class UHC_EventManagerListener implements Listener {
                     tm.setTeamSize(current - 1);
                     p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 1, 1);
                 }
+
+                // Si custom teams está activo, reinicializar equipos con nuevo tamaño
+                if (tm.isCustomTeamsEnabled()) {
+                    tm.initializeCustomTeams();
+                    tm.giveAllSelectorItems();
+                }
                 admin.openMainAdminPanel(p);
             }
             p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1, 1);
+        }
+
+        // PANEL SELECTOR DE EQUIPO
+        else if (title.equals(lang.get("menus.team-selector.title", p))) {
+            event.setCancelled(true);
+            TeamManager tm = plugin.getTeamManager();
+            int slot = event.getSlot();
+            if (tm.tryJoinTeam(p, slot)) {
+                // Reabrir el GUI actualizado
+                tm.openTeamSelectorGUI(p);
+            }
         }
 
         // PANEL AJUSTES GENERALES
@@ -345,8 +414,12 @@ public class UHC_EventManagerListener implements Listener {
 
         GameManager rpm = plugin.getGameManager();
         UHCGameMode modo = rpm.getModoActual();
+        TeamManager tm = plugin.getTeamManager();
 
-        if (p.getGameMode() != GameMode.SPECTATOR) {
+        // Si la partida está en curso, el jugador entra como espectador
+        if (rpm.isPartidaIniciada()) {
+            p.setGameMode(GameMode.SPECTATOR);
+        } else if (p.getGameMode() != GameMode.SPECTATOR) {
             p.setGameMode(GameMode.ADVENTURE);
         }
 
@@ -357,6 +430,11 @@ public class UHC_EventManagerListener implements Listener {
             if (y < 60) y = 100;
             Location spawnLoc = new Location(world, 0.5, y + 1, 0.5);
             p.teleport(spawnLoc);
+
+            // Si equipos personalizados están activos, dar el selector al nuevo jugador
+            if (tm.isCustomTeamsEnabled() && tm.getTeamSize() > 1) {
+                tm.giveTeamSelectorItem(p);
+            }
         }
 
         double attackSpeedValue = AdminPanelManager.combate18 ? 1024.0 : 4.0;

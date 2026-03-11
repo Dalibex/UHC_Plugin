@@ -102,6 +102,10 @@ public final class UHC_DBasic extends JavaPlugin {
         getCommand("lang").setExecutor(new LangCommand(this));
         getCommand("lang").setTabCompleter(new LangCommand(this));
 
+        AsignarEquipoCommand asignarCmd = new AsignarEquipoCommand(this);
+        getCommand("asignarequipo").setExecutor(asignarCmd);
+        getCommand("asignarequipo").setTabCompleter(asignarCmd);
+
         getCommand("test").setExecutor(((sender, command, s, strings) -> {
             sender.sendMessage("§a[UHC] Plugin and its dependencies (TAB/SkinsRestorer) working perfectly!");
             return true;

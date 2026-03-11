@@ -22,10 +22,17 @@ game:
   team-size-max: "&cMaximum team size is 4."
   team-size-error: "&cNot enough players! You need at least %min% for teams of %n%"
   time-min-error: "&cMinimum time is 1 minute."
+  start-blocked-custom-teams: "&cCannot start. Some players haven't chosen a team yet!"
+  custom-teams-solos-error: "&cCustom teams cannot be enabled in Solos mode!"
   time-update: "%prefix%&fPart duration adjusted to: &b%time% minutes&f."
   time-button-name: "%prefix%%amount% Minute"
   time-button-name-plural: "%prefix%%amount% Minutes"
   border-button-name: "%prefix%%amount% Blocks"
+  assign-team-disabled: "&cCustom teams is not enabled."
+  assign-team-usage: "&cUsage: /asignarequipo <player> <team_number>"
+  assign-team-player-not-found: "&cPlayer %player% not found."
+  assign-team-not-found: "&cTeam %team% not found."
+  assign-team-success: "&aYou have assigned %player% to team %team%."
 
 # Text shown in the command help list
 help:
@@ -160,6 +167,17 @@ menus:
         - "&bLeft Click: &7Increase (+1)"
         - "&bRight Click: &7Decrease (-1)"
       balance-warning: "&e⚠ &iDistribution will be balanced (ex: 3, 2, 2)"
+    custom-teams-item:
+      name: "&aCustom Teams"
+      name-locked: "&7&mCustom Teams"
+      lore:
+        - "&7Allows players to choose their team"
+        - "&7using a menu before the game starts."
+        - ""
+        - "&fCurrent status: %status%"
+        - ""
+        - "&eClick to toggle"
+        - "&c⚠ Disabling will clear all teams and selections."
 
   gamemode:
     title: "&8🕹️ Select Mode"
@@ -227,6 +245,19 @@ menus:
     change-lore: "&7Change duration by &f%amount% &7minutes per part."
     pause: "&7⏸ Pause Game"
     resume: "&a▶ Resume Game"
+  team-selector:
+    title: "&8🛡 Team Selection"
+    team-item:
+      name: "&6Team %name%"
+      lore:
+        - "&7Click to join"
+        - ""
+        - "&fMembers (%current%/%max%):"
+    empty-slot: "&7- &oSlot available"
+    member-format: "&7- &f%player%"
+    already-full: "&cThis team is already full."
+    already-in-team: "&cYou are already on this team."
+    joined: "&aYou have joined team %name%."
 
 chat:
   global-tag: "&cGLOBAL"
@@ -332,6 +363,11 @@ tracking-compass:
   received: "&b&l» &fYou received a team &bTracker&f."
 
 items:
+  team-selector:
+    name: "&b&lTeam Selector &7(Right Click)"
+    lore:
+      - "&7Use to choose your team"
+      - "&7before the game starts."
   shulker:
     name: "&d&lTeam Supply Box"
 

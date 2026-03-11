@@ -1,9 +1,9 @@
 name: ELOUD_UHC
-version: '1.5.1-SNAPSHOT'
+version: "1.5.2-SNAPSHOT"
 main: me.dalibex.UHC_DBasic.UHC_DBasic
-api-version: '1.21'
-authors: [ Dalibex ]
-depend: [ "TAB", "SkinsRestorer" ]
+api-version: "1.21"
+authors: [Dalibex]
+depend: ["TAB", "SkinsRestorer"]
 
 commands:
   uhcadmin:
@@ -36,3 +36,6 @@ commands:
   lang:
     description: Cambia el idioma
     usage: /lang [idioma]
+  asignarequipo:
+    description: Asigna un jugador a un equipo manualmente (admin)
+    usage: /asignarequipo <jugador> <numero_equipo>

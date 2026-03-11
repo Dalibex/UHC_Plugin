@@ -84,6 +84,25 @@ public class AdminPanelManager {
         gmItem.setItemMeta(gmMeta);
         mainGui.setItem(3, gmItem);
 
+        // Item de equipos personalizados
+        ItemStack customTeamItem = new ItemStack(partidaEnCurso ? Material.BARRIER : Material.PAINTING);
+        ItemMeta ctMeta = customTeamItem.getItemMeta();
+
+        if (partidaEnCurso) {
+            ctMeta.setDisplayName(lang.get("menus.main-admin.custom-teams-item.name-locked", player));
+            ctMeta.setLore(Arrays.asList(lang.get("menus.common.locked", player), lang.get("menus.common.locked-lore", player)));
+        } else {
+            ctMeta.setDisplayName(lang.get("menus.main-admin.custom-teams-item.name", player));
+            String status = tm.isCustomTeamsEnabled() ? lang.get("menus.common.enabled", player) : lang.get("menus.common.disabled", player);
+            List<String> ctLore = new ArrayList<>();
+            for (String line : lang.getList("menus.main-admin.custom-teams-item.lore", player)) {
+                ctLore.add(line.replace("%status%", status));
+            }
+            ctMeta.setLore(ctLore);
+        }
+        customTeamItem.setItemMeta(ctMeta);
+        mainGui.setItem(7, customTeamItem);
+
         // Item de tamaño de equipos
         ItemStack teamItem = new ItemStack(partidaEnCurso ? Material.BARRIER : Material.WHITE_BANNER);
         ItemMeta cMeta = teamItem.getItemMeta();
@@ -108,6 +127,7 @@ public class AdminPanelManager {
 
         player.openInventory(mainGui);
     }
+
 
     public void openGeneralRulesPanel(Player player) {
         LanguageManager lang = plugin.getLang();

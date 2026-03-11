@@ -22,10 +22,17 @@ game:
   team-size-max: "&cEl tamaño máximo de equipo es 4."
   team-size-error: "&c¡No hay suficientes jugadores! Necesitas al menos %min% para equipos de %n%"
   time-min-error: "&cEl tiempo mínimo es 1 segundo."
+  start-blocked-custom-teams: "&cNo puedes empezar. ¡Faltan jugadores por escoger equipo!"
+  custom-teams-solos-error: "&c¡No se pueden activar equipos personalizados en modo Solos!"
   time-update: "%prefix%&fSe ha ajustado la duración de las partes a: &b%time% minutos&f."
   time-button-name: "%prefix%%amount% Minuto"
   time-button-name-plural: "%prefix%%amount% Minutos"
   border-button-name: "%prefix%%amount% Bloques"
+  assign-team-disabled: "&cEquipos personalizados no está activado."
+  assign-team-usage: "&cUso: /asignarequipo <jugador> <numero_equipo>"
+  assign-team-player-not-found: "&cJugador %player% no encontrado."
+  assign-team-not-found: "&cEquipo %team% no encontrado."
+  assign-team-success: "&aHas asignado a %player% al equipo %team%."
 
 # Texto mostrado al enseñar la lista de comandos
 help:
@@ -160,6 +167,17 @@ menus:
         - "&bClick Izquierdo: &7Aumentar (+1)"
         - "&bClick Derecho: &7Reducir (-1)"
       balance-warning: "&e⚠ &iEl reparto será equilibrado (ej: 3, 2, 2)"
+    custom-teams-item:
+      name: "&aEquipos Personalizados"
+      name-locked: "&7&mEquipos Personalizados"
+      lore:
+        - "&7Permite a los jugadores escoger equipo"
+        - "&7usando un menú antes de empezar."
+        - ""
+        - "&fEstado actual: %status%"
+        - ""
+        - "&eClick para cambiar"
+        - "&c⚠ Al desactivar se borrarán los equipos y opciones actuales."
 
   gamemode:
     title: "&8🕹️ Seleccionar Modo"
@@ -227,6 +245,19 @@ menus:
     change-lore: "&7Cambia la duración en &f%amount% &7minutos por parte."
     pause: "&7⏸ Pausar Partida"
     resume: "&a▶ Reanudar Partida"
+  team-selector:
+    title: "&8🛡 Selección de Equipo"
+    team-item:
+      name: "&6Equipo %name%"
+      lore:
+        - "&7Click para unirte"
+        - ""
+        - "&fIntegrantes (%current%/%max%):"
+    empty-slot: "&7- &oHueco disponible"
+    member-format: "&7- &f%player%"
+    already-full: "&cEste equipo ya está lleno."
+    already-in-team: "&cYa estás en este equipo."
+    joined: "&aHas entrado al equipo %name%."
 
 chat:
   global-tag: "&cGLOBAL"
@@ -331,6 +362,11 @@ tracking-compass:
   received: "&b&l» &fHas recibido un &bLocalizador &fde equipo."
 
 items:
+  team-selector:
+    name: "&b&lSelector de Equipos &7(Click Derecho)"
+    lore:
+      - "&7Úsalo para elegir tu equipo"
+      - "&7antes de que empiece la partida."
   shulker:
     name: "&d&lCaja de Equipo"
 

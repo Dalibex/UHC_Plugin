@@ -52,6 +52,10 @@ public class GameManager {
     public void iniciarPartida() {
         if (partidaTask != null) return;
 
+        // Limpiar ítems de selector de equipo personalizados
+        TeamManager tm = plugin.getTeamManager();
+        tm.removeAllSelectorItems();
+
         this.partidaIniciada = true;
         this.cronometroSegundos = 0;
         this.tiempoTotalSegundos = 0;

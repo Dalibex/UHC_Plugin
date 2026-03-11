@@ -2,6 +2,7 @@ package me.dalibex.UHC_DBasic.commands;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
+import me.dalibex.UHC_DBasic.managers.TeamManager;
 import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -33,6 +34,15 @@ public class ConfirmStartCommand implements CommandExecutor {
         if (args.length == 0) return true;
 
         if (!startCmd.getConfirmacionPendiente() || plugin.getGameManager().isPartidaIniciada()) {
+            return true;
+        }
+
+        // Bloquear inicio si equipos personalizados activos y faltan jugadores por elegir
+        TeamManager tm = plugin.getTeamManager();
+        if (tm.isCustomTeamsEnabled() && tm.getTeamSize() > 1 && !tm.allPlayersHaveTeam()) {
+            player.sendMessage(plugin.getLang().get("game.start-blocked-custom-teams", player));
+            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
+            startCmd.setConfirmacionPendiente(false);
             return true;
         }
 
