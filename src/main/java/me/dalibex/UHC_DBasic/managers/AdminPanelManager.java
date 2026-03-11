@@ -297,10 +297,16 @@ public class AdminPanelManager {
     }
 
     private ItemStack createBorderItem(Material mat, String name, int amount, Player player, LanguageManager lang) {
-        ItemStack item = new ItemStack(mat);
+        boolean bloqueado = plugin.getGameManager().getTiempoTotalSegundos() <= 0;
+        ItemStack item = new ItemStack(bloqueado ? Material.BARRIER : mat);
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(name);
-        meta.setLore(Arrays.asList(lang.get("menus.barrier.change-lore", player).replace("%amount%", String.valueOf(Math.abs(amount)))));
+        if (bloqueado) {
+            meta.setDisplayName("§7§m" + name);
+            meta.setLore(Arrays.asList(lang.get("menus.common.locked", player), lang.get("game.border-not-started", player)));
+        } else {
+            meta.setDisplayName(name);
+            meta.setLore(Arrays.asList(lang.get("menus.barrier.change-lore", player).replace("%amount%", String.valueOf(Math.abs(amount)))));
+        }
         item.setItemMeta(meta);
         return item;
     }

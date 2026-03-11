@@ -23,6 +23,8 @@ import net.skinsrestorer.api.storage.PlayerStorage;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.bukkit.GameRule.*;
+
 public class GameManager {
 
     private final UHC_DBasic plugin;
@@ -120,12 +122,12 @@ public class GameManager {
                 modoActual.checkVictory();
 
                 // Funcionamiento Brújula
-                plugin.getEventHandler().onCompassTrack();
+                plugin.getItemsListener().updateTrackingCompasses();
             }
         }.runTaskTimer(plugin, 0L, 20L);
     }
 
-    public void setStandBy() {
+    public void fullReset() {
         detenerPartidaTask();
         this.cronometroSegundos = 0;
         this.tiempoTotalSegundos = 0;
@@ -137,16 +139,35 @@ public class GameManager {
         this.jugadoresEliminados.clear();
         this.participantesIniciales.clear();
 
-        limpiarEquiposScoreboard();
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            revelarIdentidad(p);
+        // 1. Resetear Mundos
+        for (World world : Bukkit.getWorlds()) {
+            world.setDifficulty(Difficulty.HARD);
+            world.setTime(0L);
+            world.setThundering(false);
+            world.setStorm(false);
+            world.getWorldBorder().setCenter(0, 0);
+            world.getWorldBorder().setSize(5999984);
+            
+            // Usando los nombres de GameRule de Bukkit (DO_DAYLIGHT_CYCLE, etc.)
+            // que es lo que parece esperar el proyecto si usa GameRule (singular)
+            world.setGameRule(DO_DAYLIGHT_CYCLE, false);
+            world.setGameRule(DO_WEATHER_CYCLE, false);
+            world.setGameRule(NATURAL_REGENERATION, true);
+            world.setGameRule(DO_MOB_SPAWNING, false);
+            world.setGameRule(org.bukkit.GameRule.PVP, false);
         }
 
-        // Lógica de Lobby (Teletransporte al centro)
-        World world = Bukkit.getWorlds().get(0);
-        int y = world.getHighestBlockYAt(0, 0);
-        Location spawnLoc = new Location(world, 0.5, (y < 60 ? 100 : y + 1), 0.5);
+        // 2. Resetear Jugadores
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            applyLobbySettings(p);
+        }
 
+        // 3. Resetear Managers
+        TeamManager tm = plugin.getTeamManager();
+        tm.borrarTodosLosEquipos();
+        if (tm.isCustomTeamsEnabled()) {
+            tm.initializeCustomTeams();
+        }
         Scoreboard managerBoard = Bukkit.getScoreboardManager().getMainScoreboard();
         if (managerBoard.getObjective("uhc") != null) managerBoard.getObjective("uhc").unregister();
         if (managerBoard.getObjective("vida_tab") != null) managerBoard.getObjective("vida_tab").unregister();
@@ -154,12 +175,46 @@ public class GameManager {
         for (Team team : new HashSet<>(managerBoard.getTeams())) {
             if (team.getName().startsWith("h_")) team.unregister();
         }
+    }
 
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            p.teleport(spawnLoc);
-            p.setPlayerListName(p.getName());
+    public void applyLobbySettings(Player p) {
+        p.clearActivePotionEffects();
+        if (!p.getInventory().isEmpty()) p.getInventory().clear();
+        
+        // Forzar modo aventura para todos (incluyendo ex-espectadores)
+        p.setGameMode(GameMode.ADVENTURE);
+        
+        p.setHealth(20.0);
+        p.setFoodLevel(20);
+        p.setExp(0);
+        p.setLevel(0);
+        p.setPlayerListName(p.getName());
+
+        // Efectos de Lobby
+        p.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SATURATION, Integer.MAX_VALUE, 255, false, false, false));
+        p.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.RESISTANCE, Integer.MAX_VALUE, 255, false, false, false));
+        p.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.REGENERATION, 200, 255, false, false, false));
+
+        // Teletransporte al centro del spawn si la partida no ha comenzado
+        World world = p.getWorld();
+        int y = world.getHighestBlockYAt(0, 0);
+        Location spawnLoc = new Location(world, 0.5, Math.max(y, 60) + 1, 0.5);
+        p.teleport(spawnLoc);
+        
+        revelarIdentidad(p);
+        if (modoActual != null) {
             modoActual.updateScoreboard(p, "00:00", "00:00", false);
         }
+
+        // Entrega de selector de equipo si está habilitado
+        TeamManager tm = plugin.getTeamManager();
+        if (tm.isCustomTeamsEnabled() && tm.getTeamSize() > 1) {
+            tm.giveTeamSelectorItem(p);
+        }
+    }
+
+    public void setStandBy() {
+        fullReset();
     }
 
     public void detenerPartidaTask() {

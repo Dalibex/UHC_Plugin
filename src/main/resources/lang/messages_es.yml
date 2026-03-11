@@ -23,6 +23,7 @@ game:
   team-size-error: "&c¡No hay suficientes jugadores! Necesitas al menos %min% para equipos de %n%"
   time-min-error: "&cEl tiempo mínimo es 1 segundo."
   start-blocked-custom-teams: "&cNo puedes empezar. ¡Faltan jugadores por escoger equipo!"
+  start-blocked-team-count: "&cHay demasiados equipos. Debéis agruparos en al menos %min% equipos para este tamaño (%n%)."
   custom-teams-solos-error: "&c¡No se pueden activar equipos personalizados en modo Solos!"
   time-update: "%prefix%&fSe ha ajustado la duración de las partes a: &b%time% minutos&f."
   time-button-name: "%prefix%%amount% Minuto"
@@ -90,7 +91,7 @@ lobby:
 start-menu:
   usage: "%error-prefix%§fUso correcto: /start <tamaño>"
   already-starting: "%error-prefix% §fYa hay una confirmación pendiente o el juego está iniciando."
-  cancelled: "§6§l[!] §fAcción cancelada. Usa §e/start [tamaño] §fcuando estés listo de nuevo."
+  cancelled: "§6§l[!] §fAcción cancelada. Usa §e/start [tamaño] §fcuando estés listo"
   buttons:
     confirm:
       text: "&a[EMPEZAR UHC]"
@@ -107,9 +108,9 @@ timer:
     - "&7Ejemplo para 20 min: &f/tpartes 0 20 0"
   already-started: "&cLa partida ya ha comenzado, no puedes cambiar esto ahora."
   invalid-number: "&cDebes introducir números enteros."
-  negative-values: "§cLos valores no pueden ser negativos."
-  max-value-limit: "§cEl valor máximo para cada unidad es 99."
-  too-short: "&cEl tiempo total debe ser mayor a 0 segundos."
+  negative-values: "&cLos valores no pueden ser negativos"
+  max-value-limit: "&cEl valor máximo para cada unidad es 99"
+  too-short: "&cEl tiempo total debe ser mayor a 0 segundos"
   success: "%prefix%&fDuración de cada parte ajustada a: &e%time%"
 
 ### ---------- SECCION MANAGERS ---------- ###
@@ -168,7 +169,7 @@ menus:
       lore: ["&7Gestiona el tamaño ", "&7de la zona de juego."]
     time-item:
       name: "&6Control de Partida"
-      lore: ["&7Pausar, reanudar el cronómetro."]
+      lore: ["&7Pausar, reanudar o ajustar la", "&7duración de las partes."]
     teams-item:
       name: "&aConfigurar Equipos"
       name-locked: "&7&mConfigurar Equipos"
@@ -266,14 +267,15 @@ menus:
     team-item:
       name: "&6Equipo %name%"
       lore:
-        - "&7Click para unirte"
+        - "&7Click Izquierdo para unirte"
+        - "&eClick Derecho para abandonar"
         - ""
         - "&fIntegrantes (%current%/%max%):"
     empty-slot: "&7- &oHueco disponible"
     member-format: "&7- &f%player%"
     already-full: "&cEste equipo ya está lleno."
-    joined: "&aHas entrado al equipo %name%."
-    left: "&eHas abandonado tu equipo."
+    joined: "&aHas entrado al equipo %name%"
+    left: "&eHas abandonado tu equipo"
     already-in-team: "&cYa estás en este equipo."
 
 chat:
@@ -291,8 +293,8 @@ victory:
   team-members: "&7Integrantes: &f%members%"
   title: "&6🏆 ¡VICTORIA! 🏆"
   subtitle: "%color%%team% &fha ganado"
-  no-survivors: "&c☠ La partida ha terminado sin supervivientes."
-  scoreboard-title: "&6&l!VICTORIA!"
+  no-survivors: "&c☠ La partida ha terminado sin supervivientes"
+  scoreboard-title: "&6&lVICTORIA"
   scoreboard-winner: "&fEquipo ganador: %color%%team%"
 
 # Anuncios de capítulos y eventos
@@ -328,8 +330,8 @@ resource-rush:
     item-pending: " &c✘ &f%item%"
     footer: "&7(%done%/%total% revelados conseguidos)\n&6&l==============================="
   team-finished: "&6&l[!] &fEl equipo %color%%team% &fha terminado los &e12 objetivos&f!"
-  finish-alert: "&6&l> &eHas terminado! &7Pasarás a modo espectador en 10 segundos..."
-  spectator-message: "&6&l> &7Ahora eres un espectador."
+  finish-alert: "&6&l> &eHas terminado! &7Pasarás a modo espectador en 10 segundos"
+  spectator-message: "&6&l> &7Ahora eres un espectador"
   podio-header: "&7&m------------------------------------"
   podio-title: "&6&l¡RESOURCE RUSH HA TERMINADO!"
   podio-line: "%medal% &e%team%"

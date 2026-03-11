@@ -11,7 +11,7 @@ game:
   invalid-number: "%error-prefix% §fThe size must be a valid integer number."
   teleporting-progress: "§fTeleporting players... §e(%current%/%total%)"
   loading-world: "§6§l[!] §fAll players teleported. Loading world and chunks..."
-  game-already-started: "§cThe game has already started."
+  game-already-started: "&cThe game has already started"
   countdown-title: "&6%time%"
   countdown-subtitle: "&eGetting ready..."
   started-title: "&a&lUHC HAS BEGUN!"
@@ -23,6 +23,7 @@ game:
   team-size-error: "&cNot enough players! You need at least %min% for teams of %n%"
   time-min-error: "&cMinimum time is 1 minute."
   start-blocked-custom-teams: "&cCannot start. Some players haven't chosen a team yet!"
+  start-blocked-team-count: "&cToo many teams used. You must group yourselves into at least %min% teams for this size (%n%)."
   custom-teams-solos-error: "&cCustom teams cannot be enabled in Solos mode!"
   time-update: "%prefix%&fPart duration adjusted to: &b%time% minutes&f."
   time-button-name: "%prefix%%amount% Minute"
@@ -89,7 +90,7 @@ lobby:
 start-menu:
   usage: "%error-prefix%§fCorrect usage: /start <size>"
   already-starting: "%error-prefix% §fA confirmation is already pending or the game is starting."
-  cancelled: "§6§l[!] §fAction cancelled. Use §e/start [size] §fwhen you are ready again."
+  cancelled: "§6§l[!] §fAction cancelled. Use §e/start [size] §fwhen you are ready"
   buttons:
     confirm:
       text: "&a[START UHC]"
@@ -106,9 +107,9 @@ timer:
     - "&7Example for 20 min: &f/tpartes 0 20 0"
   already-started: "&fThe game has already started, you cannot change this now."
   invalid-number: "&cYou must enter whole numbers."
-  negative-values: "§cValues cannot be negative."
-  max-value-limit: "§cThe maximum value for each unit is 99."
-  too-short: "&cTotal time must be greater than 0 seconds."
+  negative-values: "&cValues cannot be negative"
+  max-value-limit: "&cMaximum value for each unit is 99"
+  too-short: "&cTotal time must be greater than 0 seconds"
   success: "%prefix%&fEach part duration adjusted to: &e%time%"
 
 ### ---------- MANAGERS SECTION ---------- ###
@@ -168,7 +169,7 @@ menus:
       lore: ["&7Manage the size ", "&7of the play zone."]
     time-item:
       name: "&6Match Control"
-      lore: ["&7Pause or resume the timer."]
+      lore: ["&7Pause, resume or adjust the", "&7duration of the parts."]
     teams-item:
       name: "&aConfigure Teams"
       name-locked: "&7&mConfigure Teams"
@@ -266,14 +267,15 @@ menus:
     team-item:
       name: "&6Team %name%"
       lore:
-        - "&7Click to join"
+        - "&7Left Click to join"
+        - "&eRight Click to leave"
         - ""
         - "&fMembers (%current%/%max%):"
     empty-slot: "&7- &oSlot available"
     member-format: "&7- &f%player%"
     already-full: "&cThis team is already full."
-    joined: "&aYou have joined team %name%."
-    left: "&eYou have left your team."
+    joined: "&aYou joined team %name%"
+    left: "&eYou have left your team"
     already-in-team: "&cYou are already on this team."
 
 chat:
@@ -291,9 +293,9 @@ victory:
   team-members: "&7Members: &f%members%"
   title: "&6🏆 VICTORY! 🏆"
   subtitle: "%color%%team% &fhas won"
-  no-survivors: "&c☠ The game has ended with no survivors."
-  scoreboard-title: "&6&l!VICTORY!"
-  scoreboard-winner: "&fWinner Team: %color%%team%"
+  no-survivors: "&c☠ The game has ended with no survivors"
+  scoreboard-title: "&6&lVICTORY"
+  scoreboard-winner: "&fWinning Team: %color%%team%"
 
 # Chapter and event announcements
 game-events:
@@ -328,8 +330,8 @@ resource-rush:
     item-pending: " &c✘ &f%item%"
     footer: "&7(%done%/%total% revealed items obtained)\n&6&l==============================="
   team-finished: "&6&l[!] &fTeam %color%%team% &fhas finished all &e12 objectives&f!"
-  finish-alert: "&6&l> &eYou finished! &7You will be moved to spectator mode in 10 seconds..."
-  spectator-message: "&6&l> &7You are now a spectator."
+  finish-alert: "&6&l> &eYou finished! &7You will be moved to spectator mode in 10 seconds"
+  spectator-message: "&6&l> &7You are now a spectator"
   podio-header: "&7&m------------------------------------"
   podio-title: "&6&lRESOURCE RUSH FINISHED!"
   podio-line: "%medal% &e%team%"

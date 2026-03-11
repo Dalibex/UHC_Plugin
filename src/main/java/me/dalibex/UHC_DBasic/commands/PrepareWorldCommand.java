@@ -35,18 +35,8 @@ public class PrepareWorldCommand implements CommandExecutor {
             return true;
         }
 
-        resetearJugadores();
-        resetearMundos();
-
-        plugin.getGameManager().setStandBy();
-        plugin.getTeamManager().borrarTodosLosEquipos();
-        
-        // Repartir estrella si custom teams está activo
-        TeamManager tm = plugin.getTeamManager();
-        if (tm.isCustomTeamsEnabled()) {
-            tm.initializeCustomTeams();
-            tm.giveAllSelectorItems();
-        }
+        // Delegar toda la lógica al GameManager
+        plugin.getGameManager().fullReset();
 
         String prefix = lang.get("general.prefix", player);
         player.sendMessage(lang.get("lobby.reset-success", player).replace("%prefix%", prefix));

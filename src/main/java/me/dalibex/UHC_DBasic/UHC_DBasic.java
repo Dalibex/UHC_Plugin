@@ -1,9 +1,9 @@
 package me.dalibex.UHC_DBasic;
 
 import me.dalibex.UHC_DBasic.commands.*;
-import me.dalibex.UHC_DBasic.listeners.ResourceRushListener;
-import me.dalibex.UHC_DBasic.listeners.UHC_EventManagerListener;
+import me.dalibex.UHC_DBasic.listeners.*;
 import me.dalibex.UHC_DBasic.managers.*;
+import me.dalibex.UHC_DBasic.utils.UpdateChecker;
 import me.neznamy.tab.api.TabAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -23,20 +23,27 @@ public final class UHC_DBasic extends JavaPlugin {
     private TeamManager teamManager;
     private AdminPanelManager adminPanelManager;
     private ChatManager chatManager;
-    private UHC_EventManagerListener eventHandler;
+    private PlayerConnectionListener connectionListener;
+    private GameLogicListener gameLogicListener;
+    private AdminPanelListener adminPanelListener;
+    private ItemsListener itemsListener;
     private SpecialCraftsManager specialCraftsManager;
     private LanguageManager languageManager;
     private ResourceRushListener resourceRushListener;
+    private DependencyManager dependencyManager;
 
     @Override
     public void onEnable() {
-        // VERIFICAR DEPENDENCIAS | TAB Y SKINRESTORER
-        if (!verificarDependencias()) {
+        // 1. INICIALIZAR GESTOR DE DEPENDENCIAS
+        dependencyManager = new DependencyManager(this);
+        if (!dependencyManager.checkDependencies()) {
             Bukkit.getPluginManager().disablePlugin(this);
             return;
         }
 
-        logBanner(); // Banner de UHC en console
+        // 2. LOGO Y VERSION CHECK
+        logBanner();
+        new UpdateChecker(this).checkForUpdates();
 
         // INICIALIZAR MANAGERS
         teamManager = new TeamManager(this);
@@ -52,12 +59,19 @@ public final class UHC_DBasic extends JavaPlugin {
         // INICIALIZAR RESTO DE COMPONENTES
         adminPanelManager = new AdminPanelManager(this);
         chatManager = new ChatManager(this);
-        eventHandler = new UHC_EventManagerListener(this);
+        // INICIALIZAR LISTENERS ESPECIALIZADOS
+        connectionListener = new PlayerConnectionListener(this);
+        gameLogicListener = new GameLogicListener(this);
+        adminPanelListener = new AdminPanelListener(this);
+        itemsListener = new ItemsListener(this);
         specialCraftsManager = new SpecialCraftsManager(this);
         resourceRushListener = new ResourceRushListener(this);
 
         // REGISTRAR EVENTOS
-        getServer().getPluginManager().registerEvents(eventHandler, this);
+        getServer().getPluginManager().registerEvents(connectionListener, this);
+        getServer().getPluginManager().registerEvents(gameLogicListener, this);
+        getServer().getPluginManager().registerEvents(adminPanelListener, this);
+        getServer().getPluginManager().registerEvents(itemsListener, this);
         getServer().getPluginManager().registerEvents(resourceRushListener, this);
         getServer().getPluginManager().registerEvents(chatManager, this);
 
@@ -66,26 +80,14 @@ public final class UHC_DBasic extends JavaPlugin {
 
         Bukkit.getScheduler().runTaskLater(this, () -> {
             registrarPlaceholder();
+            // Automatizar reset inicial tras cargar todo
+            gameManager.fullReset();
         }, 60L);
 
         getLogger().info("§aUHC ELOUD Plugin Enabled.");
     }
 
-    private boolean verificarDependencias() {
-        boolean tab = Bukkit.getPluginManager().getPlugin("TAB") != null;
-        boolean skins = Bukkit.getPluginManager().getPlugin("SkinsRestorer") != null;
-
-        if (!tab || !skins) {
-            getLogger().severe("--------------------------------------------------");
-            getLogger().severe("   [UHC ERROR] MISSING REQUIRED DEPENDENCIES!");
-            if (!tab)   getLogger().severe("   > TAB Plugin: NOT FOUND");
-            if (!skins) getLogger().severe("   > SkinsRestorer Plugin: NOT FOUND");
-            getLogger().severe("   The plugin will be disabled for safety.");
-            getLogger().severe("--------------------------------------------------");
-            return false;
-        }
-        return true;
-    }
+    // Eliminado el método antiguo en favor de DependencyManager
 
     private void registrarComandos() {
         getCommand("uhcadmin").setExecutor(new AdminPanelCommand(this));
@@ -209,16 +211,18 @@ public final class UHC_DBasic extends JavaPlugin {
     }
 
     private void logBanner() {
-        String prefix = "§6[UHC ELOUD] ";
-        Bukkit.getConsoleSender().sendMessage("§6--------------------------------------------------");
-        Bukkit.getConsoleSender().sendMessage("§e   _  _ _  _ ____    ____ _    ____ _  _ ___  ");
-        Bukkit.getConsoleSender().sendMessage("§e   |  | |__| |       |___ |    |  | |  | |  \\ ");
-        Bukkit.getConsoleSender().sendMessage("§e   |__| |  | |___    |___ |___ |__| |__| |__/ ");
-        Bukkit.getConsoleSender().sendMessage("§6");
-        Bukkit.getConsoleSender().sendMessage("§f   Developed by: §bDalibex");
-        Bukkit.getConsoleSender().sendMessage("§f   Version: §a" + getDescription().getVersion());
-        Bukkit.getConsoleSender().sendMessage("§f   Status: §2§lONLINE");
-        Bukkit.getConsoleSender().sendMessage("§6--------------------------------------------------");
+        org.bukkit.command.ConsoleCommandSender console = Bukkit.getConsoleSender();
+        console.sendMessage(" ");
+        console.sendMessage("§6§l--------------------------------------------------");
+        console.sendMessage("§e§l   _  _ _  _ ____    ____ _    ____ _  _ ___  ");
+        console.sendMessage("§e§l   |  | |__| |       |___ |    |  | |  | |  \\ ");
+        console.sendMessage("§e§l   |__| |  | |___    |___ |___ |__| |__| |__/ ");
+        console.sendMessage("§6");
+        console.sendMessage("§f   Desarrollado por: §b§lDalibex");
+        console.sendMessage("§f   Versión: §a" + getDescription().getVersion());
+        console.sendMessage("§f   Estado: §2§lACTIVO Y CARGADO");
+        console.sendMessage("§6§l--------------------------------------------------");
+        console.sendMessage(" ");
     }
 
     // --- GETTERS ---
@@ -228,7 +232,11 @@ public final class UHC_DBasic extends JavaPlugin {
     public ChatManager getChatManager() { return chatManager; }
     public SpecialCraftsManager getSpecialCraftsManager() { return specialCraftsManager; }
     public LanguageManager getLang() { return languageManager; }
-    public UHC_EventManagerListener getEventHandler() { return eventHandler; }
+    public PlayerConnectionListener getConnectionListener() { return connectionListener; }
+    public GameLogicListener getGameLogicListener() { return gameLogicListener; }
+    public AdminPanelListener getAdminPanelListener() { return adminPanelListener; }
+    public ItemsListener getItemsListener() { return itemsListener; }
+    public DependencyManager getDependencyManager() { return dependencyManager; }
 
     @Override
     public void onDisable() {

@@ -54,10 +54,8 @@ public class TeamManager {
         borrarTodosLosEquipos();
         LanguageManager lang = plugin.getLang();
 
-        int jugadoresOnline = Bukkit.getOnlinePlayers().size();
-        if (jugadoresOnline == 0 || teamSize <= 1) return;
-
-        int numeroDeEquipos = (int) Math.ceil((double) jugadoresOnline / teamSize);
+        // Siempre creamos los 12 equipos para que el selector esté lleno e independiente de los jugadores online
+        int numeroDeEquipos = TEAM_COLOR_KEYS.length;
 
         for (int i = 0; i < numeroDeEquipos; i++) {
             String colorKey = TEAM_COLOR_KEYS[i % TEAM_COLOR_KEYS.length];
@@ -192,6 +190,16 @@ public class TeamManager {
             if (board.getEntryTeam(p.getName()) == null) return false;
         }
         return true;
+    }
+
+    public int getTeamsWithPlayersCount() {
+        Set<Team> used = new HashSet<>();
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (p.getGameMode() == org.bukkit.GameMode.SPECTATOR) continue;
+            Team t = board.getEntryTeam(p.getName());
+            if (t != null) used.add(t);
+        }
+        return used.size();
     }
 
     public void removeAllSelectorItems() {

@@ -39,11 +39,26 @@ public class ConfirmStartCommand implements CommandExecutor {
 
         // Bloquear inicio si equipos personalizados activos y faltan jugadores por elegir
         TeamManager tm = plugin.getTeamManager();
-        if (tm.isCustomTeamsEnabled() && tm.getTeamSize() > 1 && !tm.allPlayersHaveTeam()) {
-            player.sendMessage(plugin.getLang().get("game.start-blocked-custom-teams", player));
-            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
-            startCmd.setConfirmacionPendiente(false);
-            return true;
+        if (tm.isCustomTeamsEnabled() && tm.getTeamSize() > 1) {
+            if (!tm.allPlayersHaveTeam()) {
+                player.sendMessage(plugin.getLang().get("game.start-blocked-custom-teams", player));
+                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
+                startCmd.setConfirmacionPendiente(false);
+                return true;
+            }
+            
+            int onlinePlayers = (int) Bukkit.getOnlinePlayers().stream().filter(p -> p.getGameMode() != GameMode.SPECTATOR).count();
+            int minRequired = (int) Math.ceil((double) onlinePlayers / tm.getTeamSize());
+            int usedTeams = tm.getTeamsWithPlayersCount();
+            
+            if (usedTeams > minRequired) {
+                player.sendMessage(plugin.getLang().get("game.start-blocked-team-count", player)
+                        .replace("%min%", String.valueOf(minRequired))
+                        .replace("%n%", String.valueOf(tm.getTeamSize())));
+                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
+                startCmd.setConfirmacionPendiente(false);
+                return true;
+            }
         }
 
         plugin.getGameManager().setPartidaIniciada(true);
