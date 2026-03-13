@@ -218,9 +218,9 @@ public final class UHC_DBasic extends JavaPlugin {
         console.sendMessage("§e§l   |  | |__| |       |___ |    |  | |  | |  \\ ");
         console.sendMessage("§e§l   |__| |  | |___    |___ |___ |__| |__| |__/ ");
         console.sendMessage("§6");
-        console.sendMessage("§f   Desarrollado por: §b§lDalibex");
-        console.sendMessage("§f   Versión: §a" + getDescription().getVersion());
-        console.sendMessage("§f   Estado: §2§lACTIVO Y CARGADO");
+        console.sendMessage("§f   Developed by: §b§lDalibex");
+        console.sendMessage("§f   Version: §a" + getDescription().getVersion());
+        console.sendMessage("§f   Status: §2§lACTIVE AND LOADED");
         console.sendMessage("§6§l--------------------------------------------------");
         console.sendMessage(" ");
     }

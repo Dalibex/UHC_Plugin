@@ -39,14 +39,14 @@ public class DependencyManager {
         ConsoleCommandSender console = Bukkit.getConsoleSender();
         boolean allMandatoryPresent = true;
 
-        console.sendMessage(ChatColor.GOLD + "[UHC] Verificando dependencias...");
+        console.sendMessage(ChatColor.GOLD + "[UHC] Checking dependencies...");
 
         for (String pluginName : mandatoryPlugins) {
             if (Bukkit.getPluginManager().getPlugin(pluginName) != null && 
                 Bukkit.getPluginManager().isPluginEnabled(pluginName)) {
-                console.sendMessage(ChatColor.GREEN + "  [✔] " + pluginName + " detectado y activo.");
+                console.sendMessage(ChatColor.GREEN + "  [✔] " + pluginName + " detected and active.");
             } else {
-                console.sendMessage(ChatColor.RED + "  [✘] " + pluginName + " NO DETECTADO O DESACTIVADO.");
+                console.sendMessage(ChatColor.RED + "  [✘] " + pluginName + " NOT DETECTED OR DISABLED.");
                 allMandatoryPresent = false;
             }
         }
@@ -54,14 +54,20 @@ public class DependencyManager {
         for (String pluginName : optionalPlugins) {
             if (Bukkit.getPluginManager().getPlugin(pluginName) != null && 
                 Bukkit.getPluginManager().isPluginEnabled(pluginName)) {
-                console.sendMessage(ChatColor.AQUA + "  [ℹ] " + pluginName + " detectado (Opcional).");
+                console.sendMessage(ChatColor.AQUA + "  [ℹ] " + pluginName + " detected (Optional).");
             }
         }
 
         if (!allMandatoryPresent) {
             console.sendMessage(ChatColor.RED + "--------------------------------------------------");
-            console.sendMessage(ChatColor.RED + " [UHC ERROR] FALTAN DEPENDENCIAS CRÍTICAS");
-            console.sendMessage(ChatColor.RED + " El plugin se desactivará para evitar errores.");
+            console.sendMessage(ChatColor.RED + " [UHC ERROR] MISSING MANDATORY DEPENDENCIES");
+            console.sendMessage(ChatColor.RED + " Please download and install the missing plugins:");
+            for (String pluginName : mandatoryPlugins) {
+                if (Bukkit.getPluginManager().getPlugin(pluginName) == null) {
+                    console.sendMessage(ChatColor.YELLOW + "  - " + pluginName);
+                }
+            }
+            console.sendMessage(ChatColor.RED + " The plugin will be disabled to avoid errors.");
             console.sendMessage(ChatColor.RED + "--------------------------------------------------");
         }
 

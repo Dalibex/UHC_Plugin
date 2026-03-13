@@ -59,12 +59,12 @@ public class UpdateChecker {
                         if (!currentVersion.equalsIgnoreCase(latestVersion)) {
                             notifyUpdatedVersion(latestVersion);
                         } else {
-                            plugin.getLogger().info("§aEl plugin está actualizado (v" + currentVersion + ").");
+                            plugin.getLogger().info("§aThe plugin is updated (v" + currentVersion + ").");
                         }
                     }
                 }
             } catch (Exception e) {
-                plugin.getLogger().warning("No se pudo verificar la versión: " + e.getMessage());
+                plugin.getLogger().warning("Could not check version: " + e.getMessage());
             }
         });
     }
@@ -72,10 +72,10 @@ public class UpdateChecker {
     private void notifyUpdatedVersion(String latest) {
         Bukkit.getConsoleSender().sendMessage(" ");
         Bukkit.getConsoleSender().sendMessage(ChatColor.GOLD + "--------------------------------------------------");
-        Bukkit.getConsoleSender().sendMessage(ChatColor.YELLOW + " [UHC UPDATE] ¡Nueva versión disponible!");
-        Bukkit.getConsoleSender().sendMessage(ChatColor.WHITE + " Versión actual: " + ChatColor.RED + currentVersion);
-        Bukkit.getConsoleSender().sendMessage(ChatColor.WHITE + " Versión nueva: " + ChatColor.GREEN + latest);
-        Bukkit.getConsoleSender().sendMessage(ChatColor.WHITE + " Descárgala en: " + ChatColor.AQUA + "https://github.com/Dalibex/UHC_Plugin/releases");
+        Bukkit.getConsoleSender().sendMessage(ChatColor.YELLOW + " [UHC UPDATE] ¡New version avaliable!");
+        Bukkit.getConsoleSender().sendMessage(ChatColor.WHITE + " Current version: " + ChatColor.RED + currentVersion);
+        Bukkit.getConsoleSender().sendMessage(ChatColor.WHITE + " New version: " + ChatColor.GREEN + latest);
+        Bukkit.getConsoleSender().sendMessage(ChatColor.WHITE + " Download it at: " + ChatColor.AQUA + "https://github.com/Dalibex/UHC_Plugin/releases");
         Bukkit.getConsoleSender().sendMessage(ChatColor.GOLD + "--------------------------------------------------");
         Bukkit.getConsoleSender().sendMessage(" ");
     }

@@ -3,7 +3,7 @@ version: "1.5.2-SNAPSHOT"
 main: me.dalibex.UHC_DBasic.UHC_DBasic
 api-version: "1.21"
 authors: [Dalibex]
-depend: ["TAB", "SkinsRestorer"]
+softdepend: ["TAB", "SkinsRestorer"]
 
 commands:
   uhcadmin:
