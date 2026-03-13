@@ -1,0 +1,52 @@
+Changelog - UHC ELOUD 1.5.2-SNAPSHOT
+
+Note: This is a SNAPSHOT version. It is recommended to perform tests on development servers. I have conducted intensive testing (including simulations with bots), but I do not guarantee that minor errors will not exist in specific environments.
+
+=== ENGLISH ===
+
+New Features
+- Resource Rush Mode: A brand new game mode where teams compete to find 12 random items first. Includes a dynamic scoreboard to track progress.
+- Team Selection System: Players can now choose their sides and form custom teams using a new Nether Star GUI in the lobby once selected (need at least 4 players, teams of 2).
+- Dynamic Skin Rotation: Integrated with SkinsRestorer to automatically swap player skins and names between chapters for anonymity, you can reveal players identities when hitted.
+- Tab menu overhoul: Integrated with TAB to display names on scoreboard based on skin rotation, so you can not now how much HP each players has until they get hitted.
+
+Adjustments and Improvements
+- Admin Panel: Adjusted with new sound feedback for better experience.
+- Automated Lobby: Refined the lobby startup; the plugin now automatically sets up the spawn and saturation mode 3 seconds after boot.
+- Tracking Compass: Adjusted logic to better target nearby teammates or the world spawn point.
+- TAB Integration: Improved synchronization of colored prefixes and health display on the player list.
+- Better Dependency Feedback: If mandatory plugins (TAB or SkinsRestorer) are missing, the plugin now notifies you clearly in the console instead of crashing.
+
+Bugfixes
+- Resource Rush Victory: Fixed victory message errors and prevented duplicate victory event triggers.
+- Team Selection: Fixed an issue where the team selection menu appeared empty after a world reset.
+- Performance: Optimized the identity rotation system to try to ensure a lag-free experience during chapter changes (mid to big servers may experience some lag when skins change).
+- Scoreboard Sync: Improved visual consistency of the scoreboard during game transitions.
+
+=== ESPAÑOL ===
+
+Nuevas Funciones
+- Modo Resource Rush: Un nuevo modo de juego donde los equipos compiten por ser los primeros en encontrar 12 objetos aleatorios. Incluye marcador dinamico en tiempo real.
+- Equipos Personalizados: Cuando hay al menos 4 jugadores en el lobby, ahora puedes activar los equipos personalizados; los jugadores recibiran una estrella del nether para elegir y unirse a diferentes equipos, dependiendo del tamaño de equipo seleccionado.
+- Rotacion de Skins Dinamica: Integracion con SkinsRestorer para rotar skins y nombres automaticamente; las identidades pueden revelarse al recibir daño.
+- Rediseño del Menu Tab: Integracion total con TAB para mostrar nombres basados en la skin; ahora no podras saber la vida de los demas hasta que sean golpeados.
+
+Ajustes y Mejoras
+- Panel Administrativo: Ajustado con nuevos efectos de sonido para una mejor experiencia.
+- Lobby Automatizado: Refinado el inicio del lobby; el plugin ahora configura el spawn y el modo saturacion automaticamente 3 segundos tras encenderse.
+- Brujula de Rastreo: Ajustada la logica para apuntar mejor a aliados cercanos o al punto de spawn del mundo.
+- Integracion con TAB: Sincronizacion de prefijos coloreados y visualizacion de salud en la lista de jugadores mejorada.
+- Feedback de Dependencias: Si faltan plugins obligatorios (TAB o SkinsRestorer), el plugin ahora te avisa claramente en la consola en lugar de crashear el servidor.
+
+Correccion de Errores
+- Victoria en Resource Rush: Corregidos errores en el mensaje de victoria y añadida proteccion contra disparos duplicados del evento final.
+- Seleccion de Equipos: Arreglado el fallo que dejaba los menus de equipos vacios tras un reinicio del mundo.
+- Rendimiento: Optimizado el sistema de identidades para intentar garantizar una experiencia sin lag (servidores medianos/grandes podrian notar algo de lag durante el cambio de skins).
+- Sincronizacion del Marcador: Mejorada la consistencia visual del scoreboard durante las transiciones de la partida.
+
+Version compatible with:
+
+Bukkit implementations for 1.21.11 only (Paper recommended)
+VERSION IS NOT COMPATIBLE WITH VERSIONS PRIOR TO 1.21.11
+As of Minecraft 1.20.6, Java 21 or higher is required.
+Source code and full details here: https://github.com/Dalibex/UHC_Plugin
