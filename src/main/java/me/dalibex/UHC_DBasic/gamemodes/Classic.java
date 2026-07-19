@@ -1,31 +1,36 @@
 package me.dalibex.UHC_DBasic.gamemodes;
 
-import io.papermc.paper.scoreboard.numbers.NumberFormat;
-import me.dalibex.UHC_DBasic.UHC_DBasic;
-import me.dalibex.UHC_DBasic.managers.LanguageManager;
-import me.dalibex.UHC_DBasic.managers.GameManager;
-import me.dalibex.UHC_DBasic.managers.TeamManager;
-import me.dalibex.UHC_DBasic.utils.ScoreboardHelper;
-import org.bukkit.*;
-import org.bukkit.entity.Firework;
-import org.bukkit.entity.Player;
-
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.FireworkMeta;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scheduler.BukkitRunnable;
+import java.util.stream.Collectors;
+
+import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import static org.bukkit.GameRules.PVP;
+import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
+import org.bukkit.scoreboard.Criteria;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static org.bukkit.GameRules.PVP;
+import io.papermc.paper.scoreboard.numbers.NumberFormat;
+import me.dalibex.UHC_DBasic.UHC_DBasic;
+import me.dalibex.UHC_DBasic.managers.GameManager;
+import me.dalibex.UHC_DBasic.managers.LanguageManager;
+import me.dalibex.UHC_DBasic.managers.TeamManager;
+import me.dalibex.UHC_DBasic.utils.ScoreboardHelper;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
+import net.kyori.adventure.title.Title;
 
 public class Classic extends AbstractUHCGameMode {
 
@@ -99,15 +104,15 @@ public class Classic extends AbstractUHCGameMode {
         Objective obj = board.getObjective("uhc");
         if (obj != null) obj.unregister();
 
-        obj = board.registerNewObjective("uhc", "dummy", ChatColor.translateAlternateColorCodes('&', lang.get("scoreboard.title", player)));
+        obj = board.registerNewObjective("uhc", Criteria.DUMMY, lang.getComponent("scoreboard.title", player));
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
         obj.numberFormat(NumberFormat.blank());
 
         Objective objVida = board.getObjective("vida_tab");
         if (partidaActiva) {
             if (objVida == null) {
-                objVida = board.registerNewObjective("vida_tab", "health",
-                        ChatColor.translateAlternateColorCodes('&', lang.get("scoreboard.health-icon", player)),
+                objVida = board.registerNewObjective("vida_tab", Criteria.HEALTH,
+                        lang.getComponent("scoreboard.health-icon", player),
                         org.bukkit.scoreboard.RenderType.HEARTS);
                 objVida.setDisplaySlot(DisplaySlot.PLAYER_LIST);
             }
@@ -175,8 +180,8 @@ public class Classic extends AbstractUHCGameMode {
         if (temp != null) temp.unregister();
         temp = board.registerNewTeam("winner_temp");
         temp.addEntry(playerName);
-        temp.setDisplayName(playerName);
-        temp.setColor(ChatColor.GOLD);
+        temp.displayName(Component.text(playerName));
+        temp.color(NamedTextColor.GOLD);
         return temp;
     }
 
@@ -199,13 +204,13 @@ public class Classic extends AbstractUHCGameMode {
             }
             aplicarEfectosVictoria(winners);
         } else {
-            Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&', lang.get("victory.no-survivors", null)));
+            Bukkit.broadcast(legacySection().deserialize(lang.get("victory.no-survivors", null)));
         }
     }
 
     private void broadcastVictory(Team ganador, LanguageManager lang) {
-        String color = ganador.getColor().toString();
-        String nombreEquipo = ganador.getDisplayName();
+        String color = legacySection().serialize(Component.text("·").color(ganador.color())).replace("·", "");
+        String nombreEquipo = legacySection().serialize(ganador.displayName());
         
         List<String> formattedNames = ganador.getEntries().stream()
                 .map(entry -> gm.getJugadoresEliminados().contains(entry) ? "§7§m" + entry + "§r" : "§f" + entry)
@@ -213,15 +218,16 @@ public class Classic extends AbstractUHCGameMode {
         String membersList = String.join("§7, ", formattedNames);
 
         for (Player p : Bukkit.getOnlinePlayers()) {
-            p.sendMessage("");
-            p.sendMessage(lang.get("victory.broadcast-header", p).replace("%color%", color).replace("%team%", nombreEquipo));
-            p.sendMessage("§7Integrantes: " + membersList);
-            p.sendMessage(lang.get("victory.broadcast-footer", p));
-            p.sendMessage("");
+            p.sendMessage(legacySection().deserialize(""));
+            p.sendMessage(legacySection().deserialize(lang.get("victory.broadcast-header", p).replace("%color%", color).replace("%team%", nombreEquipo)));
+            p.sendMessage(legacySection().deserialize("§7Integrantes: " + membersList));
+            p.sendMessage(legacySection().deserialize(lang.get("victory.broadcast-footer", p)));
+            p.sendMessage(legacySection().deserialize(""));
 
-            p.sendTitle(lang.get("victory.title", p), 
-                        lang.get("victory.subtitle", p).replace("%color%", color).replace("%team%", nombreEquipo), 
-                        10, 100, 20);
+            p.showTitle(Title.title(
+                legacySection().deserialize(lang.get("victory.title", p)),
+                legacySection().deserialize(lang.get("victory.subtitle", p).replace("%color%", color).replace("%team%", nombreEquipo)),
+                Title.Times.times(Duration.ofMillis(500), Duration.ofMillis(5000), Duration.ofMillis(1000))));
             p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
             
             showPostGameScoreboard(p, ganador, lang);
@@ -230,12 +236,13 @@ public class Classic extends AbstractUHCGameMode {
 
     private void showPostGameScoreboard(Player player, Team ganador, LanguageManager lang) {
         Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
-        Objective obj = board.registerNewObjective("victoria", "dummy", lang.get("victory.scoreboard-title", player));
+        Objective obj = board.registerNewObjective("victoria", Criteria.DUMMY, lang.getComponent("victory.scoreboard-title", player));
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
         obj.numberFormat(NumberFormat.blank());
+        String colorCode = legacySection().serialize(Component.text("·").color(ganador.color())).replace("·", "");
         obj.getScore(lang.get("victory.scoreboard-winner", player)
-                .replace("%color%", ganador.getColor().toString())
-                .replace("%team%", ganador.getDisplayName())).setScore(1);
+                .replace("%color%", colorCode)
+                .replace("%team%", legacySection().serialize(ganador.displayName()))).setScore(1);
         player.setScoreboard(board);
     }
 }

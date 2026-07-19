@@ -1,13 +1,15 @@
 package me.dalibex.UHC_DBasic.managers;
 
-import me.dalibex.UHC_DBasic.UHC_DBasic;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.scoreboard.Team;
+
+import io.papermc.paper.event.player.AsyncChatEvent;
+import me.dalibex.UHC_DBasic.UHC_DBasic;
+import net.kyori.adventure.text.Component;
+import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
 public class ChatManager implements Listener {
 
@@ -18,10 +20,10 @@ public class ChatManager implements Listener {
     }
 
     @EventHandler
-    public void onChat(AsyncPlayerChatEvent event) {
+    public void onChat(AsyncChatEvent event) {
         LanguageManager lang = plugin.getLang();
         Player p = event.getPlayer();
-        String mensaje = event.getMessage();
+        String mensaje = event.getEventName();
         Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
         boolean partidaActiva = plugin.getGameManager().isPartidaIniciada();
 
@@ -48,11 +50,11 @@ public class ChatManager implements Listener {
             for (String entry : team.getEntries()) {
                 Player member = Bukkit.getPlayer(entry);
                 if (member != null && member.isOnline()) {
-                    String formatoTeam = lang.get("chat.format-team", member)
-                            .replace("%team%", team.getDisplayName())
-                            .replace("%player%", nombreBlanco) // Blanco
-                            .replace("%msg%", mensaje);
-                    member.sendMessage(ChatColor.translateAlternateColorCodes('&', formatoTeam));
+            String formatoTeam = lang.get("chat.format-team", member)
+                    .replace("%team%", legacySection().serialize(team.displayName()))
+                    .replace("%player%", nombreBlanco)
+                    .replace("%msg%", mensaje);
+            member.sendMessage(legacySection().deserialize(formatoTeam));
                 }
             }
             Bukkit.getConsoleSender().sendMessage("[TeamChat] " + team.getName() + " - " + p.getName() + ": " + mensaje);
@@ -61,10 +63,10 @@ public class ChatManager implements Listener {
             // CHAT PRIVADO SIN EQUIPO
             String formatoPrivado = lang.get("chat.format-private", p)
                     .replace("%tag%", lang.get("chat.private-tag", p))
-                    .replace("%player%", nombreBlanco) // Blanco
+                    .replace("%player%", nombreBlanco)
                     .replace("%msg%", mensaje);
 
-            p.sendMessage(ChatColor.translateAlternateColorCodes('&', formatoPrivado));
+            p.sendMessage(legacySection().deserialize(formatoPrivado));
         }
     }
 
@@ -76,7 +78,7 @@ public class ChatManager implements Listener {
 
         if (partidaActiva) {
             if (modoActual.equalsIgnoreCase("Resource Rush")) {
-                textoAMostrar = "§k" + ((team != null) ? team.getDisplayName() : "SOLO");
+                textoAMostrar = "§k" + ((team != null) ? legacySection().serialize(team.displayName()) : "SOLO");
             } else {
                 textoAMostrar = "§kUHCELOUD";
             }
@@ -84,13 +86,13 @@ public class ChatManager implements Listener {
             textoAMostrar = p.getName();
         }
 
-        String formatoFinal = ChatColor.translateAlternateColorCodes('&',
-                "&8[&c" + tagGlobal + "&8] &6" + textoAMostrar + "§r: &7" + msg);
+        Component formatoFinal = legacySection().deserialize(
+                "&8[&c" + tagGlobal + "&8] &6" + textoAMostrar + "&r: &7" + msg);
 
         for (Player receptor : Bukkit.getOnlinePlayers()) {
             receptor.sendMessage(formatoFinal);
         }
 
-        Bukkit.getConsoleSender().sendMessage("[GlobalChat] [" + p.getName() + "]: " + msg);
+        Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("&7[GlobalChat] [&f" + p.getName() + "&7]: &f" + msg));
     }
 }

@@ -1,7 +1,5 @@
 package me.dalibex.UHC_DBasic.listeners;
 
-import me.dalibex.UHC_DBasic.UHC_DBasic;
-import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -11,7 +9,12 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scoreboard.Team;
+
+import me.dalibex.UHC_DBasic.UHC_DBasic;
+import me.dalibex.UHC_DBasic.managers.LanguageManager;
+import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
 /**
  * Listener especializado en el uso de objetos especiales del juego.
@@ -31,14 +34,14 @@ public class ItemsListener implements Listener {
 
         Player p = event.getPlayer();
         ItemStack item = p.getInventory().getItemInMainHand();
-        if (item == null || item.getType() == Material.AIR) return;
+        if (item.getType() == Material.AIR) return;
 
         LanguageManager lang = plugin.getLang();
 
-        // 1. Selector de Equipos (Estrella del Nether)
         if (item.getType() == Material.NETHER_STAR) {
             String selectorName = lang.get("items.team-selector.name", p);
-            if (item.hasItemMeta() && item.getItemMeta().getDisplayName().equals(selectorName)) {
+            ItemMeta meta = item.getItemMeta();
+            if (meta != null && selectorName.equals(legacySection().serialize(meta.displayName()))) {
                 event.setCancelled(true);
                 plugin.getTeamManager().openTeamSelectorGUI(p);
             }
@@ -87,13 +90,14 @@ public class ItemsListener implements Listener {
                 
                 // Mostrar ActionBar si tiene la brújula en la mano
                 ItemStack hand = p.getInventory().getItemInMainHand();
-                if (hand.getType() == Material.COMPASS && hand.hasItemMeta() && 
-                    hand.getItemMeta().getDisplayName().equals(lang.get("tracking-compass.name", p))) {
-                    
-                    String msg = lang.get("compass.tracking-actionbar", p)
+                ItemMeta hMeta = hand.getItemMeta();
+                if (hand.getType() == Material.COMPASS && hMeta != null && 
+                    lang.get("tracking-compass.name", p).equals(legacySection().serialize(hMeta.displayName()))) {
+
+                    p.sendActionBar(legacySection().deserialize(
+                        lang.get("compass.tracking-actionbar", p)
                             .replace("%player%", cercano.getName())
-                            .replace("%dist%", String.valueOf((int)distMin));
-                    p.sendActionBar(msg);
+                            .replace("%dist%", String.valueOf((int)distMin))));
                 }
             }
         }

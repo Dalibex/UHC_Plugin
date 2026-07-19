@@ -1,10 +1,10 @@
 package me.dalibex.UHC_DBasic;
 
-import me.dalibex.UHC_DBasic.commands.*;
-import me.dalibex.UHC_DBasic.listeners.*;
-import me.dalibex.UHC_DBasic.managers.*;
-import me.dalibex.UHC_DBasic.utils.UpdateChecker;
-import me.neznamy.tab.api.TabAPI;
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -12,10 +12,30 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
+import me.dalibex.UHC_DBasic.commands.AdminPanelCommand;
+import me.dalibex.UHC_DBasic.commands.AsignarEquipoCommand;
+import me.dalibex.UHC_DBasic.commands.CancelarStartCommand;
+import me.dalibex.UHC_DBasic.commands.ConfirmStartCommand;
+import me.dalibex.UHC_DBasic.commands.GCommandsCommand;
+import me.dalibex.UHC_DBasic.commands.LangCommand;
+import me.dalibex.UHC_DBasic.commands.NEquipoCommand;
+import me.dalibex.UHC_DBasic.commands.PrepareWorldCommand;
+import me.dalibex.UHC_DBasic.commands.StartCommand;
+import me.dalibex.UHC_DBasic.commands.TiempoPartesCommand;
+import me.dalibex.UHC_DBasic.listeners.AdminPanelListener;
+import me.dalibex.UHC_DBasic.listeners.GameLogicListener;
+import me.dalibex.UHC_DBasic.listeners.ItemsListener;
+import me.dalibex.UHC_DBasic.listeners.PlayerConnectionListener;
+import me.dalibex.UHC_DBasic.listeners.ResourceRushListener;
+import me.dalibex.UHC_DBasic.managers.AdminPanelManager;
+import me.dalibex.UHC_DBasic.managers.ChatManager;
+import me.dalibex.UHC_DBasic.managers.DependencyManager;
+import me.dalibex.UHC_DBasic.managers.GameManager;
+import me.dalibex.UHC_DBasic.managers.LanguageManager;
+import me.dalibex.UHC_DBasic.managers.SpecialCraftsManager;
+import me.dalibex.UHC_DBasic.managers.TeamManager;
+import me.dalibex.UHC_DBasic.utils.UpdateChecker;
+import me.neznamy.tab.api.TabAPI;
 
 public final class UHC_DBasic extends JavaPlugin {
 
@@ -176,7 +196,7 @@ public final class UHC_DBasic extends JavaPlugin {
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tab reload");
             }, 40L);
         } catch (IOException e) {
-            getLogger().severe("ERROR SAVING TAB CONFIG: " + e.getMessage());
+            getLogger().severe(() -> "ERROR SAVING TAB CONFIG: " + e.getMessage());
         }
     }
 
@@ -206,7 +226,7 @@ public final class UHC_DBasic extends JavaPlugin {
         try {
             animConfig.save(animFile);
         } catch (IOException e) {
-            getLogger().severe("ERROR SAVING animations.yml: " + e.getMessage());
+            getLogger().severe(() -> "ERROR SAVING animations.yml: " + e.getMessage());
         }
     }
 
@@ -219,7 +239,7 @@ public final class UHC_DBasic extends JavaPlugin {
         console.sendMessage("§e§l   |__| |  | |___    |___ |___ |__| |__| |__/ ");
         console.sendMessage("§6");
         console.sendMessage("§f   Developed by: §b§lDalibex");
-        console.sendMessage("§f   Version: §a" + getDescription().getVersion());
+        console.sendMessage("§f   Version: §a" + getPluginMeta().getVersion());
         console.sendMessage("§f   Status: §2§lACTIVE AND LOADED");
         console.sendMessage("§6§l--------------------------------------------------");
         console.sendMessage(" ");

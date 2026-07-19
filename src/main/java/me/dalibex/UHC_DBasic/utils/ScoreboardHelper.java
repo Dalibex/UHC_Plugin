@@ -1,16 +1,17 @@
 package me.dalibex.UHC_DBasic.utils;
 
-import me.dalibex.UHC_DBasic.UHC_DBasic;
-import me.dalibex.UHC_DBasic.managers.GameManager;
-import me.dalibex.UHC_DBasic.managers.LanguageManager;
-import me.dalibex.UHC_DBasic.managers.TeamManager;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Team;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import me.dalibex.UHC_DBasic.managers.GameManager;
+import me.dalibex.UHC_DBasic.managers.LanguageManager;
+import me.dalibex.UHC_DBasic.managers.TeamManager;
+import net.kyori.adventure.text.Component;
+import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
 /**
  * Clase de utilidad para centralizar la construcción de líneas del Scoreboard.
@@ -49,7 +50,7 @@ public class ScoreboardHelper {
 
         if (teamSize == 1) {
             String line = (team != null && !tm.isDefaultName(team)) ?
-                    lang.get("scoreboard.team-label", player).replace("%color%", team.getColor().toString()).replace("%name%", team.getDisplayName()) 
+                    lang.get("scoreboard.team-label", player).replace("%color%", legacySection().serialize(Component.text("·").color(team.color())).replace("·", "")).replace("%name%", legacySection().serialize(team.displayName())) 
                     : lang.get("scoreboard.team-rename-warn", player);
             obj.getScore(line).setScore(next.getAndDecrement());
         } else {
@@ -60,7 +61,7 @@ public class ScoreboardHelper {
                 }
             } else {
                 String line = (team != null && !tm.isDefaultName(team)) ?
-                        lang.get("scoreboard.team-mates-label", player).replace("%color%", team.getColor().toString()).replace("%name%", team.getDisplayName()) 
+                        lang.get("scoreboard.team-mates-label", player).replace("%color%", legacySection().serialize(Component.text("·").color(team.color())).replace("·", "")).replace("%name%", legacySection().serialize(team.displayName())) 
                         : (team != null ? lang.get("scoreboard.team-rename-warn", player) : lang.get("scoreboard.team-assigning", player));
                 
                 obj.getScore(line).setScore(next.getAndDecrement());

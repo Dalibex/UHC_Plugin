@@ -1,14 +1,22 @@
 package me.dalibex.UHC_DBasic.managers;
 
-import me.dalibex.UHC_DBasic.UHC_DBasic;
-import org.bukkit.ChatColor;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
+import me.dalibex.UHC_DBasic.UHC_DBasic;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 public class LanguageManager {
     private final UHC_DBasic plugin;
@@ -44,7 +52,7 @@ public class LanguageManager {
     private void loadPlayerPreferences() {
         preferencesFile = new File(plugin.getDataFolder(), "player_langs.yml");
         if (!preferencesFile.exists()) {
-            try { preferencesFile.createNewFile(); } catch (IOException e) { e.printStackTrace(); }
+            try { preferencesFile.createNewFile(); } catch (IOException e) {}
         }
         preferencesConfig = YamlConfiguration.loadConfiguration(preferencesFile);
 
@@ -58,7 +66,7 @@ public class LanguageManager {
 
         playerPreferences.put(player.getUniqueId(), lang);
         preferencesConfig.set(player.getUniqueId().toString(), lang);
-        try { preferencesConfig.save(preferencesFile); } catch (IOException e) { e.printStackTrace(); }
+        try { preferencesConfig.save(preferencesFile); } catch (IOException e) {}
     }
 
     public String getPlayerLang(Player player) {
@@ -81,7 +89,20 @@ public class LanguageManager {
         String message = config.getString(path);
         if (message == null) return "§cKey not found: " + path;
 
-        return ChatColor.translateAlternateColorCodes('&', message);
+        return message.replace('&', '§');
+    }
+
+    public Component getComponent(String path, Player player) {
+        return LegacyComponentSerializer.legacySection().deserialize(get(path, player)).decoration(TextDecoration.ITALIC, false);
+    }
+
+    public List<Component> getComponentList(String path, Player player) {
+        List<String> list = getList(path, player);
+        List<Component> result = new ArrayList<>();
+        for (String s : list) {
+            result.add(LegacyComponentSerializer.legacySection().deserialize(s).decoration(TextDecoration.ITALIC, false));
+        }
+        return result;
     }
 
     public List<String> getList(String path, Player player) {
@@ -101,7 +122,7 @@ public class LanguageManager {
             return Collections.singletonList("§cList not found: " + path);
         }
 
-        list.replaceAll(line -> ChatColor.translateAlternateColorCodes('&', line));
+        list.replaceAll(line -> line.replace('&', '§'));
         return list;
     }
 }

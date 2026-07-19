@@ -1,29 +1,49 @@
 package me.dalibex.UHC_DBasic.managers;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.bukkit.Bukkit;
+import org.bukkit.Difficulty;
+import org.bukkit.GameMode;
+import static org.bukkit.GameRules.ADVANCE_TIME;
+import static org.bukkit.GameRules.ADVANCE_WEATHER;
+import static org.bukkit.GameRules.NATURAL_HEALTH_REGENERATION;
+import static org.bukkit.GameRules.PVP;
+import static org.bukkit.GameRules.SPAWN_MONSTERS;
+import org.bukkit.Location;
+import org.bukkit.Sound;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.scoreboard.Objective;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
+
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.gamemodes.Classic;
 import me.dalibex.UHC_DBasic.gamemodes.UHCGameMode;
 import me.neznamy.tab.api.TabAPI;
 import me.neznamy.tab.api.nametag.NameTagManager;
 import me.neznamy.tab.api.tablist.TabListFormatManager;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.skinsrestorer.api.SkinsRestorer;
+import net.skinsrestorer.api.SkinsRestorerProvider;
 import net.skinsrestorer.api.exception.DataRequestException;
 import net.skinsrestorer.api.exception.MineSkinException;
 import net.skinsrestorer.api.property.InputDataResult;
-import net.skinsrestorer.api.storage.SkinStorage;
-import org.bukkit.*;
-import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
-import org.bukkit.scoreboard.Scoreboard;
-import org.bukkit.scoreboard.Team;
-import net.skinsrestorer.api.SkinsRestorer;
-import net.skinsrestorer.api.SkinsRestorerProvider;
 import net.skinsrestorer.api.storage.PlayerStorage;
-
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static org.bukkit.GameRule.*;
+import net.skinsrestorer.api.storage.SkinStorage;
 
 public class GameManager {
 
@@ -46,6 +66,7 @@ public class GameManager {
     private final Map<UUID, String> ultimaSkinAsignada = new HashMap<>();
     private final Map<UUID, String> penultimaSkinAsignada = new HashMap<>();
 
+    @SuppressWarnings("this-escape")
     public GameManager(UHC_DBasic plugin) {
         this.plugin = plugin;
         this.modoActual = new Classic(plugin, this);
@@ -74,15 +95,14 @@ public class GameManager {
         rotarSkins();
 
         for (Player p : Bukkit.getOnlinePlayers()) {
-            p.setPlayerListName(p.getName());
+            p.playerListName(Component.text(p.getName()));
             p.damage(0.01);
             actualizarIdentidadVisual(p);
 
             if (p.getGameMode() == GameMode.SURVIVAL) {
                 String nombreSkinNueva = ultimaSkinAsignada.getOrDefault(p.getUniqueId(), p.getName());
-                String rawMsg = plugin.getLang().get("game-events.skins.identity-changed", p);
-                String mensajePersonalizado = rawMsg.replace("%player%", nombreSkinNueva);
-                p.sendMessage(ChatColor.translateAlternateColorCodes('&', mensajePersonalizado));
+                String mensajePersonalizado = plugin.getLang().get("game-events.skins.identity-changed", p).replace("%player%", nombreSkinNueva);
+                p.sendMessage(mensajePersonalizado);
                 p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1f, 1f);
             }
 
@@ -142,20 +162,26 @@ public class GameManager {
         // 1. Resetear Mundos
         for (World world : Bukkit.getWorlds()) {
             world.setDifficulty(Difficulty.HARD);
-            world.setTime(0L);
+            world.setGameRule(ADVANCE_TIME, true);
+            world.setGameRule(ADVANCE_WEATHER, true);
             world.setThundering(false);
             world.setStorm(false);
+            world.setGameRule(ADVANCE_WEATHER, false);
             world.getWorldBorder().setCenter(0, 0);
             world.getWorldBorder().setSize(5999984);
-            
-            // Usando los nombres de GameRule de Bukkit (DO_DAYLIGHT_CYCLE, etc.)
-            // que es lo que parece esperar el proyecto si usa GameRule (singular)
-            world.setGameRule(DO_DAYLIGHT_CYCLE, false);
-            world.setGameRule(DO_WEATHER_CYCLE, false);
-            world.setGameRule(NATURAL_REGENERATION, true);
-            world.setGameRule(DO_MOB_SPAWNING, false);
-            world.setGameRule(org.bukkit.GameRule.PVP, false);
+
+            world.setGameRule(NATURAL_HEALTH_REGENERATION, true);
+            world.setGameRule(SPAWN_MONSTERS, false);
+            world.setGameRule(PVP, false);
         }
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            for (World world : Bukkit.getWorlds()) {
+                if (world.getEnvironment() == World.Environment.NORMAL || world.getEnvironment() == World.Environment.THE_END) {
+                    world.setTime(0L);
+                }
+                world.setGameRule(ADVANCE_TIME, false);
+            }
+        });
 
         // 2. Resetear Jugadores
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -169,8 +195,10 @@ public class GameManager {
             tm.initializeCustomTeams();
         }
         Scoreboard managerBoard = Bukkit.getScoreboardManager().getMainScoreboard();
-        if (managerBoard.getObjective("uhc") != null) managerBoard.getObjective("uhc").unregister();
-        if (managerBoard.getObjective("vida_tab") != null) managerBoard.getObjective("vida_tab").unregister();
+        Objective uhcObjective = managerBoard.getObjective("uhc");
+        if (uhcObjective != null) uhcObjective.unregister();
+        Objective vidaTabObjective = managerBoard.getObjective("vida_tab");
+        if (vidaTabObjective != null) vidaTabObjective.unregister();
 
         for (Team team : new HashSet<>(managerBoard.getTeams())) {
             if (team.getName().startsWith("h_")) team.unregister();
@@ -188,7 +216,7 @@ public class GameManager {
         p.setFoodLevel(20);
         p.setExp(0);
         p.setLevel(0);
-        p.setPlayerListName(p.getName());
+        p.playerListName(Component.text(p.getName()));
 
         // Efectos de Lobby
         p.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SATURATION, Integer.MAX_VALUE, 255, false, false, false));
@@ -231,7 +259,7 @@ public class GameManager {
         }
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
-            p.setPlayerListName(p.getName());
+            p.playerListName(Component.text(p.getName()));
         }
     }
 
@@ -302,13 +330,22 @@ public class GameManager {
         }
 
         // Aplicar skins asíncronamente solo a los que están online
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            for (String name : vivosNombres) {
+        new BukkitRunnable() {
+            private int index = 0;
+
+            @Override
+            public void run() {
+                if (index >= vivosNombres.size()) {
+                    cancel();
+                    return;
+                }
+
+                String name = vivosNombres.get(index++);
                 Player p = Bukkit.getPlayer(name);
-                if (p == null || !p.isOnline()) continue;
+                if (p == null || !p.isOnline()) return;
 
                 String nombreSkinElegida = ultimaSkinAsignada.get(p.getUniqueId());
-                if (nombreSkinElegida == null) continue;
+                if (nombreSkinElegida == null) return;
 
                 try {
                     SkinStorage skinStorage = skinsApi.getSkinStorage();
@@ -321,18 +358,16 @@ public class GameManager {
                             try {
                                 skinsApi.getSkinApplier(Player.class).applySkin(p);
                             } catch (DataRequestException e) {
-                                plugin.getLogger().warning("Error aplicando skin: " + e.getMessage());
+                                plugin.getLogger().warning(() -> "Error aplicando skin: " + e.getMessage());
                             }
                             actualizarIdentidadVisual(p);
                         });
                     }
                 } catch (DataRequestException | MineSkinException e) {
-                    plugin.getLogger().warning("Error al rotar skin para " + p.getName() + ": " + e.getMessage());
+                    plugin.getLogger().warning(() -> "Error al rotar skin para " + p.getName() + ": " + e.getMessage());
                 }
-
-                try { Thread.sleep(200); } catch (InterruptedException ignored) {}
             }
-        });
+        }.runTaskTimerAsynchronously(plugin, 0L, 4L);
     }
 
 
@@ -352,7 +387,7 @@ public class GameManager {
                 skinsApi.getSkinApplier(Player.class).applySkin(p);
             }
         } catch (DataRequestException | MineSkinException e) {
-            plugin.getLogger().warning("Error al revelar identidad de " + p.getName() + ": " + e.getMessage());
+            plugin.getLogger().warning(() -> "Error al revelar identidad de " + p.getName() + ": " + e.getMessage());
         }
     }
 
@@ -369,19 +404,20 @@ public class GameManager {
         if (partidaIniciada) {
             if (tfm != null) {
                 tfm.setName(tabPlayer, "%rel_uhc_identidad%");
+            }
+            if (ntm != null) {
                 ntm.setPrefix(tabPlayer, "%%rel_nametag_color%");
             }
         }
         if (partidaIniciada) {
             if (jugadoresRevelados.contains(p.getUniqueId())) {
-                String nombreRojo = "§c" + p.getName();
-                p.setDisplayName(nombreRojo);
+                p.displayName(Component.text(p.getName(), NamedTextColor.RED));
             } else {
                 String nombreFalso = ultimaSkinAsignada.getOrDefault(p.getUniqueId(), p.getName());
-                p.setDisplayName("§c" + nombreFalso);
+                p.displayName(Component.text(nombreFalso, NamedTextColor.RED));
             }
         } else {
-            p.setDisplayName("§f" + p.getName());
+            p.displayName(Component.text(p.getName()));
         }
     }
     // -----------------------------------------------------------------------

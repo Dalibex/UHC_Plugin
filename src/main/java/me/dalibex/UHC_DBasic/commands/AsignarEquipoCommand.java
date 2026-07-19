@@ -13,6 +13,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Team;
 import org.jetbrains.annotations.NotNull;
 
+import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -88,15 +90,15 @@ public class AsignarEquipoCommand implements CommandExecutor, TabCompleter {
         // Asignar al equipo
         team.addEntry(target.getName());
 
+        String teamDisplay = legacySection().serialize(team.displayName().color(team.color()));
         String successMsg = lang.get("game.assign-team-success", admin)
                 .replace("%player%", target.getName())
-                .replace("%team%", team.getColor() + team.getDisplayName());
+                .replace("%team%", teamDisplay);
         admin.sendMessage(successMsg);
         admin.playSound(admin.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
 
-        // Notificar al jugador asignado
         String joinedMsg = lang.get("menus.team-selector.joined", target)
-                .replace("%name%", team.getColor() + team.getDisplayName());
+                .replace("%name%", teamDisplay);
         target.sendMessage(joinedMsg);
         target.playSound(target.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
 

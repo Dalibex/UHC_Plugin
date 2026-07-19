@@ -1,31 +1,44 @@
 package me.dalibex.UHC_DBasic.gamemodes;
 
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import static org.bukkit.GameRules.PVP;
+import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scoreboard.Criteria;
+import org.bukkit.scoreboard.DisplaySlot;
+import org.bukkit.scoreboard.Objective;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
+
 import io.papermc.paper.scoreboard.numbers.NumberFormat;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.managers.GameManager;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import me.dalibex.UHC_DBasic.managers.TeamManager;
 import me.dalibex.UHC_DBasic.utils.ScoreboardHelper;
-import org.bukkit.*;
-import org.bukkit.entity.Firework;
-import org.bukkit.entity.Player;
-
-import java.util.concurrent.atomic.AtomicInteger;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.FireworkMeta;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scoreboard.DisplaySlot;
-import org.bukkit.scoreboard.Objective;
-import org.bukkit.scoreboard.Scoreboard;
-import org.bukkit.scoreboard.Team;
-
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static org.bukkit.GameRules.PVP;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
+import net.kyori.adventure.title.Title;
 
 public class ResourceRush extends AbstractUHCGameMode {
 
@@ -147,18 +160,20 @@ public class ResourceRush extends AbstractUHCGameMode {
         String translationKey = (mat.isBlock() ? "block.minecraft." : "item.minecraft.") + mat.name().toLowerCase();
 
         for (Player p : Bukkit.getOnlinePlayers()) {
-            String prefix = ChatColor.translateAlternateColorCodes('&', lang.get("resource-rush.ruleta-anuncio", p));
-            net.md_5.bungee.api.chat.TranslatableComponent itemComp = new net.md_5.bungee.api.chat.TranslatableComponent(translationKey);
-            itemComp.setColor(net.md_5.bungee.api.ChatColor.GOLD);
-            itemComp.setBold(true);
-            itemComp.setHoverEvent(new net.md_5.bungee.api.chat.HoverEvent(
-                    net.md_5.bungee.api.chat.HoverEvent.Action.SHOW_ITEM,
-                    new net.md_5.bungee.api.chat.hover.content.Item(mat.getKey().toString(), 1, null)));
+            String prefix = lang.get("resource-rush.ruleta-anuncio", p);
+            Component itemComp = Component.text()
+                    .append(Component.translatable(translationKey))
+                    .color(NamedTextColor.GOLD)
+                    .decorate(TextDecoration.BOLD)
+                    .hoverEvent(HoverEvent.showItem(mat.getKey(), 1))
+                    .build();
 
-            net.md_5.bungee.api.chat.TextComponent msg = new net.md_5.bungee.api.chat.TextComponent(prefix);
-            msg.addExtra("§e["); msg.addExtra(itemComp); msg.addExtra("§e]");
+            Component msg = legacySection().deserialize(prefix).decoration(TextDecoration.ITALIC, false)
+                    .append(legacySection().deserialize("§e["))
+                    .append(itemComp)
+                    .append(legacySection().deserialize("§e]"));
 
-            p.spigot().sendMessage(msg);
+            p.sendMessage(msg);
             p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1f, 1.2f);
         }
     }
@@ -175,7 +190,7 @@ public class ResourceRush extends AbstractUHCGameMode {
 
         Objective obj = board.getObjective("uhc");
         if (obj != null) obj.unregister();
-        obj = board.registerNewObjective("uhc", "dummy", ChatColor.translateAlternateColorCodes('&', lang.get("scoreboard.title", player)));
+        obj = board.registerNewObjective("uhc", Criteria.DUMMY, lang.getComponent("scoreboard.title", player));
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
         obj.numberFormat(NumberFormat.blank());
 
@@ -194,7 +209,7 @@ public class ResourceRush extends AbstractUHCGameMode {
             String counter = lang.get("scoreboard-rr.rr-counter", player)
                     .replace("%done%", String.valueOf(realizados))
                     .replace("%total%", String.valueOf(objetivosActivos.size()));
-            obj.getScore(ChatColor.translateAlternateColorCodes('&', counter)).setScore(next.getAndDecrement());
+            obj.getScore(counter).setScore(next.getAndDecrement());
 
             ScoreboardHelper.addTimers(obj, next, tiempo, tiempoTotal, player, lang, gm);
         }
@@ -244,18 +259,18 @@ public class ResourceRush extends AbstractUHCGameMode {
         gm.setPartidaIniciada(false);
 
         if (podioFinal.isEmpty()) {
-            Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&', lang.get("victory.no-survivors", null)));
+            Bukkit.broadcast(legacySection().deserialize(lang.get("victory.no-survivors", null)));
         } else {
-            Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&', lang.get("resource-rush.podio-header", null)));
+            Bukkit.broadcast(legacySection().deserialize(lang.get("resource-rush.podio-header", null)));
             for (int i = 0; i < podioFinal.size(); i++) {
                 String medal = lang.get("resource-rush.medals." + (i + 1), null);
                 String clave = podioFinal.get(i);
                 Team t = Bukkit.getScoreboardManager().getMainScoreboard().getTeam(clave);
-                String nombre = (t != null) ? t.getDisplayName() : clave;
-                Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&', lang.get("resource-rush.podio-line", null)
+                String nombre = (t != null) ? legacySection().serialize(t.displayName()) : clave;
+                Bukkit.broadcast(legacySection().deserialize(lang.get("resource-rush.podio-line", null)
                         .replace("%medal%", medal).replace("%team%", nombre)));
             }
-            Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&', lang.get("resource-rush.podio-footer", null)));
+            Bukkit.broadcast(legacySection().deserialize(lang.get("resource-rush.podio-footer", null)));
 
             Team ganador = Bukkit.getScoreboardManager().getMainScoreboard().getTeam(podioFinal.get(0));
             ejecutarEfectosFinales(ganador);
@@ -282,28 +297,29 @@ public class ResourceRush extends AbstractUHCGameMode {
 
     private void anunciarLogro(Player p, Team team, Material mat, int done) {
         LanguageManager lang = plugin.getLang();
-        String name = (team != null) ? team.getDisplayName() + " &8[" + ChatColor.WHITE + p.getName() + "&8]" : p.getName();
-        String color = (team != null) ? team.getColor().toString() : "§f";
+        String teamName = (team != null) ? legacySection().serialize(team.displayName()) : "§f";
+        String name = (team != null) ? teamName + "§8[§f" + p.getName() + "§8]" : p.getName();
+        String color = (team != null) ? legacySection().serialize(Component.text("·").color(team.color())).replace("·", "") : "§f";
         String itemName = mat.name().replace("_", " ").toLowerCase();
 
         String raw = lang.get("resource-rush.objective-global", null);
-        String msg = ChatColor.translateAlternateColorCodes('&', raw
+        String msg = raw
                 .replace("%color%", color).replace("%team%", name)
-                .replace("%item%", itemName).replace("%done%", String.valueOf(done)));
+                .replace("%item%", itemName).replace("%done%", String.valueOf(done));
 
         for (Player all : Bukkit.getOnlinePlayers()) {
-            all.sendMessage(msg);
+            all.sendMessage(legacySection().deserialize(msg).decoration(TextDecoration.ITALIC, false));
             all.playSound(all.getLocation(), Sound.ENTITY_ARROW_HIT_PLAYER, 1f, 1f);
         }
     }
 
     private void handleTeamFinish(Player p, Team team) {
         LanguageManager lang = plugin.getLang();
-        String color = (team != null) ? team.getColor().toString() : "§f";
-        String nombre = (team != null) ? team.getDisplayName() : p.getName();
+        String color = (team != null) ? legacySection().serialize(Component.text("·").color(team.color())).replace("·", "") : "§f";
+        String nombre = (team != null) ? legacySection().serialize(team.displayName()) : p.getName();
 
-        Bukkit.broadcastMessage(lang.get("resource-rush.team-finished", null)
-                .replace("%color%", color).replace("%team%", nombre));
+        Bukkit.broadcast(legacySection().deserialize(lang.get("resource-rush.team-finished", null)
+                .replace("%color%", color).replace("%team%", nombre)));
 
         String alert = lang.get("resource-rush.finish-alert", p);
         if (team != null) team.getEntries().forEach(e -> { Player m = Bukkit.getPlayer(e); if (m != null) m.sendMessage(alert); });
@@ -316,9 +332,9 @@ public class ResourceRush extends AbstractUHCGameMode {
                 if (team != null) {
                     team.getEntries().forEach(e -> { 
                         Player m = Bukkit.getPlayer(e); 
-                        if (m != null && m.isOnline()) { m.setGameMode(GameMode.SPECTATOR); m.sendMessage(ChatColor.translateAlternateColorCodes('&', specMsg)); }
+                        if (m != null && m.isOnline()) { m.setGameMode(GameMode.SPECTATOR); m.sendMessage(legacySection().deserialize(specMsg)); }
                     });
-                } else if (p.isOnline()) { p.setGameMode(GameMode.SPECTATOR); p.sendMessage(ChatColor.translateAlternateColorCodes('&', specMsg)); }
+                } else if (p.isOnline()) { p.setGameMode(GameMode.SPECTATOR); p.sendMessage(legacySection().deserialize(specMsg)); }
             }
         }.runTaskLater(plugin, 200L);
 
@@ -337,15 +353,16 @@ public class ResourceRush extends AbstractUHCGameMode {
             }
         }
         
-        String color = ganador.getColor().toString();
-        String teamName = ganador.getDisplayName();
+        String color = legacySection().serialize(Component.text("·").color(ganador.color())).replace("·", "");
+        String teamName = legacySection().serialize(ganador.displayName());
         
         for (Player p : Bukkit.getOnlinePlayers()) {
-            p.sendMessage("");
-            p.sendMessage(ChatColor.translateAlternateColorCodes('&', lang.get("victory.broadcast-header", p).replace("%color%", color).replace("%team%", teamName)));
-            p.sendTitle(ChatColor.translateAlternateColorCodes('&', lang.get("victory.title", p)),
-                        ChatColor.translateAlternateColorCodes('&', lang.get("victory.subtitle", p).replace("%color%", color).replace("%team%", teamName)), 
-                        10, 100, 20);
+            p.sendMessage(legacySection().deserialize(""));
+            p.sendMessage(legacySection().deserialize(lang.get("victory.broadcast-header", p).replace("%color%", color).replace("%team%", teamName)));
+            p.showTitle(Title.title(
+                        legacySection().deserialize(lang.get("victory.title", p)),
+                        legacySection().deserialize(lang.get("victory.subtitle", p).replace("%color%", color).replace("%team%", teamName)),
+                        Title.Times.times(Duration.ofMillis(500), Duration.ofMillis(5000), Duration.ofMillis(1000))));
             p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
         }
         aplicarEfectosVictoria(winners);
@@ -370,7 +387,7 @@ public class ResourceRush extends AbstractUHCGameMode {
         this.podioFinal.clear();
         this.objetivosActivos.clear();
         this.terminando = false;
-        Bukkit.getOnlinePlayers().forEach(p -> p.setPlayerListName(p.getName()));
+        Bukkit.getOnlinePlayers().forEach(p -> p.playerListName(Component.text(p.getName())));
         inicializarPool();
     }
 

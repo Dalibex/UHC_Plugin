@@ -3,6 +3,7 @@ package me.dalibex.UHC_DBasic.commands;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import me.dalibex.UHC_DBasic.managers.TeamManager;
+import net.kyori.adventure.title.Title;
 import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -13,9 +14,11 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
+import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 import static org.bukkit.GameRules.*;
 
 public class ConfirmStartCommand implements CommandExecutor {
@@ -178,7 +181,10 @@ public class ConfirmStartCommand implements CommandExecutor {
                     for (Player p : Bukkit.getOnlinePlayers()) {
                         String title = lang.get("game.countdown-title", p).replace("%time%", String.valueOf(segundos));
                         String subtitle = lang.get("game.countdown-subtitle", p);
-                        p.sendTitle(title, subtitle, 0, 22, 0);
+                        p.showTitle(Title.title(
+                            legacySection().deserialize(title),
+                            legacySection().deserialize(subtitle),
+                            Title.Times.times(Duration.ZERO, Duration.ofMillis(1100), Duration.ZERO)));
                         p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1f, 1f);
                     }
                     segundos--;
@@ -191,7 +197,10 @@ public class ConfirmStartCommand implements CommandExecutor {
 
                         String startTitle = lang.get("game.started-title", p);
                         String startSubtitle = lang.get("game.started-subtitle", p);
-                        p.sendTitle(startTitle, startSubtitle, 10, 40, 20);
+                        p.showTitle(Title.title(
+                            legacySection().deserialize(startTitle),
+                            legacySection().deserialize(startSubtitle),
+                            Title.Times.times(Duration.ofMillis(500), Duration.ofMillis(2000), Duration.ofMillis(1000))));
                         p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
                     }
 

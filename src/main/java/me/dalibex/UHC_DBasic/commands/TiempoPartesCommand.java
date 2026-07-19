@@ -3,7 +3,6 @@ package me.dalibex.UHC_DBasic.commands;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import me.dalibex.UHC_DBasic.managers.GameManager;
-import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -66,12 +65,12 @@ public class TiempoPartesCommand implements CommandExecutor {
             int s = Integer.parseInt(args[2]);
 
             if (h < 0 || m < 0 || s < 0) {
-                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', lang.get("timer.negative-values", player)));
+                sender.sendMessage(lang.get("timer.negative-values", player));
                 return -1;
             }
 
             if (h > 99 || m > 99 || s > 99) {
-                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', lang.get("timer.max-value-limit", player)));
+                sender.sendMessage(lang.get("timer.max-value-limit", player));
                 return -1;
             }
 

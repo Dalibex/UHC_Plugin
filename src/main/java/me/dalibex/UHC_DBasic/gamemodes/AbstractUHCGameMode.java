@@ -1,10 +1,14 @@
 package me.dalibex.UHC_DBasic.gamemodes;
 
-import me.dalibex.UHC_DBasic.UHC_DBasic;
-import me.dalibex.UHC_DBasic.managers.GameManager;
-import me.dalibex.UHC_DBasic.managers.LanguageManager;
-import me.dalibex.UHC_DBasic.managers.TeamManager;
-import org.bukkit.*;
+import java.util.List;
+
+import org.bukkit.Bukkit;
+import org.bukkit.Color;
+import org.bukkit.FireworkEffect;
+import org.bukkit.GameMode;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -14,9 +18,11 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import me.dalibex.UHC_DBasic.UHC_DBasic;
+import me.dalibex.UHC_DBasic.managers.GameManager;
+import me.dalibex.UHC_DBasic.managers.LanguageManager;
+import me.dalibex.UHC_DBasic.managers.TeamManager;
+import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
 /**
  * Clase base abstracta para todos los modos de juego de UHC.
@@ -109,7 +115,7 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
             ItemStack item = new ItemStack(material);
             ItemMeta meta = item.getItemMeta();
             if (meta != null) {
-                meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', lang.get(nombreKey, p)));
+                meta.displayName(lang.getComponent(nombreKey, p));
                 item.setItemMeta(meta);
             }
             p.getInventory().addItem(item);
@@ -125,8 +131,8 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
             ItemStack compass = new ItemStack(Material.COMPASS);
             ItemMeta meta = compass.getItemMeta();
             if (meta != null) {
-                meta.setDisplayName(lang.get("tracking-compass.name", p));
-                meta.setLore(lang.getList("tracking-compass.lore", p));
+                meta.displayName(lang.getComponent("tracking-compass.name", p));
+                meta.lore(lang.getComponentList("tracking-compass.lore", p));
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.LUCK_OF_THE_SEA, 1, true);
                 meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
                 compass.setItemMeta(meta);
@@ -147,7 +153,7 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
                         .getOrDefault(p.getUniqueId(), "???");
                 String rawMsg = lang.get("game-events.skins.identity-changed", p);
                 String mensajePersonalizado = rawMsg.replace("%player%", nombreSkinNueva);
-                p.sendMessage(ChatColor.translateAlternateColorCodes('&', mensajePersonalizado));
+                p.sendMessage(legacySection().deserialize(mensajePersonalizado));
                 p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1f, 1f);
             }
         }
@@ -175,6 +181,7 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
             p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 600, 255));
             new BukkitRunnable() {
                 int count = 0;
+                @Override
                 public void run() {
                     if (count++ >= 10 || !p.isOnline()) { this.cancel(); return; }
                     lanzarCohete(p.getLocation());

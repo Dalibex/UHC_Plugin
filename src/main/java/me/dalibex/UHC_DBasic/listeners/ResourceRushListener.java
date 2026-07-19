@@ -1,11 +1,10 @@
 package me.dalibex.UHC_DBasic.listeners;
 
-import me.dalibex.UHC_DBasic.UHC_DBasic;
-import me.dalibex.UHC_DBasic.gamemodes.ResourceRush;
-import me.dalibex.UHC_DBasic.managers.GameManager;
-import me.dalibex.UHC_DBasic.managers.LanguageManager;
-import org.bukkit.ChatColor;
-import org.bukkit.GameMode;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -17,7 +16,10 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.*;
+import me.dalibex.UHC_DBasic.UHC_DBasic;
+import me.dalibex.UHC_DBasic.gamemodes.ResourceRush;
+import me.dalibex.UHC_DBasic.managers.LanguageManager;
+import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
 public class ResourceRushListener implements Listener {
 
@@ -54,7 +56,7 @@ public class ResourceRushListener implements Listener {
             }
 
             ItemStack cursor = event.getCursor();
-            if (cursor != null && cursor.getType() != Material.AIR) {
+            if (cursor.getType() != Material.AIR) {
                 checkItem(player, cursor.getType());
             }
         }
@@ -102,10 +104,10 @@ public class ResourceRushListener implements Listener {
         List<Material> conseguidos = rr.getLogrosJugador(p);
 
         p.sendMessage("");
-        p.sendMessage(ChatColor.translateAlternateColorCodes('&', lang.get("resource-rush.summary.header", p)));
+        p.sendMessage(legacySection().deserialize(lang.get("resource-rush.summary.header", p)));
 
         if (activos.isEmpty()) {
-            p.sendMessage(ChatColor.translateAlternateColorCodes('&', lang.get("resource-rush.summary.empty", p)));
+            p.sendMessage(legacySection().deserialize(lang.get("resource-rush.summary.empty", p)));
         } else {
             String formatDone = lang.get("resource-rush.summary.item-done", p);
             String formatPending = lang.get("resource-rush.summary.item-pending", p);
@@ -113,11 +115,11 @@ public class ResourceRushListener implements Listener {
             for (Material mat : activos) {
                 String nombreMat = mat.name().replace("_", " ").toLowerCase();
                 String line = conseguidos.contains(mat) ? formatDone : formatPending;
-                p.sendMessage(ChatColor.translateAlternateColorCodes('&', line.replace("%item%", nombreMat)));
+                p.sendMessage(legacySection().deserialize(line.replace("%item%", nombreMat)));
             }
         }
 
-        p.sendMessage(ChatColor.translateAlternateColorCodes('&', lang.get("resource-rush.summary.footer", p)
+        p.sendMessage(legacySection().deserialize(lang.get("resource-rush.summary.footer", p)
                 .replace("%done%", String.valueOf(conseguidos.size()))
                 .replace("%total%", String.valueOf(activos.size()))));
 

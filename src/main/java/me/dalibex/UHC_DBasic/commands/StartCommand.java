@@ -2,15 +2,16 @@ package me.dalibex.UHC_DBasic.commands;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
-import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.HoverEvent;
-import net.md_5.bungee.api.chat.TextComponent;
-import net.md_5.bungee.api.chat.hover.content.Text;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+
+import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
 public class StartCommand implements CommandExecutor {
 
@@ -87,26 +88,22 @@ public class StartCommand implements CommandExecutor {
      */
     private void enviarMenuConfirmacion(Player player, int size) {
         LanguageManager lang = plugin.getLang();
-        TextComponent mensaje = new TextComponent(lang.get("general.prefix", player));
+        Component mensaje = legacySection().deserialize(lang.get("general.prefix", player));
 
-        // BOTÓN SI
-        TextComponent botonSi = new TextComponent(lang.get("start-menu.buttons.confirm.text", player));
-        botonSi.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/confirmarstart " + size));
-        botonSi.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                new Text(lang.get("start-menu.buttons.confirm.hover", player))));
+        Component botonSi = legacySection().deserialize(lang.get("start-menu.buttons.confirm.text", player))
+                .clickEvent(ClickEvent.runCommand("/confirmarstart " + size))
+                .hoverEvent(HoverEvent.showText(legacySection().deserialize(lang.get("start-menu.buttons.confirm.hover", player))));
 
-        // BOTÓN NO
-        TextComponent botonNo = new TextComponent(lang.get("start-menu.buttons.cancel.text", player));
-        botonNo.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/cancelarstart"));
-        botonNo.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                new Text(lang.get("start-menu.buttons.cancel.hover", player))));
+        Component botonNo = legacySection().deserialize(lang.get("start-menu.buttons.cancel.text", player))
+                .clickEvent(ClickEvent.runCommand("/cancelarstart"))
+                .hoverEvent(HoverEvent.showText(legacySection().deserialize(lang.get("start-menu.buttons.cancel.hover", player))));
 
-        mensaje.addExtra(" ");
-        mensaje.addExtra(botonSi);
-        mensaje.addExtra("   ");
-        mensaje.addExtra(botonNo);
+        mensaje = mensaje.append(legacySection().deserialize(" "))
+                .append(botonSi)
+                .append(legacySection().deserialize("   "))
+                .append(botonNo);
 
-        player.spigot().sendMessage(mensaje);
+        player.sendMessage(mensaje);
     }
 
     public void setConfirmacionPendiente(boolean estado) {

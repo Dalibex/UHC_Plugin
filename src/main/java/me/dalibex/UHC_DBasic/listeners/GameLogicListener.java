@@ -1,10 +1,9 @@
 package me.dalibex.UHC_DBasic.listeners;
 
-import me.dalibex.UHC_DBasic.UHC_DBasic;
-import me.dalibex.UHC_DBasic.managers.AdminPanelManager;
-import me.dalibex.UHC_DBasic.managers.GameManager;
-import me.dalibex.UHC_DBasic.managers.LanguageManager;
-import org.bukkit.*;
+import org.bukkit.GameMode;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.block.Skull;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -15,10 +14,17 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
+
+import io.papermc.paper.datacomponent.item.ResolvableProfile;
+import me.dalibex.UHC_DBasic.UHC_DBasic;
+import me.dalibex.UHC_DBasic.managers.AdminPanelManager;
+import me.dalibex.UHC_DBasic.managers.GameManager;
+import me.dalibex.UHC_DBasic.managers.LanguageManager;
+import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
 /**
  * Listener especializado en la lógica visceral del juego.
@@ -36,13 +42,12 @@ public class GameLogicListener implements Listener {
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player muerto = event.getEntity();
         GameManager gm = plugin.getGameManager();
-        LanguageManager lang = plugin.getLang();
 
         muerto.setGameMode(GameMode.SPECTATOR);
         gm.getJugadoresEliminados().add(muerto.getName());
         muerto.getWorld().strikeLightningEffect(muerto.getLocation());
 
-        spawnDeathHead(muerto, lang);
+        spawnDeathHead(muerto);
 
         // Verificar victoria tras un breve delay para permitir el procesamiento del estado
         new BukkitRunnable() {
@@ -51,12 +56,12 @@ public class GameLogicListener implements Listener {
         }.runTaskLater(plugin, 1L);
     }
 
-    private void spawnDeathHead(Player p, LanguageManager lang) {
+    private void spawnDeathHead(Player p) {
         Location loc = p.getLocation();
         loc.getBlock().setType(Material.NETHER_BRICK_FENCE);
         loc.clone().add(0, 1, 0).getBlock().setType(Material.PLAYER_HEAD);
         if (loc.clone().add(0, 1, 0).getBlock().getState() instanceof Skull skull) {
-            skull.setOwningPlayer(p);
+            skull.setProfile(ResolvableProfile.resolvableProfile(p.getPlayerProfile()));
             skull.update();
         }
     }
@@ -112,8 +117,8 @@ public class GameLogicListener implements Listener {
         gm.revelarIdentidad(victim);
         LanguageManager lang = plugin.getLang();
 
-        victim.sendMessage(ChatColor.translateAlternateColorCodes('&', lang.get("game-events.skins.revealed-victim", victim).replace("%player%", attacker.getName())));
-        attacker.sendMessage(ChatColor.translateAlternateColorCodes('&', lang.get("game-events.skins.revealed-attacker", attacker).replace("%player%", victim.getName())));
+        victim.sendMessage(legacySection().deserialize(lang.get("game-events.skins.revealed-victim", victim).replace("%player%", attacker.getName())));
+        attacker.sendMessage(legacySection().deserialize(lang.get("game-events.skins.revealed-attacker", attacker).replace("%player%", victim.getName())));
         victim.getWorld().playSound(victim.getLocation(), Sound.BLOCK_NOTE_BLOCK_BIT, 1.0f, 0.8f);
     }
 
@@ -121,7 +126,8 @@ public class GameLogicListener implements Listener {
     public void onConsume(PlayerItemConsumeEvent event) {
         ItemStack item = event.getItem();
         if (item.getType() == Material.GOLDEN_APPLE && item.hasItemMeta()) {
-            if (item.getItemMeta().getDisplayName().equals(plugin.getLang().get("crafts.golden-head.name", null))) {
+            ItemMeta gMeta = item.getItemMeta();
+            if (gMeta != null && plugin.getLang().getComponent("crafts.golden-head.name", null).equals(gMeta.displayName())) {
                 Player p = event.getPlayer();
                 p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 12 * 20, 1));
                 p.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 300 * 20, 1));

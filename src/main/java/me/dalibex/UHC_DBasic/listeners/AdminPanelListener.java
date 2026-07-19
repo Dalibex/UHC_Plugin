@@ -14,11 +14,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
+
+import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
 import static org.bukkit.GameRules.*;
 
@@ -37,7 +38,7 @@ public class AdminPanelListener implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player p)) return;
 
-        String title = event.getView().getTitle();
+        String title = legacySection().serialize(event.getView().title());
         LanguageManager lang = plugin.getLang();
         AdminPanelManager admin = plugin.getAdminPanel();
         ItemStack item = event.getCurrentItem();

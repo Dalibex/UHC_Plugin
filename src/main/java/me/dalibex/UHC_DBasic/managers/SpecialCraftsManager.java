@@ -1,6 +1,5 @@
 package me.dalibex.UHC_DBasic.managers;
 
-import me.dalibex.UHC_DBasic.UHC_DBasic;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -9,6 +8,8 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
+
+import me.dalibex.UHC_DBasic.UHC_DBasic;
 
 public class SpecialCraftsManager {
 
@@ -30,8 +31,8 @@ public class SpecialCraftsManager {
 
         // Al ser una receta global, usamos null para obtener el idioma por defecto de la config
         if (meta != null) {
-            meta.setDisplayName(lang.get("crafts.golden-head.name", null));
-            meta.setLore(lang.getList("crafts.golden-head.lore", null));
+            meta.displayName(lang.getComponent("crafts.golden-head.name", null));
+            meta.lore(lang.getComponentList("crafts.golden-head.lore", null));
 
             meta.addEnchant(Enchantment.LUCK_OF_THE_SEA, 1, true);
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
