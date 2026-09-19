@@ -8,7 +8,9 @@ import org.bukkit.scoreboard.Team;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
+import me.dalibex.UHC_DBasic.utils.TextUtil;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
 public class ChatManager implements Listener {
@@ -21,13 +23,24 @@ public class ChatManager implements Listener {
 
     @EventHandler
     public void onChat(AsyncChatEvent event) {
-        LanguageManager lang = plugin.getLang();
-        Player p = event.getPlayer();
-        String mensaje = event.getEventName();
-        Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
-        boolean partidaActiva = plugin.getGameManager().isPartidaIniciada();
+        String mensaje = PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
+        if (mensaje.isEmpty()) {
+            event.setCancelled(true);
+            return;
+        }
 
         event.setCancelled(true);
+
+        Player jugador = event.getPlayer();
+        // AsyncChatEvent se dispara en el hilo Netty: todo lo que toque scoreboard o
+        // estado del plugin debe ejecutarse en el hilo principal.
+        Bukkit.getScheduler().runTask(plugin, () -> processMessage(jugador, mensaje));
+    }
+
+    private void processMessage(Player p, String mensaje) {
+        LanguageManager lang = plugin.getLang();
+        Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
+        boolean partidaActiva = plugin.getGameManager().isGameStarted();
 
         // 1. CHAT GLOBAL (Empieza con "!")
         if (mensaje.startsWith("!")) {
@@ -38,7 +51,7 @@ public class ChatManager implements Listener {
                 return;
             }
 
-            enviarMensajeGlobal(p, team, mensajeLimpio, lang, partidaActiva);
+            sendGlobalMessage(p, team, mensajeLimpio, lang, partidaActiva);
             return;
         }
 
@@ -50,11 +63,11 @@ public class ChatManager implements Listener {
             for (String entry : team.getEntries()) {
                 Player member = Bukkit.getPlayer(entry);
                 if (member != null && member.isOnline()) {
-            String formatoTeam = lang.get("chat.format-team", member)
-                    .replace("%team%", legacySection().serialize(team.displayName()))
-                    .replace("%player%", nombreBlanco)
-                    .replace("%msg%", mensaje);
-            member.sendMessage(legacySection().deserialize(formatoTeam));
+                    String formatoTeam = lang.get("chat.format-team", member)
+                            .replace("%team%", legacySection().serialize(team.displayName()))
+                            .replace("%player%", nombreBlanco)
+                            .replace("%msg%", mensaje);
+                    member.sendMessage(TextUtil.deserialize(formatoTeam));
                 }
             }
             Bukkit.getConsoleSender().sendMessage("[TeamChat] " + team.getName() + " - " + p.getName() + ": " + mensaje);
@@ -66,13 +79,13 @@ public class ChatManager implements Listener {
                     .replace("%player%", nombreBlanco)
                     .replace("%msg%", mensaje);
 
-            p.sendMessage(legacySection().deserialize(formatoPrivado));
+            p.sendMessage(TextUtil.deserialize(formatoPrivado));
         }
     }
 
-    private void enviarMensajeGlobal(Player p, Team team, String msg, LanguageManager lang, boolean partidaActiva) {
+    private void sendGlobalMessage(Player p, Team team, String msg, LanguageManager lang, boolean partidaActiva) {
         String tagGlobal = lang.get("chat.global-tag", null);
-        String modoActual = plugin.getGameManager().getModoActual().getName();
+        String modoActual = plugin.getGameManager().getCurrentMode().getName();
 
         String textoAMostrar;
 
@@ -86,13 +99,15 @@ public class ChatManager implements Listener {
             textoAMostrar = p.getName();
         }
 
-        Component formatoFinal = legacySection().deserialize(
-                "&8[&c" + tagGlobal + "&8] &6" + textoAMostrar + "&r: &7" + msg);
+        // TextUtil.deserialize normaliza '&' -> '§' de forma unificada
+        String formatoGlobal = "&8[&c" + tagGlobal + "&8] &6" + textoAMostrar + "&r: &7" + msg;
+        Component formatoFinal = TextUtil.deserialize(formatoGlobal);
 
         for (Player receptor : Bukkit.getOnlinePlayers()) {
             receptor.sendMessage(formatoFinal);
         }
 
-        Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("&7[GlobalChat] [&f" + p.getName() + "&7]: &f" + msg));
+        String consola = "&7[GlobalChat] [&f" + p.getName() + "&7]: &f" + msg;
+        Bukkit.getConsoleSender().sendMessage(TextUtil.deserialize(consola));
     }
 }

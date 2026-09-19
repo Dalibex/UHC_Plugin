@@ -11,12 +11,16 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.UUID;
+
 import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
 public class StartCommand implements CommandExecutor {
 
     private final UHC_DBasic plugin;
     private boolean confirmacionPendiente = false;
+    private UUID confirmadorUuid = null;
+    private int tamanoPendiente = 0;
 
     public StartCommand(UHC_DBasic plugin) {
         this.plugin = plugin;
@@ -31,16 +35,18 @@ public class StartCommand implements CommandExecutor {
             return true;
         }
 
-        if (!player.isOp()) {
+        if (!plugin.isAdmin(player)) {
             player.sendMessage(lang.get("general.no-permission", player));
             return true;
         }
 
-        int size = validarTodo(player, args);
+        int size = validate(player, args);
         if (size == -1) return true;
 
         this.confirmacionPendiente = true;
-        enviarMenuConfirmacion(player, size);
+        this.confirmadorUuid = player.getUniqueId();
+        this.tamanoPendiente = size;
+        sendConfirmationMenu(player, size);
 
         return true;
     }
@@ -49,7 +55,7 @@ public class StartCommand implements CommandExecutor {
      * Valida argumentos, formato numérico, rango mínimo y estado del juego.
      * @return el tamaño (size) si es válido, -1 si falla (enviando mensaje de error).
      */
-    private int validarTodo(Player player, String[] args) {
+    private int validate(Player player, String[] args) {
         LanguageManager lang = plugin.getLang();
         String errorPrefix = lang.get("general.error-prefix", player);
 
@@ -70,7 +76,7 @@ public class StartCommand implements CommandExecutor {
             return -1;
         }
 
-        if (plugin.getGameManager().isPartidaIniciada()) {
+        if (plugin.getGameManager().isGameStarted()) {
             player.sendMessage(errorPrefix + lang.get("game.game-already-started", player));
             return -1;
         }
@@ -86,16 +92,16 @@ public class StartCommand implements CommandExecutor {
     /**
      * Construye y envía el mensaje interactivo con los botones SÍ/NO.
      */
-    private void enviarMenuConfirmacion(Player player, int size) {
+    private void sendConfirmationMenu(Player player, int size) {
         LanguageManager lang = plugin.getLang();
         Component mensaje = legacySection().deserialize(lang.get("general.prefix", player));
 
         Component botonSi = legacySection().deserialize(lang.get("start-menu.buttons.confirm.text", player))
-                .clickEvent(ClickEvent.runCommand("/confirmarstart " + size))
+                .clickEvent(ClickEvent.runCommand("/confirmstart " + size))
                 .hoverEvent(HoverEvent.showText(legacySection().deserialize(lang.get("start-menu.buttons.confirm.hover", player))));
 
         Component botonNo = legacySection().deserialize(lang.get("start-menu.buttons.cancel.text", player))
-                .clickEvent(ClickEvent.runCommand("/cancelarstart"))
+                .clickEvent(ClickEvent.runCommand("/cancelstart"))
                 .hoverEvent(HoverEvent.showText(legacySection().deserialize(lang.get("start-menu.buttons.cancel.hover", player))));
 
         mensaje = mensaje.append(legacySection().deserialize(" "))
@@ -106,11 +112,23 @@ public class StartCommand implements CommandExecutor {
         player.sendMessage(mensaje);
     }
 
-    public void setConfirmacionPendiente(boolean estado) {
+    public void setConfirmationPending(boolean estado) {
         this.confirmacionPendiente = estado;
+        if (!estado) {
+            this.confirmadorUuid = null;
+            this.tamanoPendiente = 0;
+        }
     }
 
-    public boolean getConfirmacionPendiente() {
+    public boolean hasPendingConfirmation() {
         return confirmacionPendiente;
+    }
+
+    public UUID getConfirmerUuid() {
+        return confirmadorUuid;
+    }
+
+    public int getPendingSize() {
+        return tamanoPendiente;
     }
 }

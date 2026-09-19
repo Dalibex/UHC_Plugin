@@ -32,13 +32,13 @@ public class LangCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        String langCode = validarTodo(player, args);
+        String langCode = validate(player, args);
         if (langCode == null) return true;
 
         lang.setPlayerLanguage(player, langCode);
 
         if (player.getScoreboard().getObjective(DisplaySlot.SIDEBAR) != null) {
-            plugin.getGameManager().getModoActual().updateScoreboard(player, "00:00", "00:00", false);
+            plugin.getGameManager().getCurrentMode().updateScoreboard(player, "00:00", "00:00", false);
         }
 
         String prefix = lang.get("general.prefix", player);
@@ -53,7 +53,7 @@ public class LangCommand implements CommandExecutor, TabCompleter {
      * Valida argumentos, estado del juego y disponibilidad del idioma.
      * @return El código del idioma si es válido, null si falla.
      */
-    private String validarTodo(Player player, String[] args) {
+    private String validate(Player player, String[] args) {
         LanguageManager lang = plugin.getLang();
         String errorPrefix = lang.get("general.error-prefix", player);
 
@@ -62,7 +62,7 @@ public class LangCommand implements CommandExecutor, TabCompleter {
             return null;
         }
 
-        if (plugin.getGameManager().getTiempoTotalSegundos() > 0) {
+        if (plugin.getGameManager().getTotalSeconds() > 0) {
             player.sendMessage(lang.get("lang.already-started", player).replace("%error-prefix%", errorPrefix));
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
             return null;

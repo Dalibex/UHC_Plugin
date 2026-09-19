@@ -8,12 +8,12 @@ import org.jetbrains.annotations.NotNull;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 
-public class CancelarStartCommand implements CommandExecutor {
+public class CancelStartCommand implements CommandExecutor {
 
     private final UHC_DBasic plugin;
     private final StartCommand startCommand;
 
-    public CancelarStartCommand(UHC_DBasic plugin, StartCommand startCommand) {
+    public CancelStartCommand(UHC_DBasic plugin, StartCommand startCommand) {
         this.plugin = plugin;
         this.startCommand = startCommand;
     }
@@ -21,18 +21,18 @@ public class CancelarStartCommand implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!(sender instanceof Player player)) return true;
-        if (!player.isOp()) return true;
+        if (!plugin.isAdmin(player)) return true;
 
-        if (plugin.getGameManager().isPartidaIniciada()) {
+        if (plugin.getGameManager().isGameStarted()) {
             return true;
         }
 
-        if (!startCommand.getConfirmacionPendiente()) {
+        if (!startCommand.hasPendingConfirmation()) {
             return true;
         }
 
-        startCommand.setConfirmacionPendiente(false);
-        plugin.getGameManager().setPartidaIniciada(false);
+        startCommand.setConfirmationPending(false);
+        plugin.getGameManager().setGameStarted(false);
 
         player.sendMessage(plugin.getLang().get("start-menu.cancelled", player));
 

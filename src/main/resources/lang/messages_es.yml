@@ -5,6 +5,8 @@ general:
   no-permission: "&cEste comando es solo para administradores."
   only-players: "&cEste comando es solo para jugadores."
   inv-full: "&c¡Inventario lleno! El objeto ha caído al suelo."
+  update-available: "&6[UHC] &a¡Hay una nueva versión disponible! (&e%latest%&7 — tu versión: &f%current%&7)"
+  update-download: "&eDescárgala en: &b%url%"
 
 # Comandos de inicio y confirmación, juego
 game:
@@ -30,10 +32,16 @@ game:
   time-button-name-plural: "%prefix%%amount% Minutos"
   border-button-name: "%prefix%%amount% Bloques"
   assign-team-disabled: "&cEquipos personalizados no está activado."
-  assign-team-usage: "&cUso: /asignarequipo <jugador> <color>"
+  assign-team-usage: "&cUsage: /assignteam <player> <color>"
   assign-team-player-not-found: "&cJugador %player% no encontrado."
   assign-team-not-found: "&cEquipo %team% no encontrado."
   assign-team-success: "&aHas asignado a %player% al equipo %team%."
+  abandon-game-not-started: "&cNo puedes abandonar si la partida no ha comenzado."
+  abandon-not-participant: "&cEl jugador %player% no participa en la partida."
+  abandon-already: "&cEl jugador %player% ya está eliminado."
+  abandon-self: "&cHas abandonado la partida. Pasas a espectador."
+  abandon-admin-set: "&aHas marcado a %player% como abandonado."
+  abandon-broadcast: "&8[&eUHC&8] &c%player% &7ha abandonado la partida."
 
 # Texto mostrado al enseñar la lista de comandos
 help:
@@ -49,18 +57,20 @@ help:
     - ""
     - "&e/uhcadmin &7- &fAbre panel de administrador."
     - ""
-    - "&e/nequipo <nombre> &7- &fRenombra o crea el nombre de tu equipo."
+    - "&e/team <name> &7- &fRenombra o crea el nombre de tu equipo."
     - ""
-    - "&e/tpartes <H> <M> <S> &7- &fAjusta el tiempo de las partes manualmente."
+    - "&e/settime <H> <M> <S> &7- &fAjusta el tiempo de las partes manualmente."
     - ""
-    - "&e/asignarequipo <jugador> <color> &7- &fAsigna jugadores a equipos."
+    - "&e/assignteam <player> <team> &7- &fAsigna jugadores a equipos."
+    - ""
+    - "&e/abandon &7- &fTe marcas como eliminado de la partida en curso (o como admin a otro jugador)."
     - ""
     - "&e/lang <idioma> &7- &fCambia el idioma."
     - ""
 
 # Crear y renombrar equipos
 teams:
-  name-required: "&c¡Debes escribir un nombre! /nequipo <nombre>"
+  name-required: "&c¡Debes escribir un nombre! /team <nombre>"
   no-team: "&cNo puedes renombrar un equipo si no estás en uno."
   rename-success: "&a¡El nombre de tu equipo ahora es: &e%name%&a!"
   prefix-format: "&f[%color%%name%&f] "
@@ -92,6 +102,7 @@ start-menu:
   usage: "%error-prefix%§fUso correcto: /start <tamaño>"
   already-starting: "%error-prefix% §fYa hay una confirmación pendiente o el juego está iniciando."
   cancelled: "§6§l[!] §fAcción cancelada. Usa §e/start [tamaño] §fcuando estés listo"
+  not-initiator: "&cSolo el administrador que inició el /start puede confirmar la acción."
   buttons:
     confirm:
       text: "&a[EMPEZAR UHC]"
@@ -103,9 +114,9 @@ start-menu:
 # Sección de game
 timer:
   usage:
-    - "&c&lERROR > &fUso correcto: /tpartes <horas> <minutos> <segundos>"
-    - "&7Ejemplo para 10 seg: &f/tpartes 0 0 10"
-    - "&7Ejemplo para 20 min: &f/tpartes 0 20 0"
+    - "&c&lERROR > &fCorrect usage: /settime <hours> <minutes> <seconds>"
+    - "&7Example for 10 secs: &f/settime 0 0 10"
+    - "&7Example for 20 mins: &f/settime 0 20 0"
   already-started: "&cLa partida ya ha comenzado, no puedes cambiar esto ahora."
   invalid-number: "&cDebes introducir números enteros."
   negative-values: "&cLos valores no pueden ser negativos"
@@ -160,6 +171,7 @@ menus:
       lore: ["&7Haz click para ver y editar", "&7las reglas del servidor."]
     gamemode-item:
       name: "&bSelector de Modo de Juego"
+      name-locked: "&7&mSelector de Modo de Juego"
       lore:
         - "&7Elige la experiencia de este UHC."
         - ""
@@ -245,6 +257,7 @@ menus:
   barrier:
     title: "&8⚖ Ajustar tamaño de barrera"
     min-size-error: "§cEl tamaño mínimo de la barrera es de 20 bloques."
+    min-size-lore: "&7Tamaño mínimo: &f20 &7bloques."
     current-size:
       name: "&bTamaño Actual"
       lore: "&fEl borde mide: &6%size%x%size%"
@@ -257,7 +270,7 @@ menus:
       lore:
         - "&fDuración actual: &b%time%"
         - ""
-        - "&7Puedes usar &f/tpartes H M S"
+        - "&7Puedes usar &f/settime H M S"
         - "&7para un ajuste preciso."
     change-lore: "&7Cambia la duración en &f%amount% &7minutos por parte."
     pause: "&7⏸ Pausar Partida"
@@ -353,7 +366,7 @@ scoreboard:
   pvp-pact: "&ePacto de caballeros "
   pvp-active: "&cACTIVO ⚔ "
   team-label: " &b🛡 &fEquipo: %color%%name%"
-  team-rename-warn: " &c⚠ &7Usa /nequipo"
+  team-rename-warn: " &c⚠ &7Usa /team"
   team-assigning: " &d👥 &7Asignando..."
   team-mates-label: " &d👥 &fEquipo: %color%%name%"
   mate-offline: " &7[OFF]"

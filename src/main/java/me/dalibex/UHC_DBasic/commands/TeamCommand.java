@@ -7,11 +7,11 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-public class NEquipoCommand implements CommandExecutor {
+public class TeamCommand implements CommandExecutor {
 
     private final UHC_DBasic plugin;
 
-    public NEquipoCommand(UHC_DBasic plugin) {
+    public TeamCommand(UHC_DBasic plugin) {
         this.plugin = plugin;
     }
 
@@ -25,7 +25,7 @@ public class NEquipoCommand implements CommandExecutor {
         }
 
         String nombre = String.join(" ", args);
-        boolean exito = plugin.getTeamManager().renombrarEquipo(p, nombre);
+        boolean exito = plugin.getTeamManager().renameTeam(p, nombre);
 
         if (!exito) {
             p.sendMessage(plugin.getLang().get("teams.no-team", p));

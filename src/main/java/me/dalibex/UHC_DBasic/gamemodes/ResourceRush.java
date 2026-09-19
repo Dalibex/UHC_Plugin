@@ -33,6 +33,7 @@ import me.dalibex.UHC_DBasic.managers.GameManager;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import me.dalibex.UHC_DBasic.managers.TeamManager;
 import me.dalibex.UHC_DBasic.utils.ScoreboardHelper;
+import me.dalibex.UHC_DBasic.utils.TextUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -51,10 +52,10 @@ public class ResourceRush extends AbstractUHCGameMode {
 
     public ResourceRush(UHC_DBasic plugin, GameManager gm) {
         super(plugin, gm);
-        inicializarPool();
+        initializePool();
     }
 
-    private void inicializarPool() {
+    private void initializePool() {
         poolsPorCapitulo.clear();
         objetivosActivos.clear();
         progresoGlobal.clear();
@@ -86,7 +87,7 @@ public class ResourceRush extends AbstractUHCGameMode {
         // Activación de primeros objetivos con delay inicial
         if (cronometroSegundos == 1) {
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                if (gm.getTiempoTotalSegundos() > 0) actualizarObjetivosActivos(1);
+                if (gm.getTotalSeconds() > 0) updateActiveObjectives(1);
             }, 100L); 
         }
     }
@@ -97,7 +98,7 @@ public class ResourceRush extends AbstractUHCGameMode {
         TeamManager tm = plugin.getTeamManager();
 
         // Notificación de nuevo capítulo y actualización de objetivos
-        Bukkit.getScheduler().runTaskLater(plugin, () -> actualizarObjetivosActivos(nuevoCap), 100L);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> updateActiveObjectives(nuevoCap), 100L);
 
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.sendMessage(lang.get("game-events.chapter-start", p)
@@ -106,19 +107,19 @@ public class ResourceRush extends AbstractUHCGameMode {
             p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
         }
 
-        ejecutarRotacionDeSkins();
+        runSkinRotation();
 
         // Shulker 2
         if (nuevoCap == 8 && plugin.getAdminPanel().isShulkerTwoEnabled()) {
-            entregarObjetoGlobal("items.shulker.name", Material.LIGHT_BLUE_SHULKER_BOX);
+            giveGlobalItem("items.shulker.name", Material.LIGHT_BLUE_SHULKER_BOX);
         }
 
         // Formación de Equipos Aleatorios (Ep 3)
-        if (tm.getTeamSize() > 1 && !equiposFormados && !tm.isCustomTeamsEnabled() && nuevoCap == 3) {
+        if (tm.getTeamSize() > 1 && !teamsFormed && !tm.isCustomTeamsEnabled() && nuevoCap == 3) {
             tm.shuffleTeams();
-            sincronizarEquiposResourceRush();
-            entregarBrujulasDeSeguimiento(lang);
-            equiposFormados = true;
+            syncResourceRushTeams();
+            giveTrackingCompasses(lang);
+            teamsFormed = true;
             for (Player p : Bukkit.getOnlinePlayers()) {
                 p.sendMessage(lang.get("game-events.teams-formed", p));
                 p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, 1f, 1f);
@@ -135,8 +136,8 @@ public class ResourceRush extends AbstractUHCGameMode {
         }
     }
 
-    private void actualizarObjetivosActivos(int capitulo) {
-        if (gm.getTiempoTotalSegundos() <= 0) return;
+    private void updateActiveObjectives(int capitulo) {
+        if (gm.getTotalSeconds() <= 0) return;
 
         int aAñadir = (capitulo <= 3) ? 2 : (capitulo <= 9) ? 1 : 0;
         if (aAñadir == 0) return;
@@ -150,12 +151,12 @@ public class ResourceRush extends AbstractUHCGameMode {
             if (!objetivosActivos.contains(mat)) {
                 objetivosActivos.add(mat);
                 añadidos++;
-                enviarAnuncioObjetivo(mat);
+                announceObjective(mat);
             }
         }
     }
 
-    private void enviarAnuncioObjetivo(Material mat) {
+    private void announceObjective(Material mat) {
         LanguageManager lang = plugin.getLang();
         String translationKey = (mat.isBlock() ? "block.minecraft." : "item.minecraft.") + mat.name().toLowerCase();
 
@@ -188,20 +189,19 @@ public class ResourceRush extends AbstractUHCGameMode {
             player.setScoreboard(board);
         }
 
-        Objective obj = board.getObjective("uhc");
-        if (obj != null) obj.unregister();
-        obj = board.registerNewObjective("uhc", Criteria.DUMMY, lang.getComponent("scoreboard.title", player));
-        obj.setDisplaySlot(DisplaySlot.SIDEBAR);
-        obj.numberFormat(NumberFormat.blank());
+        Objective obj = getOrCreateSidebar(board, player, lang);
+        clearStaleSidebarKeys(obj, player);
+        List<String> keys = new ArrayList<>();
 
         if (!partidaActiva) {
-            renderLobbyScores(obj, player, lang);
+            ScoreboardHelper.addLobbyScores(obj, keys, getName(), player, lang);
         } else {
             AtomicInteger next = new AtomicInteger(35);
-            ScoreboardHelper.addPhaseInfo(obj, next, player, lang, gm);
-            ScoreboardHelper.addTeamInfo(obj, next, player, lang, plugin.getTeamManager(), gm);
-            
+            ScoreboardHelper.addPhaseInfo(obj, next, keys, player, lang, gm);
+            ScoreboardHelper.addTeamInfo(obj, next, keys, player, lang, plugin.getTeamManager(), gm);
+
             // Sección específica de logros de Resource Rush
+            keys.add("§8 ");
             obj.getScore("§8 ").setScore(next.getAndDecrement());
             Team team = board.getEntryTeam(player.getName());
             String clave = (team != null) ? team.getName() : player.getName();
@@ -209,28 +209,23 @@ public class ResourceRush extends AbstractUHCGameMode {
             String counter = lang.get("scoreboard-rr.rr-counter", player)
                     .replace("%done%", String.valueOf(realizados))
                     .replace("%total%", String.valueOf(objetivosActivos.size()));
+            keys.add(counter);
             obj.getScore(counter).setScore(next.getAndDecrement());
 
-            ScoreboardHelper.addTimers(obj, next, tiempo, tiempoTotal, player, lang, gm);
+            ScoreboardHelper.addTimers(obj, next, keys, tiempo, tiempoTotal, player, lang, gm);
         }
-    }
 
-    private void renderLobbyScores(Objective obj, Player player, LanguageManager lang) {
-        obj.getScore("§1 ").setScore(7);
-        obj.getScore(lang.get("scoreboard.mode-label", player).replace("%mode%", getName())).setScore(6);
-        obj.getScore("§2 ").setScore(5);
-        obj.getScore(lang.get("scoreboard.waiting", player)).setScore(4);
-        obj.getScore("§3 ").setScore(3);
-        obj.getScore(lang.get("scoreboard.players", player).replace("%online%", String.valueOf(Bukkit.getOnlinePlayers().size()))).setScore(2);
-        obj.getScore("§4 ").setScore(1);
+        storeSidebarKeys(player, keys);
     }
 
     @Override
     public void checkVictory() {
-        if (!gm.isPartidaIniciada() || gm.getTiempoTotalSegundos() <= 0 || terminando) return;
+        if (!gm.isGameStarted() || gm.getTotalSeconds() <= 0 || terminando) return;
+
+        Set<String> eliminados = gm.getEliminatedPlayers();
 
         List<Player> vivos = Bukkit.getOnlinePlayers().stream()
-                .filter(p -> p.getGameMode() == GameMode.SURVIVAL && !gm.getJugadoresEliminados().contains(p.getName()))
+                .filter(p -> p.getGameMode() == GameMode.SURVIVAL && !eliminados.contains(p.getName()))
                 .collect(Collectors.toList());
 
         Set<String> entidadesVivas = vivos.stream()
@@ -239,24 +234,35 @@ public class ResourceRush extends AbstractUHCGameMode {
                     return (t != null) ? t.getName() : p.getName();
                 }).collect(Collectors.toSet());
 
+        // Un participante que se desconectó y sigue vivo (sin haber terminado)
+        // mantiene la partida abierta hasta que vuelva o sea marcado como
+        // abandonado por un administrador.
+        for (String nombre : gm.getInitialParticipants()) {
+            if (eliminados.contains(nombre)) continue;
+            if (Bukkit.getPlayer(nombre) != null) continue;
+            Team t = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(nombre);
+            String clave = (t != null) ? t.getName() : nombre;
+            if (!podioFinal.contains(clave)) entidadesVivas.add(clave);
+        }
+
         long equiposSinTerminar = entidadesVivas.stream()
                 .filter(clave -> !podioFinal.contains(clave))
                 .count();
 
         if (entidadesVivas.isEmpty()) {
-            finalizarConPodio(); // Nadie vivo
+            finishWithPodium(); // Nadie vivo
         } else if (equiposSinTerminar == 0) {
-            finalizarConPodio(); // Todos los vivos han terminado
+            finishWithPodium(); // Todos los vivos han terminado
         }
     }
 
-    private void finalizarConPodio() {
+    private void finishWithPodium() {
         if (terminando) return;
         terminando = true;
 
         LanguageManager lang = plugin.getLang();
-        gm.detenerPartidaTask();
-        gm.setPartidaIniciada(false);
+        gm.stopGameTask();
+        gm.setGameStarted(false);
 
         if (podioFinal.isEmpty()) {
             Bukkit.broadcast(legacySection().deserialize(lang.get("victory.no-survivors", null)));
@@ -273,11 +279,11 @@ public class ResourceRush extends AbstractUHCGameMode {
             Bukkit.broadcast(legacySection().deserialize(lang.get("resource-rush.podio-footer", null)));
 
             Team ganador = Bukkit.getScoreboardManager().getMainScoreboard().getTeam(podioFinal.get(0));
-            ejecutarEfectosFinales(ganador);
+            applyFinalEffects(ganador);
         }
     }
 
-    public void completarObjetivo(Player p, Material mat) {
+    public void completeObjective(Player p, Material mat) {
         if (!objetivosActivos.contains(mat)) return;
         
         Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
@@ -286,7 +292,7 @@ public class ResourceRush extends AbstractUHCGameMode {
 
         if (!logros.contains(mat)) {
             logros.add(mat);
-            anunciarLogro(p, team, mat, logros.size());
+            announceAchievement(p, team, mat, logros.size());
 
             if (logros.size() >= 12 && !podioFinal.contains(clave)) {
                 podioFinal.add(clave);
@@ -295,11 +301,11 @@ public class ResourceRush extends AbstractUHCGameMode {
         }
     }
 
-    private void anunciarLogro(Player p, Team team, Material mat, int done) {
+    private void announceAchievement(Player p, Team team, Material mat, int done) {
         LanguageManager lang = plugin.getLang();
         String teamName = (team != null) ? legacySection().serialize(team.displayName()) : "§f";
         String name = (team != null) ? teamName + "§8[§f" + p.getName() + "§8]" : p.getName();
-        String color = (team != null) ? legacySection().serialize(Component.text("·").color(team.color())).replace("·", "") : "§f";
+        String color = (team != null) ? TextUtil.legacyColor(team.color()) : "§f";
         String itemName = mat.name().replace("_", " ").toLowerCase();
 
         String raw = lang.get("resource-rush.objective-global", null);
@@ -315,7 +321,7 @@ public class ResourceRush extends AbstractUHCGameMode {
 
     private void handleTeamFinish(Player p, Team team) {
         LanguageManager lang = plugin.getLang();
-        String color = (team != null) ? legacySection().serialize(Component.text("·").color(team.color())).replace("·", "") : "§f";
+        String color = (team != null) ? TextUtil.legacyColor(team.color()) : "§f";
         String nombre = (team != null) ? legacySection().serialize(team.displayName()) : p.getName();
 
         Bukkit.broadcast(legacySection().deserialize(lang.get("resource-rush.team-finished", null)
@@ -341,19 +347,19 @@ public class ResourceRush extends AbstractUHCGameMode {
         checkVictory();
     }
 
-    private void ejecutarEfectosFinales(Team ganador) {
+    private void applyFinalEffects(Team ganador) {
         if (ganador == null) return;
         LanguageManager lang = plugin.getLang();
         List<Player> winners = new ArrayList<>();
         for (String entry : ganador.getEntries()) {
             Player p = Bukkit.getPlayer(entry);
-            if (p != null && !gm.getJugadoresEliminados().contains(entry)) {
+            if (p != null && !gm.getEliminatedPlayers().contains(entry)) {
                 winners.add(p);
                 p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 600, 255));
             }
         }
         
-        String color = legacySection().serialize(Component.text("·").color(ganador.color())).replace("·", "");
+        String color = TextUtil.legacyColor(ganador.color());
         String teamName = legacySection().serialize(ganador.displayName());
         
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -365,10 +371,10 @@ public class ResourceRush extends AbstractUHCGameMode {
                         Title.Times.times(Duration.ofMillis(500), Duration.ofMillis(5000), Duration.ofMillis(1000))));
             p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
         }
-        aplicarEfectosVictoria(winners);
+        applyVictoryEffects(winners);
     }
 
-    private void sincronizarEquiposResourceRush() {
+    private void syncResourceRushTeams() {
         for (Player p : Bukkit.getOnlinePlayers()) {
             Team t = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
             if (t != null && progresoGlobal.containsKey(p.getName())) {
@@ -388,13 +394,13 @@ public class ResourceRush extends AbstractUHCGameMode {
         this.objetivosActivos.clear();
         this.terminando = false;
         Bukkit.getOnlinePlayers().forEach(p -> p.playerListName(Component.text(p.getName())));
-        inicializarPool();
+        initializePool();
     }
 
-    public List<Material> getLogrosJugador(Player p) {
+    public List<Material> getPlayerAchievements(Player p) {
         Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
         return progresoGlobal.getOrDefault((team != null) ? team.getName() : p.getName(), new ArrayList<>());
     }
 
-    public List<Material> getObjetivosActivos() { return objetivosActivos; }
+    public List<Material> getActiveObjectives() { return objetivosActivos; }
 }

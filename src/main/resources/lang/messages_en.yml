@@ -5,6 +5,8 @@ general:
   no-permission: "&cThis command is for administrators only."
   only-players: "&cThis command is for players only."
   inv-full: "&cInventory full! The item has dropped at your feet."
+  update-available: "&6[UHC] &aThere's a new version available! (&e%latest%&7 — your version: &f%current%&7)"
+  update-download: "&eDownload it at: &b%url%"
 
 # Game, start and confirmation commands
 game:
@@ -30,10 +32,16 @@ game:
   time-button-name-plural: "%prefix%%amount% Minutes"
   border-button-name: "%prefix%%amount% Blocks"
   assign-team-disabled: "&cCustom teams is not enabled."
-  assign-team-usage: "&cUsage: /asignarequipo <player> <color>"
+  assign-team-usage: "&cUsage: /assignteam <player> <color>"
   assign-team-player-not-found: "&cPlayer %player% not found."
   assign-team-not-found: "&cTeam %team% not found."
   assign-team-success: "&aYou have assigned %player% to team %team%."
+  abandon-game-not-started: "&cYou cannot abandon if the game has not started."
+  abandon-not-participant: "&cPlayer %player% is not participating in the game."
+  abandon-already: "&cPlayer %player% is already eliminated."
+  abandon-self: "&cYou abandoned the game. You are now a spectator."
+  abandon-admin-set: "&aYou have marked %player% as abandoned."
+  abandon-broadcast: "&8[&eUHC&8] &c%player% &7has abandoned the game."
 
 # Text shown in the command help list
 help:
@@ -49,18 +57,20 @@ help:
     - ""
     - "&e/uhcadmin &7- &fOpens the administrator panel."
     - ""
-    - "&e/nequipo <name> &7- &fRename or set your team name."
+    - "&e/team <name> &7- &fRename or set your team name."
     - ""
-    - "&e/tpartes <H> <M> <S> &7- &fManually adjust part durations."
+    - "&e/settime <H> <M> <S> &7- &fManually adjust part durations."
     - ""
-    - "&e/asignarequipo <player> <color> &7- &fAssign players to teams."
+    - "&e/assignteam <player> <team> &7- &fAssign players to teams."
+    - ""
+    - "&e/abandon &7- &fMarks yourself as eliminated from the running game (or another player as admin)."
     - ""
     - "&e/lang <language> &7- &fChange language."
     - ""
 
 # Team creation and renaming
 teams:
-  name-required: "&cYou must enter a name! /nequipo <name>"
+  name-required: "&cYou must enter a name! /team <name>"
   no-team: "&cYou cannot rename a team if you are not in one."
   rename-success: "&aYour team name is now: &e%name%&a!"
   prefix-format: "&f[%color%%name%&f] "
@@ -91,6 +101,7 @@ start-menu:
   usage: "%error-prefix%§fCorrect usage: /start <size>"
   already-starting: "%error-prefix% §fA confirmation is already pending or the game is starting."
   cancelled: "§6§l[!] §fAction cancelled. Use §e/start [size] §fwhen you are ready"
+  not-initiator: "&cOnly the administrator who started the /start command can confirm this action."
   buttons:
     confirm:
       text: "&a[START UHC]"
@@ -102,9 +113,9 @@ start-menu:
 # Game timer section
 timer:
   usage:
-    - "&c&lERROR > &fCorrect usage: /tpartes <hours> <minutes> <seconds>"
-    - "&7Example for 10 sec: &f/tpartes 0 0 10"
-    - "&7Example for 20 min: &f/tpartes 0 20 0"
+    - "&c&lERROR > &fCorrect usage: /settime <hours> <minutes> <seconds>"
+    - "&7Example for 10 sec: &f/settime 0 0 10"
+    - "&7Example for 20 min: &f/settime 0 20 0"
   already-started: "&fThe game has already started, you cannot change this now."
   invalid-number: "&cYou must enter whole numbers."
   negative-values: "&cValues cannot be negative"
@@ -160,6 +171,7 @@ menus:
       lore: ["&7Click to view and edit", "&7server rules."]
     gamemode-item:
       name: "&bGamemode Selector"
+      name-locked: "&7&mGamemode Selector"
       lore:
         - "&7Choose the experience for this UHC."
         - ""
@@ -245,6 +257,7 @@ menus:
   barrier:
     title: "&8⚖ Adjust Border Size"
     min-size-error: "§cThe minimum border size is 20 blocks."
+    min-size-lore: "&7Minimum size: &f20 &7blocks."
     current-size:
       name: "&bCurrent Size"
       lore: "&fThe border is: &6%size%x%size%"
@@ -257,7 +270,7 @@ menus:
       lore:
         - "&fCurrent duration: &b%time%"
         - ""
-        - "&7You can use &f/tpartes H M S"
+        - "&7You can use &f/settime H M S"
         - "&7for precise adjustment."
     change-lore: "&7Change duration by &f%amount% &7minutes per part."
     pause: "&7⏸ Pause Game"
@@ -353,7 +366,7 @@ scoreboard:
   pvp-pact: "&eGentleman's pact "
   pvp-active: "&cACTIVE ⚔ "
   team-label: " &b🛡 &fTeam: %color%%name%"
-  team-rename-warn: " &c⚠ &7Use /nequipo"
+  team-rename-warn: " &c⚠ &7Use /team"
   team-assigning: " &d👥 &7Assigning..."
   team-mates-label: " &d👥 &fTeam: %color%%name%"
   mate-offline: " &7[OFF]"

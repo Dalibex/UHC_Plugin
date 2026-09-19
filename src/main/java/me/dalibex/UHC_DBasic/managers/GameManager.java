@@ -30,8 +30,11 @@ import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
+import me.dalibex.UHC_DBasic.gamemodes.AbstractUHCGameMode;
 import me.dalibex.UHC_DBasic.gamemodes.Classic;
 import me.dalibex.UHC_DBasic.gamemodes.UHCGameMode;
+import me.dalibex.UHC_DBasic.utils.ScoreboardHelper;
+import me.dalibex.UHC_DBasic.utils.TimeUtil;
 import me.neznamy.tab.api.TabAPI;
 import me.neznamy.tab.api.nametag.NameTagManager;
 import me.neznamy.tab.api.tablist.TabListFormatManager;
@@ -57,8 +60,7 @@ public class GameManager {
     private int segundosPorCapitulo = 20 * 60;
 
     private BukkitTask partidaTask;
-    private boolean partidaIniciada = false;
-    private boolean pausado = false;
+    private GamePhase phase = GamePhase.LOBBY;
     private final Set<String> jugadoresEliminados = new HashSet<>();
     private final List<String> participantesIniciales = new ArrayList<>();
 
@@ -73,31 +75,30 @@ public class GameManager {
         this.skinsApi = SkinsRestorerProvider.get();
     }
 
-    public void iniciarPartida() {
+    public void startGame() {
         if (partidaTask != null) return;
 
         // Limpiar ítems de selector de equipo personalizados
         TeamManager tm = plugin.getTeamManager();
         tm.removeAllSelectorItems();
 
-        this.partidaIniciada = true;
+        this.phase = GamePhase.RUNNING;
         this.cronometroSegundos = 0;
         this.tiempoTotalSegundos = 0;
         this.capitulo = 1;
-        this.pausado = false;
         this.jugadoresEliminados.clear();
 
         this.modoActual.onReset();
 
-        registrarParticipantes();
+        registerParticipants();
 
         // 1. Rotar identidades Sincrónicamente antes de empezar
-        rotarSkins();
+        rotateSkins();
 
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.playerListName(Component.text(p.getName()));
             p.damage(0.01);
-            actualizarIdentidadVisual(p);
+            updateVisualIdentity(p);
 
             if (p.getGameMode() == GameMode.SURVIVAL) {
                 String nombreSkinNueva = ultimaSkinAsignada.getOrDefault(p.getUniqueId(), p.getName());
@@ -121,7 +122,7 @@ public class GameManager {
         partidaTask = new BukkitRunnable() {
             @Override
             public void run() {
-                if (pausado) return;
+                if (phase == GamePhase.PAUSED) return;
 
                 cronometroSegundos++;
                 tiempoTotalSegundos++;
@@ -130,8 +131,8 @@ public class GameManager {
                 modoActual.onTick(cronometroSegundos, tiempoTotalSegundos);
 
                 int restante = segundosPorCapitulo - (cronometroSegundos % segundosPorCapitulo);
-                String fRestante = formatTime(restante);
-                String fTotal = formatTime(tiempoTotalSegundos);
+                String fRestante = TimeUtil.formatClock(restante);
+                String fTotal = TimeUtil.formatClock(tiempoTotalSegundos);
 
                 // DELEGACIÓN SCOREBOARDS
                 for (Player p : Bukkit.getOnlinePlayers()) {
@@ -148,12 +149,11 @@ public class GameManager {
     }
 
     public void fullReset() {
-        detenerPartidaTask();
+        stopGameTask();
         this.cronometroSegundos = 0;
         this.tiempoTotalSegundos = 0;
         this.capitulo = 0;
-        this.partidaIniciada = false;
-        this.pausado = false;
+        this.phase = GamePhase.LOBBY;
 
         this.modoActual.onReset();
         this.jugadoresEliminados.clear();
@@ -190,19 +190,26 @@ public class GameManager {
 
         // 3. Resetear Managers
         TeamManager tm = plugin.getTeamManager();
-        tm.borrarTodosLosEquipos();
+        tm.deleteAllTeams();
         if (tm.isCustomTeamsEnabled()) {
             tm.initializeCustomTeams();
         }
         Scoreboard managerBoard = Bukkit.getScoreboardManager().getMainScoreboard();
-        Objective uhcObjective = managerBoard.getObjective("uhc");
+        Objective uhcObjective = managerBoard.getObjective(ScoreboardHelper.SIDEBAR_OBJECTIVE);
         if (uhcObjective != null) uhcObjective.unregister();
-        Objective vidaTabObjective = managerBoard.getObjective("vida_tab");
+        Objective vidaTabObjective = managerBoard.getObjective(ScoreboardHelper.HEALTH_OBJECTIVE);
         if (vidaTabObjective != null) vidaTabObjective.unregister();
 
         for (Team team : new HashSet<>(managerBoard.getTeams())) {
-            if (team.getName().startsWith("h_")) team.unregister();
+            if (team.getName().startsWith(ScoreboardHelper.TEAM_PREFIX)) team.unregister();
         }
+    }
+
+    private World getMainWorld() {
+        return Bukkit.getWorlds().stream()
+                .filter(w -> w.getEnvironment() == World.Environment.NORMAL)
+                .findFirst()
+                .orElse(Bukkit.getWorlds().get(0));
     }
 
     public void applyLobbySettings(Player p) {
@@ -223,13 +230,14 @@ public class GameManager {
         p.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.RESISTANCE, Integer.MAX_VALUE, 255, false, false, false));
         p.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.REGENERATION, 200, 255, false, false, false));
 
-        // Teletransporte al centro del spawn si la partida no ha comenzado
-        World world = p.getWorld();
+        // Teletransporte al centro del spawn del mundo principal (overworld),
+        // incluso si el jugador está en otra dimensión (nether/end)
+        World world = getMainWorld();
         int y = world.getHighestBlockYAt(0, 0);
         Location spawnLoc = new Location(world, 0.5, Math.max(y, 60) + 1, 0.5);
         p.teleport(spawnLoc);
         
-        revelarIdentidad(p);
+        revealIdentity(p);
         if (modoActual != null) {
             modoActual.updateScoreboard(p, "00:00", "00:00", false);
         }
@@ -241,29 +249,14 @@ public class GameManager {
         }
     }
 
-    public void setStandBy() {
-        fullReset();
-    }
-
-    public void detenerPartidaTask() {
+    public void stopGameTask() {
         if (this.partidaTask != null) {
             this.partidaTask.cancel();
             this.partidaTask = null;
         }
     }
 
-    public void limpiarEquiposScoreboard() {
-        Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
-        for (Team team : board.getTeams()) {
-            team.unregister();
-        }
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            p.setScoreboard(Bukkit.getScoreboardManager().getNewScoreboard());
-            p.playerListName(Component.text(p.getName()));
-        }
-    }
-
-    public void registrarParticipantes() {
+    public void registerParticipants() {
         participantesIniciales.clear();
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (p.getGameMode() == GameMode.SURVIVAL || p.getGameMode() == GameMode.ADVENTURE) {
@@ -272,8 +265,15 @@ public class GameManager {
         }
     }
 
+    /**
+     * Único punto de mutación externa de la lista de eliminados.
+     */
+    public void eliminatePlayer(String nombre) {
+        jugadoresEliminados.add(nombre);
+    }
+
     // -------------------- LOGICA PARA SKINS / IDENTIDAD --------------------
-    public void rotarSkins() {
+    public void rotateSkins() {
         // Obtenemos todos los jugadores que siguen "vivos" internamente
         List<String> vivosNombres = participantesIniciales.stream()
                 .filter(name -> !jugadoresEliminados.contains(name))
@@ -360,7 +360,7 @@ public class GameManager {
                             } catch (DataRequestException e) {
                                 plugin.getLogger().warning(() -> "Error aplicando skin: " + e.getMessage());
                             }
-                            actualizarIdentidadVisual(p);
+                            updateVisualIdentity(p);
                         });
                     }
                 } catch (DataRequestException | MineSkinException e) {
@@ -371,27 +371,39 @@ public class GameManager {
     }
 
 
-    public void revelarIdentidad(Player p) {
+    public void revealIdentity(Player p) {
         if (jugadoresRevelados.contains(p.getUniqueId())) return;
 
         jugadoresRevelados.add(p.getUniqueId());
 
-        actualizarIdentidadVisual(p);
+        updateVisualIdentity(p);
 
-        try {
-            PlayerStorage playerStorage = skinsApi.getPlayerStorage();
-            SkinStorage skinStorage = skinsApi.getSkinStorage();
-            Optional<InputDataResult> result = skinStorage.findOrCreateSkinData(p.getName());
-            if (result.isPresent()) {
-                playerStorage.setSkinIdOfPlayer(p.getUniqueId(), result.get().getIdentifier());
-                skinsApi.getSkinApplier(Player.class).applySkin(p);
+        // La búsqueda de skin puede hacer una petición de red (MineSkin) con
+        // bloques: se hace fuera del hilo principal y se aplica en el principal.
+        UUID uuid = p.getUniqueId();
+        String name = p.getName();
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                PlayerStorage playerStorage = skinsApi.getPlayerStorage();
+                SkinStorage skinStorage = skinsApi.getSkinStorage();
+                Optional<InputDataResult> result = skinStorage.findOrCreateSkinData(name);
+                if (result.isPresent()) {
+                    playerStorage.setSkinIdOfPlayer(uuid, result.get().getIdentifier());
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        try {
+                            skinsApi.getSkinApplier(Player.class).applySkin(p);
+                        } catch (DataRequestException e) {
+                            plugin.getLogger().warning(() -> "Error aplicando skin: " + e.getMessage());
+                        }
+                    });
+                }
+            } catch (DataRequestException | MineSkinException e) {
+                plugin.getLogger().warning(() -> "Error al revelar identidad de " + name + ": " + e.getMessage());
             }
-        } catch (DataRequestException | MineSkinException e) {
-            plugin.getLogger().warning(() -> "Error al revelar identidad de " + p.getName() + ": " + e.getMessage());
-        }
+        });
     }
 
-    public void actualizarIdentidadVisual(Player p) {
+    public void updateVisualIdentity(Player p) {
         if (p == null) return;
 
         TabAPI tabApi = TabAPI.getInstance();
@@ -401,7 +413,7 @@ public class GameManager {
         TabListFormatManager tfm = tabApi.getTabListFormatManager();
         NameTagManager ntm = tabApi.getNameTagManager();
 
-        if (partidaIniciada) {
+        if (phase != GamePhase.LOBBY && phase != GamePhase.ENDING) {
             if (tfm != null) {
                 tfm.setName(tabPlayer, "%rel_uhc_identidad%");
             }
@@ -409,7 +421,7 @@ public class GameManager {
                 ntm.setPrefix(tabPlayer, "%%rel_nametag_color%");
             }
         }
-        if (partidaIniciada) {
+        if (phase != GamePhase.LOBBY && phase != GamePhase.ENDING) {
             if (jugadoresRevelados.contains(p.getUniqueId())) {
                 p.displayName(Component.text(p.getName(), NamedTextColor.RED));
             } else {
@@ -422,54 +434,72 @@ public class GameManager {
     }
     // -----------------------------------------------------------------------
 
-    private String formatTime(int s) {
-        int h = s / 3600; int m = (s % 3600) / 60; int sec = s % 60;
-        return (h > 0) ? String.format("%02d:%02d:%02d", h, m, sec) : String.format("%02d:%02d", m, sec);
-    }
-
     // --- GETTERS Y SETTERS ---
-    public int getCapitulo() { return capitulo; }
+    public int getChapter() { return capitulo; }
 
-    public void setCapitulo(int capitulo) { this.capitulo = capitulo; }
+    public void setChapter(int capitulo) { this.capitulo = capitulo; }
 
-    public int getTiempoTotalSegundos() { return tiempoTotalSegundos; }
+    public int getTotalSeconds() { return tiempoTotalSegundos; }
 
-    public int getSegundosPorCapitulo() { return segundosPorCapitulo; }
+    public int getSecondsPerChapter() { return segundosPorCapitulo; }
 
-    public void setSegundosPorCapitulo(int s) { this.segundosPorCapitulo = s; }
+    public void setSecondsPerChapter(int s) { this.segundosPorCapitulo = s; }
 
-    public Set<String> getJugadoresEliminados() { return jugadoresEliminados; }
+    public GamePhase getPhase() { return phase; }
 
-    public List<String> getParticipantesIniciales() { return participantesIniciales; }
+    public void setPhase(GamePhase nueva) { this.phase = nueva; }
 
-    public boolean isPausado() { return pausado; }
+    public Set<String> getEliminatedPlayers() { return Collections.unmodifiableSet(jugadoresEliminados); }
 
-    public void setPausado(boolean pausado) { this.pausado = pausado; }
+    public List<String> getInitialParticipants() { return Collections.unmodifiableList(participantesIniciales); }
 
-    public boolean isPartidaIniciada() { return partidaIniciada; }
+    public boolean isPaused() { return phase == GamePhase.PAUSED; }
 
-    public void setPartidaIniciada(boolean estado) {
-        this.partidaIniciada = estado;
+    public void setPaused(boolean pausado) {
+        if (pausado && phase == GamePhase.RUNNING) {
+            this.phase = GamePhase.PAUSED;
+        } else if (!pausado && phase == GamePhase.PAUSED) {
+            this.phase = GamePhase.RUNNING;
+        }
     }
 
-    public Set<UUID> getJugadoresRevelados() {
+    public boolean isGameStarted() {
+        return phase == GamePhase.RUNNING || phase == GamePhase.PAUSED;
+    }
+
+    public void setGameStarted(boolean estado) {
+        this.phase = estado ? GamePhase.RUNNING : GamePhase.LOBBY;
+    }
+
+    public Set<UUID> getRevealedPlayers() {
         return jugadoresRevelados;
     }
 
-    public Map<UUID, String> getUltimaSkinAsignada() {
+    public Map<UUID, String> getLastAssignedSkin() {
         return ultimaSkinAsignada;
     }
 
-    public void cambiarModo(UHCGameMode nuevoModo) {
+    public void changeMode(UHCGameMode nuevoModo) {
+        // Transferir la caché de claves de sidebar del modo anterior para que la
+        // nueva instancia pueda limpiar las líneas obsoletas del scoreboard.
+        Map<UUID, Set<String>> transfer = null;
+        if (modoActual instanceof AbstractUHCGameMode anterior) {
+            transfer = anterior.takeSidebarKeys();
+        }
+
         this.modoActual = nuevoModo;
         this.modoActual.onReset();
 
-        if (!partidaIniciada) {
+        if (transfer != null && modoActual instanceof AbstractUHCGameMode nuevo) {
+            nuevo.adoptSidebarKeys(transfer);
+        }
+
+        if (!isGameStarted()) {
             for (Player p : Bukkit.getOnlinePlayers()) {
                 modoActual.updateScoreboard(p, "00:00", "00:00", false);
             }
         }
     }
 
-    public UHCGameMode getModoActual() { return modoActual; }
+    public UHCGameMode getCurrentMode() { return modoActual; }
 }

@@ -1,5 +1,6 @@
 package me.dalibex.UHC_DBasic.utils;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.Bukkit;
@@ -16,72 +17,96 @@ import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializ
 /**
  * Clase de utilidad para centralizar la construcción de líneas del Scoreboard.
  * Evita la duplicación de lógica visual entre diferentes modos de juego.
+ * Cada método registra además las claves generadas en {@code keys} para que
+ * el modo pueda limpiar solo las líneas obsoletas entre ticks.
  */
 public class ScoreboardHelper {
+
+    /** Nombre del objetivo de sidebar "uhc" registrado por jugador. */
+    public static final String SIDEBAR_OBJECTIVE = "uhc";
+
+    /** Nombre del objetivo de vida del tab ("vida_tab"). */
+    public static final String HEALTH_OBJECTIVE = "vida_tab";
+
+    /** Prefijo de los equipos internos del mundo ("h_"). */
+    public static final String TEAM_PREFIX = "h_";
+
+    /**
+     * Añade las líneas del sidebar del lobby: modo, esperando y jugadores online.
+     */
+    public static void addLobbyScores(Objective obj, List<String> keys, String modeName, Player player, LanguageManager lang) {
+        score(obj, "§1 ", 7, keys);
+        score(obj, lang.get("scoreboard.mode-label", player).replace("%mode%", modeName), 6, keys);
+        score(obj, "§2 ", 5, keys);
+        score(obj, lang.get("scoreboard.waiting", player), 4, keys);
+        score(obj, "§3 ", 3, keys);
+        score(obj, lang.get("scoreboard.players", player).replace("%online%", String.valueOf(Bukkit.getOnlinePlayers().size())), 2, keys);
+        score(obj, "§4 ", 1, keys);
+    }
 
     /**
      * Añade las líneas de información de fase y PVP al scoreboard.
      */
-    public static void addPhaseInfo(Objective obj, AtomicInteger next, Player player, LanguageManager lang, GameManager gm) {
-        int capitulo = gm.getCapitulo();
+    public static void addPhaseInfo(Objective obj, AtomicInteger next, List<String> keys, Player player, LanguageManager lang, GameManager gm) {
+        int capitulo = gm.getChapter();
         String pvpStatus = (capitulo < 4) ? lang.get("scoreboard.pvp-pact", player) : lang.get("scoreboard.pvp-active", player);
 
-        obj.getScore("§1 ").setScore(next.getAndDecrement());
+        score(obj, "§1 ", next.getAndDecrement(), keys);
         if (capitulo < 10) {
-            obj.getScore(lang.get("scoreboard.phase", player).replace("%chapter%", String.valueOf(capitulo))).setScore(next.getAndDecrement());
+            score(obj, lang.get("scoreboard.phase", player).replace("%chapter%", String.valueOf(capitulo)), next.getAndDecrement(), keys);
         } else {
-            obj.getScore(lang.get("scoreboard.finalized", player)).setScore(next.getAndDecrement());
-            if (gm.getModoActual() instanceof me.dalibex.UHC_DBasic.gamemodes.Classic) {
-                obj.getScore(lang.get("scoreboard.go-center", player)).setScore(next.getAndDecrement());
-                obj.getScore("§2 ").setScore(next.getAndDecrement());
+            score(obj, lang.get("scoreboard.finalized", player), next.getAndDecrement(), keys);
+            if (gm.getCurrentMode() instanceof me.dalibex.UHC_DBasic.gamemodes.Classic) {
+                score(obj, lang.get("scoreboard.go-center", player), next.getAndDecrement(), keys);
+                score(obj, "§2 ", next.getAndDecrement(), keys);
             }
         }
-        obj.getScore(lang.get("scoreboard.pvp-label", player).replace("%status%", pvpStatus)).setScore(next.getAndDecrement());
-        obj.getScore("§3 ").setScore(next.getAndDecrement());
+        score(obj, lang.get("scoreboard.pvp-label", player).replace("%status%", pvpStatus), next.getAndDecrement(), keys);
+        score(obj, "§3 ", next.getAndDecrement(), keys);
     }
 
     /**
      * Añade la información del equipo y compañeros vivos/muertos.
      */
-    public static void addTeamInfo(Objective obj, AtomicInteger next, Player player, LanguageManager lang, TeamManager tm, GameManager gm) {
+    public static void addTeamInfo(Objective obj, AtomicInteger next, List<String> keys, Player player, LanguageManager lang, TeamManager tm, GameManager gm) {
         Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(player.getName());
         int teamSize = tm.getTeamSize();
-        int capitulo = gm.getCapitulo();
+        int capitulo = gm.getChapter();
 
         if (teamSize == 1) {
             String line = (team != null && !tm.isDefaultName(team)) ?
-                    lang.get("scoreboard.team-label", player).replace("%color%", legacySection().serialize(Component.text("·").color(team.color())).replace("·", "")).replace("%name%", legacySection().serialize(team.displayName())) 
+                    lang.get("scoreboard.team-label", player).replace("%color%", TextUtil.legacyColor(team.color())).replace("%name%", legacySection().serialize(team.displayName())) 
                     : lang.get("scoreboard.team-rename-warn", player);
-            obj.getScore(line).setScore(next.getAndDecrement());
+            score(obj, line, next.getAndDecrement(), keys);
         } else {
             boolean manual = tm.isCustomTeamsEnabled();
             if (capitulo < 3 && !manual) {
                 for (int i = 1; i < teamSize; i++) {
-                    obj.getScore(" §d👥 §f: §k??????" + (" ".repeat(i))).setScore(next.getAndDecrement());
+                    score(obj, " §d👥 §f: §k??????" + (" ".repeat(i)), next.getAndDecrement(), keys);
                 }
             } else {
                 String line = (team != null && !tm.isDefaultName(team)) ?
-                        lang.get("scoreboard.team-mates-label", player).replace("%color%", legacySection().serialize(Component.text("·").color(team.color())).replace("·", "")).replace("%name%", legacySection().serialize(team.displayName())) 
+                        lang.get("scoreboard.team-mates-label", player).replace("%color%", TextUtil.legacyColor(team.color())).replace("%name%", legacySection().serialize(team.displayName())) 
                         : (team != null ? lang.get("scoreboard.team-rename-warn", player) : lang.get("scoreboard.team-assigning", player));
                 
-                obj.getScore(line).setScore(next.getAndDecrement());
+                score(obj, line, next.getAndDecrement(), keys);
                 if (team != null) {
                     for (String entry : team.getEntries()) {
                         if (entry.equals(player.getName())) continue;
-                        addMateLine(obj, next, player, entry, lang, gm);
+                        addMateLine(obj, next, keys, player, entry, lang, gm);
                     }
                 }
             }
         }
     }
 
-    private static void addMateLine(Objective obj, AtomicInteger next, Player viewer, String entry, LanguageManager lang, GameManager gm) {
+    private static void addMateLine(Objective obj, AtomicInteger next, List<String> keys, Player viewer, String entry, LanguageManager lang, GameManager gm) {
         String healthText;
         String colorPrefix = "§f";
         String nombreParaMostrar = entry;
         Player m = Bukkit.getPlayer(entry);
 
-        if (gm.getJugadoresEliminados().contains(entry)) {
+        if (gm.getEliminatedPlayers().contains(entry)) {
             colorPrefix = "§7§m";
             healthText = lang.get("scoreboard.mate-dead", viewer);
         } else {
@@ -95,21 +120,26 @@ public class ScoreboardHelper {
                 healthText = lang.get("scoreboard.mate-offline", viewer);
             }
         }
-        obj.getScore("§6> " + colorPrefix + nombreParaMostrar + healthText).setScore(next.getAndDecrement());
+        score(obj, "§6> " + colorPrefix + nombreParaMostrar + healthText, next.getAndDecrement(), keys);
     }
 
     /**
      * Añade los cronómetros de tiempo total y tiempo hasta el siguiente capítulo.
      */
-    public static void addTimers(Objective obj, AtomicInteger next, String tiempo, String tiempoTotal, Player player, LanguageManager lang, GameManager gm) {
-        obj.getScore("§6 ").setScore(next.getAndDecrement());
-        obj.getScore(lang.get("scoreboard.time-total-label", player)).setScore(next.getAndDecrement());
-        obj.getScore("§6> §f" + tiempoTotal).setScore(next.getAndDecrement());
-        obj.getScore("§7 ").setScore(next.getAndDecrement());
+    public static void addTimers(Objective obj, AtomicInteger next, List<String> keys, String tiempo, String tiempoTotal, Player player, LanguageManager lang, GameManager gm) {
+        score(obj, "§6 ", next.getAndDecrement(), keys);
+        score(obj, lang.get("scoreboard.time-total-label", player), next.getAndDecrement(), keys);
+        score(obj, "§6> §f" + tiempoTotal, next.getAndDecrement(), keys);
+        score(obj, "§7 ", next.getAndDecrement(), keys);
         
-        if (gm.getCapitulo() < 10) {
-            obj.getScore(lang.get("scoreboard.time-next-label", player)).setScore(next.getAndDecrement());
-            obj.getScore("§6> §f" + tiempo).setScore(next.getAndDecrement());
+        if (gm.getChapter() < 10) {
+            score(obj, lang.get("scoreboard.time-next-label", player), next.getAndDecrement(), keys);
+            score(obj, "§6> §f" + tiempo, next.getAndDecrement(), keys);
         }
+    }
+
+    private static void score(Objective obj, String key, int value, List<String> keys) {
+        obj.getScore(key).setScore(value);
+        keys.add(key);
     }
 }

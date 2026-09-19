@@ -23,15 +23,15 @@ import org.bukkit.inventory.meta.ItemMeta;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.gamemodes.Classic;
 import me.dalibex.UHC_DBasic.gamemodes.ResourceRush;
+import me.dalibex.UHC_DBasic.utils.TextUtil;
+import me.dalibex.UHC_DBasic.utils.TimeUtil;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextDecoration;
-import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
 public class AdminPanelManager {
 
     private final UHC_DBasic plugin;
-    public static boolean combate18 = false;
-    public static boolean bloquearManoSecundaria = false;
+    private boolean combate18 = false;
+    private boolean bloquearManoSecundaria = false;
     private boolean shulkerOneEnabled = true;
     private boolean shulkerTwoEnabled = true;
 
@@ -40,11 +40,28 @@ public class AdminPanelManager {
     }
 
     private Component txt(String legacy) {
-        return legacySection().deserialize(legacy).decoration(TextDecoration.ITALIC, false);
+        return TextUtil.item(legacy);
+    }
+
+    private ItemStack createBackButton(Player player) {
+        ItemStack back = new ItemStack(Material.ARROW);
+        ItemMeta bMeta = back.getItemMeta();
+        bMeta.displayName(plugin.getLang().getComponent("menus.common.back", player));
+        back.setItemMeta(bMeta);
+        return back;
+    }
+
+    private ItemStack createLockedItem(Player player, String displayNameKey) {
+        ItemStack item = new ItemStack(Material.BARRIER);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(plugin.getLang().getComponent(displayNameKey, player));
+        meta.lore(List.of(plugin.getLang().getComponent("menus.common.locked", player), plugin.getLang().getComponent("menus.common.locked-lore", player)));
+        item.setItemMeta(meta);
+        return item;
     }
 
     public void openMainAdminPanel(Player player) {
-        if (!player.isOp()) return;
+        if (!plugin.isAdmin(player)) return;
 
         LanguageManager lang = plugin.getLang();
         TeamManager tm = plugin.getTeamManager();
@@ -65,23 +82,24 @@ public class AdminPanelManager {
         }
         ameta.lore(pvpLore);
         pvpItem.setItemMeta(ameta);
-        mainGui.setItem(0, pvpItem);
+        mainGui.setItem(AdminSlots.MAIN_COMBAT, pvpItem);
 
-        mainGui.setItem(1, createSimpleItem(Material.PAPER, "menus.main-admin.general-rules-item", player));
-        mainGui.setItem(2, createSimpleItem(Material.BOOK, "menus.main-admin.rules-item", player));
-        mainGui.setItem(4, createSimpleItem(Material.EMERALD_BLOCK, "menus.main-admin.border-item", player));
-        mainGui.setItem(6, createSimpleItem(Material.CLOCK, "menus.main-admin.time-item", player));
+        mainGui.setItem(AdminSlots.MAIN_GENERAL_RULES, createSimpleItem(Material.PAPER, "menus.main-admin.general-rules-item", player));
+        mainGui.setItem(AdminSlots.MAIN_GAME_RULES, createSimpleItem(Material.BOOK, "menus.main-admin.rules-item", player));
+        mainGui.setItem(AdminSlots.MAIN_BORDER, createSimpleItem(Material.EMERALD_BLOCK, "menus.main-admin.border-item", player));
+        mainGui.setItem(AdminSlots.MAIN_TIME, createSimpleItem(Material.CLOCK, "menus.main-admin.time-item", player));
 
         GameManager rpm = plugin.getGameManager();
-        boolean partidaEnCurso = rpm.getTiempoTotalSegundos() > 0;
+        boolean partidaEnCurso = rpm.getTotalSeconds() > 0;
 
         ItemStack gmItem = new ItemStack(partidaEnCurso ? Material.BARRIER : Material.NETHER_STAR);
         ItemMeta gmMeta = gmItem.getItemMeta();
-        gmMeta.displayName(lang.getComponent("menus.main-admin.gamemode-item.name", player));
+        String gmNameKey = partidaEnCurso ? "menus.main-admin.gamemode-item.name-locked" : "menus.main-admin.gamemode-item.name";
+        gmMeta.displayName(lang.getComponent(gmNameKey, player));
 
         List<Component> gmLore = new ArrayList<>();
         for (String line : lang.getList("menus.main-admin.gamemode-item.lore", player)) {
-            gmLore.add(txt(line.replace("%mode%", rpm.getModoActual().getName())));
+            gmLore.add(txt(line.replace("%mode%", rpm.getCurrentMode().getName())));
         }
 
         if (partidaEnCurso) {
@@ -90,33 +108,35 @@ public class AdminPanelManager {
         }
         gmMeta.lore(gmLore);
         gmItem.setItemMeta(gmMeta);
-        mainGui.setItem(3, gmItem);
+        mainGui.setItem(AdminSlots.MAIN_GAMEMODE, gmItem);
 
-        ItemStack customTeamItem = new ItemStack(partidaEnCurso ? Material.BARRIER : Material.PAINTING);
-        ItemMeta ctMeta = customTeamItem.getItemMeta();
-
+        ItemStack customTeamItem;
         if (partidaEnCurso) {
-            ctMeta.displayName(lang.getComponent("menus.main-admin.custom-teams-item.name-locked", player));
-            ctMeta.lore(List.of(lang.getComponent("menus.common.locked", player), lang.getComponent("menus.common.locked-lore", player)));
+            customTeamItem = createLockedItem(player, "menus.main-admin.custom-teams-item.name-locked");
         } else {
+            customTeamItem = new ItemStack(Material.PAINTING);
+            ItemMeta ctMeta = customTeamItem.getItemMeta();
             ctMeta.displayName(lang.getComponent("menus.main-admin.custom-teams-item.name", player));
             String status = tm.isCustomTeamsEnabled() ? lang.get("menus.common.enabled", player) : lang.get("menus.common.disabled", player);
             List<Component> ctLore = new ArrayList<>();
             for (String line : lang.getList("menus.main-admin.custom-teams-item.lore", player)) {
                 ctLore.add(txt(line.replace("%status%", status)));
             }
+            if (teamSize <= 1) {
+                ctLore.add(Component.empty());
+                ctLore.add(txt(lang.get("game.custom-teams-solos-error", player)));
+            }
             ctMeta.lore(ctLore);
+            customTeamItem.setItemMeta(ctMeta);
         }
-        customTeamItem.setItemMeta(ctMeta);
-        mainGui.setItem(7, customTeamItem);
+        mainGui.setItem(AdminSlots.MAIN_CUSTOM_TEAMS, customTeamItem);
 
-        ItemStack teamItem = new ItemStack(partidaEnCurso ? Material.BARRIER : Material.WHITE_BANNER);
-        ItemMeta cMeta = teamItem.getItemMeta();
-
+        ItemStack teamItem;
         if (partidaEnCurso) {
-            cMeta.displayName(lang.getComponent("menus.main-admin.teams-item.name-locked", player));
-            cMeta.lore(List.of(lang.getComponent("menus.common.locked", player), lang.getComponent("menus.common.locked-lore", player)));
+            teamItem = createLockedItem(player, "menus.main-admin.teams-item.name-locked");
         } else {
+            teamItem = new ItemStack(Material.WHITE_BANNER);
+            ItemMeta cMeta = teamItem.getItemMeta();
             cMeta.displayName(lang.getComponent("menus.main-admin.teams-item.name", player));
             String sizeStr = (teamSize == 1) ? lang.get("menus.main-admin.teams-item.size-solos", player) :
                     lang.get("menus.main-admin.teams-item.size-teams", player).replace("%n%", String.valueOf(teamSize));
@@ -126,10 +146,14 @@ public class AdminPanelManager {
             for (String line : lang.getList("menus.main-admin.teams-item.lore", player)) {
                 lore.add(txt(line.replace("%size%", sizeStr).replace("%online%", String.valueOf(jugadoresOnline)).replace("%total%", String.valueOf(numEquipos))));
             }
+            if (teamSize < 4 && jugadoresOnline < (teamSize + 1) * 2) {
+                lore.add(Component.empty());
+                lore.add(txt(lang.get("game.team-size-error", player).replace("%min%", String.valueOf((teamSize + 1) * 2)).replace("%n%", String.valueOf(teamSize + 1))));
+            }
             cMeta.lore(lore);
+            teamItem.setItemMeta(cMeta);
         }
-        teamItem.setItemMeta(cMeta);
-        mainGui.setItem(8, teamItem);
+        mainGui.setItem(AdminSlots.MAIN_TEAMS_SIZE, teamItem);
 
         player.openInventory(mainGui);
     }
@@ -139,14 +163,11 @@ public class AdminPanelManager {
         LanguageManager lang = plugin.getLang();
         Inventory inv = Bukkit.createInventory(null, 27, lang.getComponent("menus.generalrules.title", player));
 
-        inv.setItem(11, createShulkerBtn(Material.ORANGE_SHULKER_BOX, "menus.generalrules.settings.shulker-item-1", isShulkerOneEnabled(), player));
-        inv.setItem(15, createShulkerBtn(Material.LIGHT_BLUE_SHULKER_BOX, "menus.generalrules.settings.shulker-item-2", isShulkerTwoEnabled(), player));
+        inv.setItem(AdminSlots.GENERAL_SHULKER_1, createShulkerBtn(Material.ORANGE_SHULKER_BOX, "menus.generalrules.settings.shulker-item-1", isShulkerOneEnabled(), player));
+        inv.setItem(AdminSlots.GENERAL_SHULKER_2, createShulkerBtn(Material.LIGHT_BLUE_SHULKER_BOX, "menus.generalrules.settings.shulker-item-2", isShulkerTwoEnabled(), player));
 
-        ItemStack back = new ItemStack(Material.ARROW);
-        ItemMeta bMeta = back.getItemMeta();
-        bMeta.displayName(lang.getComponent("menus.common.back", player));
-        back.setItemMeta(bMeta);
-        inv.setItem(18, back);
+        ItemStack back = createBackButton(player);
+        inv.setItem(AdminSlots.GENERAL_BACK, back);
 
         player.openInventory(inv);
     }
@@ -157,19 +178,16 @@ public class AdminPanelManager {
 
         World w = Bukkit.getWorlds().get(0);
 
-        rulesGui.setItem(10, createRuleItem(Material.GOLDEN_APPLE, lang.get("menus.rules.nat-regen", player), w.getGameRuleValue(NATURAL_HEALTH_REGENERATION), player, lang));
-        rulesGui.setItem(11, createRuleItem(Material.NETHERITE_SWORD, lang.get("menus.rules.pvp", player), w.getGameRuleValue(PVP), player, lang));
-        rulesGui.setItem(12, createRuleItem(Material.PUFFERFISH, lang.get("menus.rules.day-night", player), w.getGameRuleValue(ADVANCE_TIME), player, lang));
-        rulesGui.setItem(13, createRuleItem(Material.ZOMBIE_HEAD, lang.get("menus.rules.monsters", player), w.getGameRuleValue(SPAWN_MONSTERS), player, lang));
-        rulesGui.setItem(14, createRuleItem(Material.CRAFTING_TABLE, lang.get("menus.rules.advancements", player), w.getGameRuleValue(SHOW_ADVANCEMENT_MESSAGES), player, lang));
-        rulesGui.setItem(15, createRuleItem(Material.VILLAGER_SPAWN_EGG, lang.get("menus.rules.trader", player), w.getGameRuleValue(SPAWN_WANDERING_TRADERS), player, lang));
-        rulesGui.setItem(16, createRuleItem(Material.COMPASS, lang.get("menus.rules.locator", player), w.getGameRuleValue(LOCATOR_BAR), player, lang));
+        rulesGui.setItem(AdminSlots.RULES_NATURAL_REGENERATION, createRuleItem(Material.GOLDEN_APPLE, lang.get("menus.rules.nat-regen", player), w.getGameRuleValue(NATURAL_HEALTH_REGENERATION), player, lang));
+        rulesGui.setItem(AdminSlots.RULES_PVP, createRuleItem(Material.NETHERITE_SWORD, lang.get("menus.rules.pvp", player), w.getGameRuleValue(PVP), player, lang));
+        rulesGui.setItem(AdminSlots.RULES_DAY_NIGHT, createRuleItem(Material.PUFFERFISH, lang.get("menus.rules.day-night", player), w.getGameRuleValue(ADVANCE_TIME), player, lang));
+        rulesGui.setItem(AdminSlots.RULES_MONSTERS, createRuleItem(Material.ZOMBIE_HEAD, lang.get("menus.rules.monsters", player), w.getGameRuleValue(SPAWN_MONSTERS), player, lang));
+        rulesGui.setItem(AdminSlots.RULES_ADVANCEMENTS, createRuleItem(Material.CRAFTING_TABLE, lang.get("menus.rules.advancements", player), w.getGameRuleValue(SHOW_ADVANCEMENT_MESSAGES), player, lang));
+        rulesGui.setItem(AdminSlots.RULES_TRADER, createRuleItem(Material.VILLAGER_SPAWN_EGG, lang.get("menus.rules.trader", player), w.getGameRuleValue(SPAWN_WANDERING_TRADERS), player, lang));
+        rulesGui.setItem(AdminSlots.RULES_LOCATOR, createRuleItem(Material.COMPASS, lang.get("menus.rules.locator", player), w.getGameRuleValue(LOCATOR_BAR), player, lang));
 
-        ItemStack back = new ItemStack(Material.ARROW);
-        ItemMeta backMeta = back.getItemMeta();
-        backMeta.displayName(lang.getComponent("menus.common.back", player));
-        back.setItemMeta(backMeta);
-        rulesGui.setItem(27, back);
+        ItemStack back = createBackButton(player);
+        rulesGui.setItem(AdminSlots.RULES_BACK, back);
 
         player.openInventory(rulesGui);
     }
@@ -180,20 +198,17 @@ public class AdminPanelManager {
 
         Inventory rulesGui = Bukkit.createInventory(null, 9, lang.getComponent("menus.gamemode.title", player));
 
-        boolean isClassic = gm.getModoActual() instanceof Classic;
-        boolean isResourceRush = gm.getModoActual() instanceof ResourceRush;
+        boolean isClassic = gm.getCurrentMode() instanceof Classic;
+        boolean isResourceRush = gm.getCurrentMode() instanceof ResourceRush;
 
-        rulesGui.setItem(2, createGamemodeItem(Material.ENCHANTED_GOLDEN_APPLE,
+        rulesGui.setItem(AdminSlots.GAMEMODE_CLASSIC, createGamemodeItem(Material.ENCHANTED_GOLDEN_APPLE,
                 "classic", isClassic, player, lang));
 
-        rulesGui.setItem(4, createGamemodeItem(Material.HONEY_BLOCK,
+        rulesGui.setItem(AdminSlots.GAMEMODE_RESOURCE_RUSH, createGamemodeItem(Material.HONEY_BLOCK,
                 "resource-rush", isResourceRush, player, lang));
 
-        ItemStack back = new ItemStack(Material.ARROW);
-        ItemMeta backMeta = back.getItemMeta();
-        backMeta.displayName(lang.getComponent("menus.common.back", player));
-        back.setItemMeta(backMeta);
-        rulesGui.setItem(0, back);
+        ItemStack back = createBackButton(player);
+        rulesGui.setItem(AdminSlots.GAMEMODE_BACK, back);
 
         player.openInventory(rulesGui);
     }
@@ -207,25 +222,22 @@ public class AdminPanelManager {
         ItemStack info = new ItemStack(Material.BEACON);
         ItemMeta iMeta = info.getItemMeta();
         iMeta.displayName(lang.getComponent("menus.barrier.current-size.name", player));
-        iMeta.lore(List.of(txt(lang.get("menus.barrier.current-size.lore", player).replace("%size%", String.valueOf((int)currentSize)))));
+        iMeta.lore(List.of(txt(lang.get("menus.barrier.current-size.lore", player).replace("%size%", String.valueOf((int)currentSize))), txt(lang.get("menus.barrier.min-size-lore", player))));
         info.setItemMeta(iMeta);
-        barrierGui.setItem(13, info);
+        barrierGui.setItem(AdminSlots.BORDER_INFO, info);
 
-        barrierGui.setItem(10, createBorderItem(Material.RED_STAINED_GLASS_PANE, "§c-10", -10, player, lang));
-        barrierGui.setItem(11, createBorderItem(Material.RED_WOOL, "§c-100", -100, player, lang));
-        barrierGui.setItem(19, createBorderItem(Material.RED_CONCRETE_POWDER, "§c-500", -500, player, lang));
-        barrierGui.setItem(20, createBorderItem(Material.RED_CONCRETE, "§c-1000", -1000, player, lang));
+        barrierGui.setItem(AdminSlots.BORDER_MINUS_10, createBorderItem(Material.RED_STAINED_GLASS_PANE, "§c-10", -10, player, lang));
+        barrierGui.setItem(AdminSlots.BORDER_MINUS_100, createBorderItem(Material.RED_WOOL, "§c-100", -100, player, lang));
+        barrierGui.setItem(AdminSlots.BORDER_MINUS_500, createBorderItem(Material.RED_CONCRETE_POWDER, "§c-500", -500, player, lang));
+        barrierGui.setItem(AdminSlots.BORDER_MINUS_1000, createBorderItem(Material.RED_CONCRETE, "§c-1000", -1000, player, lang));
 
-        barrierGui.setItem(15, createBorderItem(Material.GREEN_STAINED_GLASS_PANE, "§a+10", 10, player, lang));
-        barrierGui.setItem(16, createBorderItem(Material.GREEN_WOOL, "§a+100", 100, player, lang));
-        barrierGui.setItem(24, createBorderItem(Material.GREEN_CONCRETE_POWDER, "§a+500", 500, player, lang));
-        barrierGui.setItem(25, createBorderItem(Material.GREEN_CONCRETE, "§a+1000", 1000, player, lang));
+        barrierGui.setItem(AdminSlots.BORDER_PLUS_10, createBorderItem(Material.GREEN_STAINED_GLASS_PANE, "§a+10", 10, player, lang));
+        barrierGui.setItem(AdminSlots.BORDER_PLUS_100, createBorderItem(Material.GREEN_WOOL, "§a+100", 100, player, lang));
+        barrierGui.setItem(AdminSlots.BORDER_PLUS_500, createBorderItem(Material.GREEN_CONCRETE_POWDER, "§a+500", 500, player, lang));
+        barrierGui.setItem(AdminSlots.BORDER_PLUS_1000, createBorderItem(Material.GREEN_CONCRETE, "§a+1000", 1000, player, lang));
 
-        ItemStack back = new ItemStack(Material.ARROW);
-        ItemMeta backMeta = back.getItemMeta();
-        backMeta.displayName(lang.getComponent("menus.common.back", player));
-        back.setItemMeta(backMeta);
-        barrierGui.setItem(31, back);
+        ItemStack back = createBackButton(player);
+        barrierGui.setItem(AdminSlots.BORDER_BACK, back);
 
         player.openInventory(barrierGui);
     }
@@ -235,11 +247,11 @@ public class AdminPanelManager {
         Inventory timeGui = Bukkit.createInventory(null, 27, lang.getComponent("menus.time.title", player));
 
         GameManager rpm = plugin.getGameManager();
-        boolean estaPausado = rpm.isPausado();
-        boolean partidaEnCurso = rpm.getTiempoTotalSegundos() > 0;
-        int totalSecs = rpm.getSegundosPorCapitulo();
+        boolean estaPausado = rpm.isPaused();
+        boolean partidaEnCurso = rpm.getTotalSeconds() > 0;
+        int totalSecs = rpm.getSecondsPerChapter();
 
-        String tiempoVisual = String.format("%02dh %02dm %02ds", totalSecs / 3600, (totalSecs % 3600) / 60, totalSecs % 60);
+        String tiempoVisual = TimeUtil.formatHms(totalSecs);
 
         ItemStack info = new ItemStack(Material.CLOCK);
         ItemMeta iMeta = info.getItemMeta();
@@ -250,27 +262,24 @@ public class AdminPanelManager {
         }
         iMeta.lore(lore);
         info.setItemMeta(iMeta);
-        timeGui.setItem(13, info);
+        timeGui.setItem(AdminSlots.TIME_INFO, info);
 
-        timeGui.setItem(10, createTimeBtn(Material.RED_STAINED_GLASS_PANE, "§c-1 m", -1, partidaEnCurso, player, lang));
-        timeGui.setItem(11, createTimeBtn(Material.RED_WOOL, "§c-5 m", -5, partidaEnCurso, player, lang));
-        timeGui.setItem(12, createTimeBtn(Material.RED_CONCRETE, "§c-10 m", -10, partidaEnCurso, player, lang));
+        timeGui.setItem(AdminSlots.TIME_MINUS_1, createTimeBtn(Material.RED_STAINED_GLASS_PANE, "§c-1 m", -1, partidaEnCurso, player, lang));
+        timeGui.setItem(AdminSlots.TIME_MINUS_5, createTimeBtn(Material.RED_WOOL, "§c-5 m", -5, partidaEnCurso, player, lang));
+        timeGui.setItem(AdminSlots.TIME_MINUS_10, createTimeBtn(Material.RED_CONCRETE, "§c-10 m", -10, partidaEnCurso, player, lang));
 
-        timeGui.setItem(14, createTimeBtn(Material.GREEN_STAINED_GLASS_PANE, "§a+1 m", 1, partidaEnCurso, player, lang));
-        timeGui.setItem(15, createTimeBtn(Material.GREEN_WOOL, "§a+5 m", 5, partidaEnCurso, player, lang));
-        timeGui.setItem(16, createTimeBtn(Material.GREEN_CONCRETE, "§a+10 m", 10, partidaEnCurso, player, lang));
+        timeGui.setItem(AdminSlots.TIME_PLUS_1, createTimeBtn(Material.GREEN_STAINED_GLASS_PANE, "§a+1 m", 1, partidaEnCurso, player, lang));
+        timeGui.setItem(AdminSlots.TIME_PLUS_5, createTimeBtn(Material.GREEN_WOOL, "§a+5 m", 5, partidaEnCurso, player, lang));
+        timeGui.setItem(AdminSlots.TIME_PLUS_10, createTimeBtn(Material.GREEN_CONCRETE, "§a+10 m", 10, partidaEnCurso, player, lang));
 
         ItemStack pauseBtn = new ItemStack(estaPausado ? Material.LIME_DYE : Material.GRAY_DYE);
         ItemMeta pMeta = pauseBtn.getItemMeta();
         pMeta.displayName(estaPausado ? lang.getComponent("menus.time.resume", player) : lang.getComponent("menus.time.pause", player));
         pauseBtn.setItemMeta(pMeta);
-        timeGui.setItem(21, pauseBtn);
+        timeGui.setItem(AdminSlots.TIME_PAUSE, pauseBtn);
 
-        ItemStack back = new ItemStack(Material.ARROW);
-        ItemMeta bMeta = back.getItemMeta();
-        bMeta.displayName(lang.getComponent("menus.common.back", player));
-        back.setItemMeta(bMeta);
-        timeGui.setItem(18, back);
+        ItemStack back = createBackButton(player);
+        timeGui.setItem(AdminSlots.TIME_BACK, back);
 
         player.openInventory(timeGui);
     }
@@ -299,7 +308,7 @@ public class AdminPanelManager {
     }
 
     private ItemStack createBorderItem(Material mat, String name, int amount, Player player, LanguageManager lang) {
-        boolean bloqueado = plugin.getGameManager().getTiempoTotalSegundos() <= 0;
+        boolean bloqueado = plugin.getGameManager().getTotalSeconds() <= 0;
         ItemStack item = new ItemStack(bloqueado ? Material.BARRIER : mat);
         ItemMeta meta = item.getItemMeta();
         if (bloqueado) {
@@ -377,21 +386,14 @@ public class AdminPanelManager {
                 attackSpeed.setBaseValue(speedValue);
             }
         }
-
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            String estado = combate18 ? plugin.getLang().get("admin-messages.state-enabled", p) : plugin.getLang().get("admin-messages.state-disabled", p);
-            p.sendMessage(plugin.getLang().get("admin-messages.combat-toggle", p).replace("%prefix%", plugin.getLang().get("general.prefix", p)).replace("%state%", estado));
-        }
     }
 
-    public void toggleManoSecundaria() {
+    public void toggleOffhandLock() {
         bloquearManoSecundaria = !bloquearManoSecundaria;
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            String estado = bloquearManoSecundaria ? plugin.getLang().get("admin-messages.state-blocked", p) : plugin.getLang().get("admin-messages.state-allowed", p);
-            p.sendMessage(plugin.getLang().get("admin-messages.offhand-toggle", p).replace("%prefix%", plugin.getLang().get("general.prefix", p)).replace("%state%", estado));
-        }
     }
 
+    public boolean isCombate18() { return combate18; }
+    public boolean isOffhandLocked() { return bloquearManoSecundaria; }
     public boolean isShulkerOneEnabled() { return shulkerOneEnabled; }
     public void setShulkerOneEnabled(boolean e) { this.shulkerOneEnabled = e; }
     public boolean isShulkerTwoEnabled() { return shulkerTwoEnabled; }

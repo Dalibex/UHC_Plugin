@@ -14,9 +14,8 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
+import me.dalibex.UHC_DBasic.utils.TextUtil;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 public class LanguageManager {
     private final UHC_DBasic plugin;
@@ -93,14 +92,14 @@ public class LanguageManager {
     }
 
     public Component getComponent(String path, Player player) {
-        return LegacyComponentSerializer.legacySection().deserialize(get(path, player)).decoration(TextDecoration.ITALIC, false);
+        return TextUtil.item(get(path, player));
     }
 
     public List<Component> getComponentList(String path, Player player) {
         List<String> list = getList(path, player);
         List<Component> result = new ArrayList<>();
         for (String s : list) {
-            result.add(LegacyComponentSerializer.legacySection().deserialize(s).decoration(TextDecoration.ITALIC, false));
+            result.add(TextUtil.item(s));
         }
         return result;
     }

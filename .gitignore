@@ -103,6 +103,9 @@ $RECYCLE.BIN/
 .gradle
 build/
 
+# Archivo de trabajo privado de la IA (no subir a GitHub)
+README_AI.md
+
 # Ignore Gradle GUI config
 gradle-app.setting
 

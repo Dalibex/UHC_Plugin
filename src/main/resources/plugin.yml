@@ -1,5 +1,5 @@
 name: ELOUD_UHC
-version: "1.5.2-SNAPSHOT"
+version: "1.5.3-SNAPSHOT"
 main: me.dalibex.UHC_DBasic.UHC_DBasic
 api-version: "1.21"
 authors: [Dalibex]
@@ -7,35 +7,43 @@ softdepend: ["TAB", "SkinsRestorer"]
 
 commands:
   uhcadmin:
-    description: Abre un panel con los ajustes de administración
+    description: Opens the administration panel with UHC settings
     usage: /uhcadmin
   uhccommands:
-    description: Muestra lista de comandos del Plugin UHC_DBasic
+    description: Shows the list of UHC_DBasic plugin commands
     usage: /uhccommands
   test:
-    description: Comando de prueba
+    description: Test command
     usage: /test
   start:
-    description: Inicia el proceso de UHC (crea muro)
+    description: Starts the UHC process (creates wall)
     usage: /start [size]
-  confirmarstart:
-    description: Comando interno para confirmar el inicio de partida (no necesita uso manual)
-    usage: Llamado automáticamente por "/start" para confirmación
-  cancelarstart:
-    description: Comando interno para cancelar el inicio de partida (no necesita uso manual)
-    usage: Llamado automáticamente al cancelar la acción de empezar partida
+  confirmstart:
+    description: Internal command to confirm the game start (no manual use needed)
+    usage: Called automatically by "/start" for confirmation
+  cancelstart:
+    description: Internal command to cancel the game start (no manual use needed)
+    usage: Called automatically when cancelling the start action
   reset:
-    description: Prepara el mundo y lo pone en espera para usar "/start"
+    description: Prepares the world and puts it on standby for "/start"
     usage: /reset
-  nequipo:
-    description: Crea o renombra a tu equipo, sea de 1, 2, 3 o 4 jugadores
-    usage: /nequipo [nombre
-  tpartes:
-    description: Ajusta el tiempo manualmente
-    usage: /tpartes
+  team:
+    description: Creates or renames your team, whether of 1, 2, 3 or 4 players
+    usage: /team [name]
+  settime:
+    description: Adjusts the time manually
+    usage: /settime <hours> <minutes> <seconds>
   lang:
-    description: Cambia el idioma
-    usage: /lang [idioma]
-  asignarequipo:
-    description: Asigna un jugador a un equipo manualmente (admin)
-    usage: /asignarequipo <jugador> <numero_equipo>
+    description: Changes the language
+    usage: /lang [language]
+  assignteam:
+    description: Assigns a player to a team manually (admin)
+    usage: /assignteam <player> <team>
+  abandon:
+    description: Marks yourself (or another player as admin) as eliminated from the running game, offline or online
+    usage: /abandon [player]
+
+permissions:
+  uhc.admin:
+    description: Allows full administration of the UHC game (panel, start/reset, teams, time, abandon)
+    default: op

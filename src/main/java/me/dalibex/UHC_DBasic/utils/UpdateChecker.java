@@ -14,13 +14,19 @@ import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializ
 
 /**
  * Utilidad para verificar actualizaciones del plugin de forma asíncrona.
+ * Consulta primero la última release de GitHub; si el repositorio no tiene
+ * releases publicadas, hace fallback a la lista de tags y usa la más alta.
  */
 public class UpdateChecker {
 
     private final UHC_DBasic plugin;
     private final String currentVersion;
-    private final String githubUrl = "https://api.github.com/repos/Dalibex/UHC_Plugin/releases/latest";
-    private static String latestVersionFound = null;
+    private static final String RELEASES_URL = "https://api.github.com/repos/Dalibex/UHC_Plugin/releases/latest";
+    private static final String TAGS_URL = "https://api.github.com/repos/Dalibex/UHC_Plugin/tags?per_page=100";
+
+    private static volatile String latestVersionFound = null;
+    private static volatile String currentVersionChecked = null;
+    private static volatile boolean checkDone = false;
 
     public UpdateChecker(UHC_DBasic plugin) {
         this.plugin = plugin;
@@ -31,53 +37,138 @@ public class UpdateChecker {
         return latestVersionFound;
     }
 
+    public static boolean isCheckDone() {
+        return checkDone;
+    }
+
+    /** true si la comprobación terminó y existe una versión más reciente. */
+    public static boolean isUpdateAvailable() {
+        return checkDone && latestVersionFound != null && currentVersionChecked != null
+                && compareVersions(latestVersionFound, currentVersionChecked) > 0;
+    }
+
     /**
      * Comprueba la versión contra el repositorio de GitHub.
      */
     public void checkForUpdates() {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
-                URL url = URI.create(githubUrl).toURL();
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("GET");
-                connection.setRequestProperty("Accept", "application/vnd.github.v3+json");
-                connection.setRequestProperty("User-Agent", "UHC-Plugin-UpdateChecker");
+                String latest = fetchLatestFromReleases();
+                if (latest == null) {
+                    latest = fetchHighestFromTags();
+                }
+                latestVersionFound = latest;
+                currentVersionChecked = currentVersion;
+                checkDone = true;
 
-                if (connection.getResponseCode() == 200) {
-                    StringBuilder response;
-                    try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-                        response = new StringBuilder();
-                        String line;
-                        while ((line = in.readLine()) != null) {
-                            response.append(line);
-                        }
-                    }
+                if (latest == null) {
+                    plugin.getLogger().warning("Could not get the latest version from GitHub.");
+                    return;
+                }
 
-                    // Parseo simple de JSON para encontrar el tag_name
-                    String json = response.toString();
-                    if (json.contains("\"tag_name\":\"")) {
-                        String latestVersion = json.split("\"tag_name\":\"")[1].split("\"")[0];
-                        latestVersionFound = latestVersion;
-                        
-                        if (!currentVersion.equalsIgnoreCase(latestVersion)) {
-                            notifyUpdatedVersion(latestVersion);
-                        } else {
-                            plugin.getLogger().info(() -> "§aThe plugin is updated (v" + currentVersion + ").");
-                        }
-                    }
+                if (compareVersions(latest, currentVersion) > 0) {
+                    notifyUpdatedVersion(latest);
+                } else {
+                    plugin.getLogger().info(() -> "The plugin is up to date (v" + currentVersion + ").");
                 }
             } catch (IOException e) {
-                plugin.getLogger().warning(() -> "Could not check version: " + e.getMessage());
+                checkDone = true;
+                plugin.getLogger().warning(() -> "Could not check for updates: " + e.getMessage());
             }
         });
+    }
+
+    private String fetchLatestFromReleases() throws IOException {
+        String body = httpGet(RELEASES_URL);
+        if (body == null) return null;
+        // Parseo simple de JSON para encontrar el tag_name
+        String marker = "\"tag_name\":\"";
+        int start = body.indexOf(marker);
+        if (start == -1) return null;
+        String after = body.substring(start + marker.length());
+        return after.substring(0, after.indexOf('"'));
+    }
+
+    private String fetchHighestFromTags() throws IOException {
+        String body = httpGet(TAGS_URL);
+        if (body == null) return null;
+        String highest = null;
+        // Parseo simple: cada \"name\":\"<tag>\"
+        String marker = "\"name\":\"";
+        int idx = 0;
+        while ((idx = body.indexOf(marker, idx)) != -1) {
+            String after = body.substring(idx + marker.length());
+            String tag = after.substring(0, after.indexOf('"'));
+            if (highest == null || compareVersions(tag, highest) > 0) {
+                highest = tag;
+            }
+            idx = idx + marker.length();
+        }
+        return highest;
+    }
+
+    private String httpGet(String url) throws IOException {
+        HttpURLConnection connection = (HttpURLConnection) URI.create(url).toURL().openConnection();
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("Accept", "application/vnd.github.v3+json");
+        connection.setRequestProperty("User-Agent", "UHC-Plugin-UpdateChecker");
+        connection.setConnectTimeout(3000);
+        connection.setReadTimeout(3000);
+
+        if (connection.getResponseCode() != 200) return null;
+
+        StringBuilder response;
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+            response = new StringBuilder();
+            String line;
+            while ((line = in.readLine()) != null) {
+                response.append(line);
+            }
+        }
+        return response.toString();
+    }
+
+    /**
+     * Compara dos versiones numéricamente (sin prefijo v ni sufijo -SNAPSHOT).
+     * Devuelve >0 si a > b, 0 si iguales, <0 si a < b.
+     */
+    public static int compareVersions(String a, String b) {
+        int[] pa = versionParts(a);
+        int[] pb = versionParts(b);
+        int max = Math.max(pa.length, pb.length);
+        for (int i = 0; i < max; i++) {
+            int va = i < pa.length ? pa[i] : 0;
+            int vb = i < pb.length ? pb[i] : 0;
+            if (va != vb) return Integer.compare(va, vb);
+        }
+        return 0;
+    }
+
+    private static int[] versionParts(String version) {
+        String v = version == null ? "" : version.trim();
+        if (v.startsWith("v") || v.startsWith("V")) v = v.substring(1);
+        int dash = v.indexOf('-');
+        if (dash >= 0) v = v.substring(0, dash);
+        String[] parts = v.split("[^0-9]+");
+        int[] result = new int[parts.length];
+        for (int i = 0; i < parts.length; i++) {
+            if (!parts[i].isEmpty()) {
+                try {
+                    result[i] = Integer.parseInt(parts[i]);
+                } catch (NumberFormatException e) {
+                    result[i] = 0;
+                }
+            }
+        }
+        return result;
     }
 
     private void notifyUpdatedVersion(String latest) {
         Bukkit.getConsoleSender().sendMessage(legacySection().deserialize(" "));
         Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§6--------------------------------------------------"));
-        Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§e [UHC UPDATE] ¡New version avaliable!"));
-        Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§f Current version: §c" + currentVersion));
-        Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§f New version: §a" + latest));
+        Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§e [UHC UPDATE] A new version is available!"));
+        Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§f Your version: §c" + currentVersion));
+        Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§f Latest version: §a" + latest));
         Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§f Download it at: §bhttps://github.com/Dalibex/UHC_Plugin/releases"));
         Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§6--------------------------------------------------"));
         Bukkit.getConsoleSender().sendMessage(legacySection().deserialize(" "));

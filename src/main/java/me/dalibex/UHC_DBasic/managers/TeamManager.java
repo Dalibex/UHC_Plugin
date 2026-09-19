@@ -18,9 +18,9 @@ import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
+import me.dalibex.UHC_DBasic.utils.TextUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
 public class TeamManager {
@@ -64,27 +64,39 @@ public class TeamManager {
     public int getTeamSize() { return teamSize; }
 
     public void initializeCustomTeams() {
-        borrarTodosLosEquipos();
+        deleteAllTeams();
         LanguageManager lang = plugin.getLang();
 
-        int numeroDeEquipos = TEAM_COLOR_KEYS.length;
-
-        for (int i = 0; i < numeroDeEquipos; i++) {
-            String colorKey = TEAM_COLOR_KEYS[i % TEAM_COLOR_KEYS.length];
-            Team team = board.registerNewTeam(colorKey);
-            NamedTextColor color = TEAM_NAMED_COLORS[i % TEAM_NAMED_COLORS.length];
-            team.color(color);
-
-            String localizedName = lang.get("teams.colors." + colorKey, null);
-            team.displayName(Component.text(localizedName != null ? localizedName : colorKey));
-
-            String legacyCode = TEAM_LEGACY_CODES[i % TEAM_LEGACY_CODES.length];
-            String prefix = lang.get("teams.prefix-format", null)
-                    .replace("%color%", legacyCode)
-                    .replace("%name%", legacySection().serialize(team.displayName()));
-            team.prefix(legacySection().deserialize(prefix));
-            team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
+        for (int i = 0; i < TEAM_COLOR_KEYS.length; i++) {
+            createTeam(i);
         }
+    }
+
+    /**
+     * Registra y configura un equipo con su color, displayName y prefijo.
+     * Único punto de creación de equipos para evitar duplicados.
+     */
+    private Team createTeam(int index) {
+        LanguageManager lang = plugin.getLang();
+        String colorKey = TEAM_COLOR_KEYS[index % TEAM_COLOR_KEYS.length];
+        Team team = board.registerNewTeam(colorKey);
+        team.color(TEAM_NAMED_COLORS[index % TEAM_NAMED_COLORS.length]);
+
+        String localizedName = lang.get("teams.colors." + colorKey, null);
+        team.displayName(Component.text(localizedName != null ? localizedName : colorKey));
+
+        applyPrefix(team, legacySection().serialize(team.displayName()));
+        team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
+        return team;
+    }
+
+    private void applyPrefix(Team team, String nombre) {
+        LanguageManager lang = plugin.getLang();
+        String legacyCode = TEAM_LEGACY_CODES[getTeamIndexForGui(team) % TEAM_LEGACY_CODES.length];
+        String prefix = lang.get("teams.prefix-format", null)
+                .replace("%color%", legacyCode)
+                .replace("%name%", nombre);
+        team.prefix(TextUtil.deserialize(prefix));
     }
 
     public Team getTeamByColorSearch(String input) {
@@ -136,23 +148,23 @@ public class TeamManager {
             ItemStack item = new ItemStack(dyeMat);
             ItemMeta meta = item.getItemMeta();
 
-            meta.displayName(legacySection().deserialize(
-                    lang.get("menus.team-selector.team-item.name", p).replace("%name%", legacySection().serialize(team.displayName()))).decoration(TextDecoration.ITALIC, false));
+            meta.displayName(TextUtil.item(
+                    lang.get("menus.team-selector.team-item.name", p).replace("%name%", legacySection().serialize(team.displayName()))));
             List<Component> lore = new ArrayList<>();
             int current = team.getEntries().size();
             for (String l : lang.getList("menus.team-selector.team-item.lore", p)) {
-                lore.add(legacySection().deserialize(l.replace("%current%", String.valueOf(current)).replace("%max%", String.valueOf(teamSize))).decoration(TextDecoration.ITALIC, false));
+                lore.add(TextUtil.item(l.replace("%current%", String.valueOf(current)).replace("%max%", String.valueOf(teamSize))));
             }
             for (String entry : team.getEntries()) {
-                lore.add(legacySection().deserialize(lang.get("menus.team-selector.member-format", p).replace("%player%", entry)).decoration(TextDecoration.ITALIC, false));
+                lore.add(TextUtil.item(lang.get("menus.team-selector.member-format", p).replace("%player%", entry)));
             }
             int huecos = teamSize - current;
-            for (int h = 0; h < huecos; h++) lore.add(legacySection().deserialize(lang.get("menus.team-selector.empty-slot", p)).decoration(TextDecoration.ITALIC, false));
+            for (int h = 0; h < huecos; h++) lore.add(TextUtil.item(lang.get("menus.team-selector.empty-slot", p)));
 
             Team playerTeam = board.getEntryTeam(p.getName());
             if (playerTeam != null && playerTeam.equals(team)) {
                 lore.add(Component.empty());
-                lore.add(legacySection().deserialize("§a✔ Tu equipo actual").decoration(TextDecoration.ITALIC, false));
+                lore.add(TextUtil.item("§a✔ Tu equipo actual"));
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.LUCK_OF_THE_SEA, 1, true);
                 meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
             }
@@ -221,7 +233,7 @@ public class TeamManager {
     }
 
     public void clearCustomTeams() {
-        borrarTodosLosEquipos();
+        deleteAllTeams();
         removeAllSelectorItems();
     }
 
@@ -241,12 +253,12 @@ public class TeamManager {
     }
 
     public void shuffleTeams() {
-        borrarTodosLosEquipos();
+        deleteAllTeams();
         LanguageManager lang = plugin.getLang();
         List<String> vivos = new ArrayList<>();
         List<String> muertos = new ArrayList<>();
-        for (String name : plugin.getGameManager().getParticipantesIniciales()) {
-            if (plugin.getGameManager().getJugadoresEliminados().contains(name)) muertos.add(name);
+        for (String name : plugin.getGameManager().getInitialParticipants()) {
+            if (plugin.getGameManager().getEliminatedPlayers().contains(name)) muertos.add(name);
             else vivos.add(name);
         }
         if (vivos.isEmpty() && muertos.isEmpty()) return;
@@ -258,29 +270,19 @@ public class TeamManager {
         List<Team> listaEquipos = new ArrayList<>();
 
         for (int i = 0; i < numeroDeEquipos; i++) {
-            String colorKey = TEAM_COLOR_KEYS[i % TEAM_COLOR_KEYS.length];
-            Team team = board.registerNewTeam(colorKey);
-            NamedTextColor color = TEAM_NAMED_COLORS[i % TEAM_NAMED_COLORS.length];
-            team.color(color);
-            String localizedName = lang.get("teams.colors." + colorKey, null);
-            team.displayName(Component.text(localizedName != null ? localizedName : colorKey));
-            String legacyCode = TEAM_LEGACY_CODES[i % TEAM_LEGACY_CODES.length];
-            String prefix = lang.get("teams.prefix-format", null).replace("%color%", legacyCode).replace("%name%", legacySection().serialize(team.displayName()));
-            team.prefix(legacySection().deserialize(prefix));
-            team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
-            listaEquipos.add(team);
+            listaEquipos.add(createTeam(i));
         }
 
-        for (int i = 0; i < vivos.size(); i++) asignarEquipoPorNombre(vivos.get(i), listaEquipos.get(i % numeroDeEquipos), lang);
+        for (int i = 0; i < vivos.size(); i++) assignTeamByName(vivos.get(i), listaEquipos.get(i % numeroDeEquipos), lang);
         if (!listaEquipos.isEmpty()) {
             for (String m : muertos) {
                 Team MasVacio = listaEquipos.stream().min(Comparator.comparingInt(t -> t.getEntries().size())).get();
-                asignarEquipoPorNombre(m, MasVacio, lang);
+                assignTeamByName(m, MasVacio, lang);
             }
         }
     }
 
-    private void asignarEquipoPorNombre(String name, Team team, LanguageManager lang) {
+    private void assignTeamByName(String name, Team team, LanguageManager lang) {
         team.addEntry(name);
         Player p = Bukkit.getPlayer(name);
         if (p != null && p.isOnline()) {
@@ -299,16 +301,15 @@ public class TeamManager {
         return ta != null && ta.equals(tb);
     }
 
-    public boolean renombrarEquipo(Player player, String nuevoNombre) {
+    public boolean renameTeam(Player player, String nuevoNombre) {
         Team team = board.getEntryTeam(player.getName());
         if (team == null) return false;
         LanguageManager lang = plugin.getLang();
         if (nuevoNombre.length() > 16) nuevoNombre = nuevoNombre.substring(0, 16);
         String nombreAnterior = legacySection().serialize(team.displayName());
         team.displayName(Component.text(nuevoNombre));
+        applyPrefix(team, nuevoNombre);
         String legacyCode = TEAM_LEGACY_CODES[getTeamIndexForGui(team) % TEAM_LEGACY_CODES.length];
-        String prefix = lang.get("teams.prefix-format", null).replace("%color%", legacyCode).replace("%name%", nuevoNombre);
-        team.prefix(legacySection().deserialize(prefix));
 
         for (Player all : Bukkit.getOnlinePlayers()) {
             if (isDefaultName(team, nombreAnterior)) {
@@ -336,14 +337,7 @@ public class TeamManager {
         return name.startsWith("team_");
     }
 
-    public int getTeamIndex(String colorKey) {
-        for (int i = 0; i < TEAM_COLOR_KEYS.length; i++) {
-            if (TEAM_COLOR_KEYS[i].equalsIgnoreCase(colorKey)) return i;
-        }
-        return -1;
-    }
-
-    public void borrarTodosLosEquipos() {
+    public void deleteAllTeams() {
         for (Team team : board.getTeams()) team.unregister();
     }
 }

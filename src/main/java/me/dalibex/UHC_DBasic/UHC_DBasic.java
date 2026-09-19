@@ -6,22 +6,24 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import me.dalibex.UHC_DBasic.commands.AbandonCommand;
 import me.dalibex.UHC_DBasic.commands.AdminPanelCommand;
-import me.dalibex.UHC_DBasic.commands.AsignarEquipoCommand;
-import me.dalibex.UHC_DBasic.commands.CancelarStartCommand;
+import me.dalibex.UHC_DBasic.commands.AssignTeamCommand;
+import me.dalibex.UHC_DBasic.commands.CancelStartCommand;
 import me.dalibex.UHC_DBasic.commands.ConfirmStartCommand;
 import me.dalibex.UHC_DBasic.commands.GCommandsCommand;
 import me.dalibex.UHC_DBasic.commands.LangCommand;
-import me.dalibex.UHC_DBasic.commands.NEquipoCommand;
 import me.dalibex.UHC_DBasic.commands.PrepareWorldCommand;
+import me.dalibex.UHC_DBasic.commands.SetTimeCommand;
 import me.dalibex.UHC_DBasic.commands.StartCommand;
-import me.dalibex.UHC_DBasic.commands.TiempoPartesCommand;
+import me.dalibex.UHC_DBasic.commands.TeamCommand;
 import me.dalibex.UHC_DBasic.listeners.AdminPanelListener;
 import me.dalibex.UHC_DBasic.listeners.GameLogicListener;
 import me.dalibex.UHC_DBasic.listeners.ItemsListener;
@@ -69,8 +71,8 @@ public final class UHC_DBasic extends JavaPlugin {
         teamManager = new TeamManager(this);
         gameManager = new GameManager(this);
 
-        crearAnimacionesTab();
-        configurarTabAutomaticamente();
+        createTABAnimations();
+        setupTABAutomatically();
 
         // CONFIGURACIÓN E IDIOMA
         saveDefaultConfig();
@@ -96,10 +98,10 @@ public final class UHC_DBasic extends JavaPlugin {
         getServer().getPluginManager().registerEvents(chatManager, this);
 
         // REGISTRAR COMANDOS
-        registrarComandos();
+        registerCommands();
 
         Bukkit.getScheduler().runTaskLater(this, () -> {
-            registrarPlaceholder();
+            registerPlaceholders();
             // Automatizar reset inicial tras cargar todo
             gameManager.fullReset();
         }, 60L);
@@ -109,41 +111,51 @@ public final class UHC_DBasic extends JavaPlugin {
 
     // Eliminado el método antiguo en favor de DependencyManager
 
-    private void registrarComandos() {
+    private void registerCommands() {
         getCommand("uhcadmin").setExecutor(new AdminPanelCommand(this));
         getCommand("reset").setExecutor(new PrepareWorldCommand(this));
         getCommand("uhccommands").setExecutor(new GCommandsCommand(this));
-        getCommand("nequipo").setExecutor(new NEquipoCommand(this));
-        getCommand("tpartes").setExecutor(new TiempoPartesCommand(this));
+        getCommand("team").setExecutor(new TeamCommand(this));
+        getCommand("settime").setExecutor(new SetTimeCommand(this));
 
         StartCommand startCmd = new StartCommand(this);
         getCommand("start").setExecutor(startCmd);
-        getCommand("confirmarstart").setExecutor(new ConfirmStartCommand(this, startCmd));
-        getCommand("cancelarstart").setExecutor(new CancelarStartCommand(this, startCmd));
+        getCommand("confirmstart").setExecutor(new ConfirmStartCommand(this, startCmd));
+        getCommand("cancelstart").setExecutor(new CancelStartCommand(this, startCmd));
 
         getCommand("lang").setExecutor(new LangCommand(this));
         getCommand("lang").setTabCompleter(new LangCommand(this));
 
-        AsignarEquipoCommand asignarCmd = new AsignarEquipoCommand(this);
-        getCommand("asignarequipo").setExecutor(asignarCmd);
-        getCommand("asignarequipo").setTabCompleter(asignarCmd);
+        AssignTeamCommand assignCmd = new AssignTeamCommand(this);
+        getCommand("assignteam").setExecutor(assignCmd);
+        getCommand("assignteam").setTabCompleter(assignCmd);
 
-        getCommand("test").setExecutor(((sender, command, s, strings) -> {
+        AbandonCommand abandonCmd = new AbandonCommand(this);
+        getCommand("abandon").setExecutor(abandonCmd);
+        getCommand("abandon").setTabCompleter(abandonCmd);
+
+        getCommand("test").setExecutor((sender, command, s, strings) -> {
+            if (!isAdmin(sender)) {
+                if (sender instanceof Player pl) {
+                    pl.sendMessage(getLang().get("general.no-permission", pl));
+                }
+                return true;
+            }
             sender.sendMessage("§a[UHC] Plugin and its dependencies (TAB/SkinsRestorer) working perfectly!");
             return true;
-        }));
+        });
     }
 
-    private void registrarPlaceholder() {
+    private void registerPlaceholders() {
         TabAPI.getInstance().getPlaceholderManager().registerRelationalPlaceholder("%rel_uhc_identidad%", 500, (viewer, target) -> {
             if (viewer == null || target == null) return "";
             Player v = Bukkit.getPlayer(viewer.getUniqueId());
             Player t = Bukkit.getPlayer(target.getUniqueId());
             if (v == null || t == null) return "";
-            if (!gameManager.isPartidaIniciada()) { return "§f" + t.getName(); }
+            if (!gameManager.isGameStarted()) { return "§f" + t.getName(); }
             if (v.equals(t) || teamManager.areInSameTeam(v, t)) { return "§a" + t.getName(); }
-            if (gameManager.getJugadoresRevelados().contains(t.getUniqueId())) { return "§c" + t.getName(); }
-            String nombreFalso = gameManager.getUltimaSkinAsignada().getOrDefault(t.getUniqueId(), t.getName());
+            if (gameManager.getRevealedPlayers().contains(t.getUniqueId())) { return "§c" + t.getName(); }
+            String nombreFalso = gameManager.getLastAssignedSkin().getOrDefault(t.getUniqueId(), t.getName());
             return "§d" + nombreFalso;
         });
 
@@ -152,14 +164,14 @@ public final class UHC_DBasic extends JavaPlugin {
             Player v = Bukkit.getPlayer(viewer.getUniqueId());
             Player t = Bukkit.getPlayer(target.getUniqueId());
             if (v == null || t == null) return "";
-            if (!gameManager.isPartidaIniciada()) {return "§f";}
+            if (!gameManager.isGameStarted()) {return "§f";}
             if (v.equals(t) || teamManager.areInSameTeam(v, t)) {return "§a";}
-            if (gameManager.getJugadoresRevelados().contains(t.getUniqueId())) {return "§c"; }
+            if (gameManager.getRevealedPlayers().contains(t.getUniqueId())) {return "§c"; }
             return "§c";
         });
     }
 
-    private void configurarTabAutomaticamente() {
+    private void setupTABAutomatically() {
         Plugin tabPlugin = Bukkit.getPluginManager().getPlugin("TAB");
         if (tabPlugin == null) return;
 
@@ -200,7 +212,7 @@ public final class UHC_DBasic extends JavaPlugin {
         }
     }
 
-    private void crearAnimacionesTab() {
+    private void createTABAnimations() {
         Plugin tabPlugin = Bukkit.getPluginManager().getPlugin("TAB");
         if (tabPlugin == null) return;
 
@@ -257,6 +269,16 @@ public final class UHC_DBasic extends JavaPlugin {
     public AdminPanelListener getAdminPanelListener() { return adminPanelListener; }
     public ItemsListener getItemsListener() { return itemsListener; }
     public DependencyManager getDependencyManager() { return dependencyManager; }
+
+    /**
+     * Comprueba si un remitente tiene permisos de administración del plugin:
+     * OP o con el permiso {@code uhc.admin}. La consola se considera admin.
+     */
+    public boolean isAdmin(CommandSender sender) {
+        if (sender == null) return false;
+        if (sender instanceof Player p && p.isOp()) return true;
+        return sender.hasPermission("uhc.admin");
+    }
 
     @Override
     public void onDisable() {

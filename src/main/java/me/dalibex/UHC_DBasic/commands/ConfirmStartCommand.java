@@ -17,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 import static org.bukkit.GameRules.*;
@@ -34,9 +35,35 @@ public class ConfirmStartCommand implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!(sender instanceof Player player)) return true;
-        if (args.length == 0) return true;
 
-        if (!startCmd.getConfirmacionPendiente() || plugin.getGameManager().isPartidaIniciada()) {
+        String errorPrefix = plugin.getLang().get("general.error-prefix", player);
+
+        if (args.length != 1) {
+            player.sendMessage(plugin.getLang().get("start-menu.usage", player).replace("%error-prefix%", errorPrefix));
+            return true;
+        }
+
+        int size;
+        try {
+            size = Integer.parseInt(args[0]);
+        } catch (NumberFormatException e) {
+            player.sendMessage(plugin.getLang().get("game.invalid-number", player).replace("%error-prefix%", errorPrefix));
+            return true;
+        }
+
+        if (!startCmd.hasPendingConfirmation() || plugin.getGameManager().isGameStarted()) {
+            return true;
+        }
+
+        // Solo el admin que inició /start puede confirmarlo (o cualquier admin del plugin)
+        if (plugin.isAdmin(player)) {
+            UUID iniciador = startCmd.getConfirmerUuid();
+            if (iniciador != null && !iniciador.equals(player.getUniqueId())) {
+                player.sendMessage(plugin.getLang().get("start-menu.not-initiator", player));
+                return true;
+            }
+        } else {
+            player.sendMessage(plugin.getLang().get("general.no-permission", player));
             return true;
         }
 
@@ -46,7 +73,7 @@ public class ConfirmStartCommand implements CommandExecutor {
             if (!tm.allPlayersHaveTeam()) {
                 player.sendMessage(plugin.getLang().get("game.start-blocked-custom-teams", player));
                 player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
-                startCmd.setConfirmacionPendiente(false);
+                startCmd.setConfirmationPending(false);
                 return true;
             }
             
@@ -59,15 +86,15 @@ public class ConfirmStartCommand implements CommandExecutor {
                         .replace("%min%", String.valueOf(minRequired))
                         .replace("%n%", String.valueOf(tm.getTeamSize())));
                 player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
-                startCmd.setConfirmacionPendiente(false);
+                startCmd.setConfirmationPending(false);
                 return true;
             }
         }
 
-        plugin.getGameManager().setPartidaIniciada(true);
-        startCmd.setConfirmacionPendiente(false);
+        plugin.getGameManager().setGameStarted(true);
+        startCmd.setConfirmationPending(false);
 
-        iniciarProcesoUHC(player, Integer.parseInt(args[0]));
+        startUHCProcess(player, size);
 
         return true;
     }
@@ -75,7 +102,7 @@ public class ConfirmStartCommand implements CommandExecutor {
     /**
      * Coordina el borde, el scatter (TP) y la cuenta atrás.
      */
-    private void iniciarProcesoUHC(Player admin, int size) {
+    private void startUHCProcess(Player admin, int size) {
         World world = admin.getWorld();
         LanguageManager lang = plugin.getLang();
 
@@ -100,7 +127,7 @@ public class ConfirmStartCommand implements CommandExecutor {
             public void run() {
                 if (current < totalJugadores) {
                     Player p = jugadores.get(current);
-                    prepararYTeletransportar(p, world, indices.get(current), numPosiciones, size);
+                    prepareAndTeleport(p, world, indices.get(current), numPosiciones, size);
 
                     for (Player online : Bukkit.getOnlinePlayers()) {
                         online.sendMessage(lang.get("game.teleporting-progress", online)
@@ -118,7 +145,7 @@ public class ConfirmStartCommand implements CommandExecutor {
                     new BukkitRunnable() {
                         @Override
                         public void run() {
-                            iniciarCuentaAtras(world, lang);
+                            startCountdown(world, lang);
                         }
                     }.runTaskLater(plugin, 120L); // 6 segundos de delay
                 }
@@ -126,7 +153,7 @@ public class ConfirmStartCommand implements CommandExecutor {
         }.runTaskTimer(plugin, 0L, 40L);
     }
 
-    private void prepararYTeletransportar(Player p, World world, int i, int numPosiciones, int size) {
+    private void prepareAndTeleport(Player p, World world, int i, int numPosiciones, int size) {
         double radio = size / 2.0;
         double angulo = (2 * Math.PI * i / numPosiciones) + (Math.PI / 4);
         double xCircular = Math.cos(angulo);
@@ -171,7 +198,7 @@ public class ConfirmStartCommand implements CommandExecutor {
         p.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 3600, 255, false, false, false));
     }
 
-    private void iniciarCuentaAtras(World world, LanguageManager lang) {
+    private void startCountdown(World world, LanguageManager lang) {
         new BukkitRunnable() {
             int segundos = 10;
 
@@ -214,7 +241,7 @@ public class ConfirmStartCommand implements CommandExecutor {
                         w.setDifficulty(Difficulty.HARD);
                     }
 
-                    plugin.getGameManager().iniciarPartida();
+                    plugin.getGameManager().startGame();
                     this.cancel();
                 }
             }

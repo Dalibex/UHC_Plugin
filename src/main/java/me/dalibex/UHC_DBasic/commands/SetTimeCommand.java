@@ -1,8 +1,9 @@
 package me.dalibex.UHC_DBasic.commands;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
-import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import me.dalibex.UHC_DBasic.managers.GameManager;
+import me.dalibex.UHC_DBasic.managers.LanguageManager;
+import me.dalibex.UHC_DBasic.utils.TimeUtil;
 import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -12,11 +13,11 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public class TiempoPartesCommand implements CommandExecutor {
+public class SetTimeCommand implements CommandExecutor {
 
     private final UHC_DBasic plugin;
 
-    public TiempoPartesCommand(UHC_DBasic plugin) {
+    public SetTimeCommand(UHC_DBasic plugin) {
         this.plugin = plugin;
     }
 
@@ -25,18 +26,18 @@ public class TiempoPartesCommand implements CommandExecutor {
         LanguageManager lang = plugin.getLang();
         Player player = (sender instanceof Player) ? (Player) sender : null;
 
-        if (!sender.hasPermission("uhc.admin")) {
+        if (!plugin.isAdmin(sender)) {
             sender.sendMessage(lang.get("general.no-permission", player));
             return true;
         }
 
-        int totalSegundos = validarTodo(sender, args, player);
+        int totalSegundos = validate(sender, args, player);
         if (totalSegundos == -1) return true;
 
         GameManager rpm = plugin.getGameManager();
-        rpm.setSegundosPorCapitulo(totalSegundos);
+        rpm.setSecondsPerChapter(totalSegundos);
 
-        enviarFeedback(sender, args, player, totalSegundos);
+        sendFeedback(sender, args, player, totalSegundos);
 
         return true;
     }
@@ -45,7 +46,7 @@ public class TiempoPartesCommand implements CommandExecutor {
      * Valida argumentos, formato, límites y estado de la partida.
      * @return total de segundos si es válido, -1 si falla.
      */
-    private int validarTodo(CommandSender sender, String[] args, Player player) {
+    private int validate(CommandSender sender, String[] args, Player player) {
         LanguageManager lang = plugin.getLang();
 
         if (args.length != 3) {
@@ -54,7 +55,7 @@ public class TiempoPartesCommand implements CommandExecutor {
             return -1;
         }
 
-        if (plugin.getGameManager().getTiempoTotalSegundos() > 0) {
+        if (plugin.getGameManager().getTotalSeconds() > 0) {
             sender.sendMessage(lang.get("timer.already-started", player));
             return -1;
         }
@@ -89,13 +90,10 @@ public class TiempoPartesCommand implements CommandExecutor {
         }
     }
 
-    private void enviarFeedback(CommandSender sender, String[] args, Player player, int total) {
+    private void sendFeedback(CommandSender sender, String[] args, Player player, int total) {
         LanguageManager lang = plugin.getLang();
 
-        String tiempoFormateado = String.format("%02dh %02dm %02ds",
-                Integer.parseInt(args[0]),
-                Integer.parseInt(args[1]),
-                Integer.parseInt(args[2]));
+        String tiempoFormateado = TimeUtil.formatHms(total);
 
         String successMsg = lang.get("timer.success", player)
                 .replace("%prefix%", lang.get("general.prefix", player))

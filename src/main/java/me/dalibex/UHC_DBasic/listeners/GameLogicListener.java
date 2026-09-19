@@ -21,7 +21,6 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import io.papermc.paper.datacomponent.item.ResolvableProfile;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
-import me.dalibex.UHC_DBasic.managers.AdminPanelManager;
 import me.dalibex.UHC_DBasic.managers.GameManager;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
@@ -44,7 +43,7 @@ public class GameLogicListener implements Listener {
         GameManager gm = plugin.getGameManager();
 
         muerto.setGameMode(GameMode.SPECTATOR);
-        gm.getJugadoresEliminados().add(muerto.getName());
+        gm.eliminatePlayer(muerto.getName());
         muerto.getWorld().strikeLightningEffect(muerto.getLocation());
 
         spawnDeathHead(muerto);
@@ -52,7 +51,7 @@ public class GameLogicListener implements Listener {
         // Verificar victoria tras un breve delay para permitir el procesamiento del estado
         new BukkitRunnable() {
             @Override
-            public void run() { gm.getModoActual().checkVictory(); }
+            public void run() { gm.getCurrentMode().checkVictory(); }
         }.runTaskLater(plugin, 1L);
     }
 
@@ -74,7 +73,7 @@ public class GameLogicListener implements Listener {
         if (attacker == null || attacker.equals(victim)) return;
 
         // 1. Mecánicas de combate 1.8 alternativo
-        if (AdminPanelManager.combate18) {
+        if (plugin.getAdminPanel().isCombate18()) {
             handleCombat18(event, attacker);
         }
 
@@ -110,11 +109,11 @@ public class GameLogicListener implements Listener {
 
     private void handleIdentityRevelation(Player attacker, Player victim) {
         GameManager gm = plugin.getGameManager();
-        if (!gm.isPartidaIniciada()) return;
-        if (gm.getJugadoresRevelados().contains(victim.getUniqueId())) return;
+        if (!gm.isGameStarted()) return;
+        if (gm.getRevealedPlayers().contains(victim.getUniqueId())) return;
         if (plugin.getTeamManager().areInSameTeam(attacker, victim)) return;
 
-        gm.revelarIdentidad(victim);
+        gm.revealIdentity(victim);
         LanguageManager lang = plugin.getLang();
 
         victim.sendMessage(legacySection().deserialize(lang.get("game-events.skins.revealed-victim", victim).replace("%player%", attacker.getName())));

@@ -26,7 +26,7 @@ public class PrepareWorldCommand implements CommandExecutor {
             return true;
         }
 
-        if (!player.isOp()) {
+        if (!plugin.isAdmin(player)) {
             player.sendMessage(lang.get("general.no-permission", player));
             return true;
         }

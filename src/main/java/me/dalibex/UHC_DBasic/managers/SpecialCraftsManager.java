@@ -17,14 +17,14 @@ public class SpecialCraftsManager {
 
     public SpecialCraftsManager(UHC_DBasic plugin) {
         this.plugin = plugin;
-        registrarRecetas();
+        registerRecipes();
     }
 
-    private void registrarRecetas() {
-        registrarGoldenHead();
+    private void registerRecipes() {
+        registerGoldenHead();
     }
 
-    private void registrarGoldenHead() {
+    private void registerGoldenHead() {
         LanguageManager lang = plugin.getLang();
         ItemStack goldenHead = new ItemStack(Material.GOLDEN_APPLE);
         ItemMeta meta = goldenHead.getItemMeta();
@@ -54,11 +54,11 @@ public class SpecialCraftsManager {
         Bukkit.addRecipe(recipe);
     }
 
-    public void actualizarReceta() {
+    public void updateRecipe() {
         NamespacedKey key = new NamespacedKey(plugin, "golden_head");
         if (Bukkit.getRecipe(key) != null) {
             Bukkit.removeRecipe(key);
         }
-        registrarGoldenHead();
+        registerGoldenHead();
     }
 }

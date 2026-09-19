@@ -19,11 +19,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class AsignarEquipoCommand implements CommandExecutor, TabCompleter {
+public class AssignTeamCommand implements CommandExecutor, TabCompleter {
 
     private final UHC_DBasic plugin;
 
-    public AsignarEquipoCommand(UHC_DBasic plugin) {
+    public AssignTeamCommand(UHC_DBasic plugin) {
         this.plugin = plugin;
     }
 
@@ -34,7 +34,7 @@ public class AsignarEquipoCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        if (!admin.isOp()) {
+        if (!plugin.isAdmin(admin)) {
             admin.sendMessage(plugin.getLang().get("general.no-permission", admin));
             return true;
         }

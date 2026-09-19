@@ -63,11 +63,11 @@ public class ResourceRushListener implements Listener {
     }
 
     private void checkItem(Player player, Material material) {
-        if (plugin.getGameManager().getTiempoTotalSegundos() > 0 &&
-                plugin.getGameManager().getModoActual() instanceof ResourceRush rr) {
+        if (plugin.getGameManager().getTotalSeconds() > 0 &&
+                plugin.getGameManager().getCurrentMode() instanceof ResourceRush rr) {
 
-            if (rr.getObjetivosActivos().contains(material)) {
-                rr.completarObjetivo(player, material);
+            if (rr.getActiveObjectives().contains(material)) {
+                rr.completeObjective(player, material);
             }
         }
     }
@@ -75,7 +75,7 @@ public class ResourceRushListener implements Listener {
     @EventHandler
     public void onPlayerToggleSneak(PlayerToggleSneakEvent event) {
         if (!event.isSneaking()) return;
-        if (!plugin.getGameManager().isPartidaIniciada()) return;
+        if (!plugin.getGameManager().isGameStarted()) return;
 
         Player p = event.getPlayer();
         UUID uuid = p.getUniqueId();
@@ -86,7 +86,7 @@ public class ResourceRushListener implements Listener {
         } else {
             int cuenta = contadorShift.get(uuid) + 1;
             if (cuenta >= 3) {
-                mostrarResumenObjetivos(p);
+                showObjectivesSummary(p);
                 contadorShift.put(uuid, 0);
             } else {
                 contadorShift.put(uuid, cuenta);
@@ -95,13 +95,13 @@ public class ResourceRushListener implements Listener {
         ultimoShift.put(uuid, ahora);
     }
 
-    private void mostrarResumenObjetivos(Player p) {
+    private void showObjectivesSummary(Player p) {
         LanguageManager lang = plugin.getLang();
-        if (!(plugin.getGameManager().getModoActual() instanceof ResourceRush)) return;
-        ResourceRush rr = (ResourceRush) plugin.getGameManager().getModoActual();
+        if (!(plugin.getGameManager().getCurrentMode() instanceof ResourceRush)) return;
+        ResourceRush rr = (ResourceRush) plugin.getGameManager().getCurrentMode();
 
-        List<Material> activos = rr.getObjetivosActivos();
-        List<Material> conseguidos = rr.getLogrosJugador(p);
+        List<Material> activos = rr.getActiveObjectives();
+        List<Material> conseguidos = rr.getPlayerAchievements(p);
 
         p.sendMessage("");
         p.sendMessage(legacySection().deserialize(lang.get("resource-rush.summary.header", p)));
