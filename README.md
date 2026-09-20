@@ -1,85 +1,89 @@
 # ⚔️ UHC ELOUD
 
-![Plugin Version](https://img.shields.io/badge/Plugin_Version-1.5.2--SNAPSHOT-orange)
-![Minecraft Version](https://img.shields.io/badge/Minecraft_Version-1.21.11-gold)
+![Plugin Version](https://img.shields.io/badge/Plugin_Version-1.5.3--SNAPSHOT-orange)
+![Minecraft Version](https://img.shields.io/badge/Minecraft_Version-26.2-gold)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Platform](https://img.shields.io/badge/Platform-Spigot%20%7C%20Paper-blue)
 
-Un plugin de **UHC (Ultra Hardcore)** ligero y eficiente. Este plugin gestiona automáticamente las fases de la partida, el panel de puntuación dinámico, el sistema de victoria y un sistema de anonimato visual.
+A lightweight and efficient **UHC (Ultra Hardcore)** plugin. It automatically manages the game phases, the dynamic scoreboard, the victory system and a visual anonymity system.
 
-Basado en **UHC ESPAÑA** creado por **ElRichMC**.
-
----
-
-## 🚀 Novedades de la Versión 1.5.2-SNAPSHOT (Actual)
-
-Esta versión representa una evolución significativa en la arquitectura del plugin, mejorando la escalabilidad y la experiencia del usuario.
-
-* 💎 **Nuevo Modo: Resource Rush:**
-  - Compite por ser el primer equipo en conseguir 10 objetos aleatorios.
-  - El Scoreboard se adapta dinámicamente para mostrar el progreso de recolección en tiempo real.
-  - Finalización automática al completar la lista de recursos.
-
-* 🎭 **Sistema de Identidades Dinámicas (SkinsRestorer):**
-  - Rotación automática de skins en cada cambio de capítulo.
-  - Sistema inteligente que evita asignar la propia skin o repetir skins recientes.
-  - Integración con **SkinsRestorer API** para un anonimato visual perfecto.
-
-* 📊 **Integración Avanzada con TAB:**
-  - Prefijos coloreados y nombres dinámicos sincronizados con el sistema de identidades.
-  - Visualización de salud en tiempo real en la lista de jugadores.
-
-* 🛡️ **Gestión de Equipos Refinada:**
-  - **Equipos Personalizados:** Interfaz visual con estrella del nether para elegir bando.
-  - **Validación Automática:** Bloqueo de modos incompatibles (ej. Equipos en Solos).
-  - **Nombres Estandarizados:** Los equipos aleatorios ahora usan nombres de colores coherentes (Rojo, Azul, etc.).
-
-* ⚙️ **Arquitectura Modular:**
-  - Refactorización interna para permitir la adición sencilla de nuevos modos de juego en el futuro.
-  - Centralización de lógicas de tiempo, scoreboards y eventos.
+Based on **UHC ESPAÑA** created by **ElRichMC**.
 
 ---
 
-## ✨ Características Principales
+## 🚀 What's New in Version 1.5.3-SNAPSHOT (Current)
 
-* 🌍 **Sistema Multi-idioma:** Soporte dinámico para **Español** e **Inglés**. Cambio instantáneo de Scoreboards y mensajes mediante `/lang`.
-* 📊 **Scoreboard Dinámico:** Muestra fase, timer de capítulo, tiempo total acumulado y vida de aliados con iconos de salud en tiempo real.
-* 🍎 **Golden Heads:** Crafteo de cabezas de jugadores caídos con 8 lingotes de oro. Otorga Regeneración II (12s) y Absorción II (5 min).
-* ⚔️ **Combate Híbrido 1.8:** Configurable desde el panel: Spam-click habilitado, daño de hachas ajustado y eliminación de *Sweep Attack*.
-* 🧭 **Rastreo Automático:** Brújula que apunta automáticamente al aliado más cercano.
-* 🏨 **Sistema de Lobby:** Modo standby con `/reset` que prepara el mundo y los jugadores para el inicio.
-* 💬 **Gestión de Chat:** Chat por equipos por defecto y chat global mediante el prefijo `!`.
-* 📦 **Suministros Automáticos:** Entrega programada de *Shulker Boxes* en episodios clave.
-* ⚙️ **Panel Admin (GUI):** Interfaz visual poderosa (`/uhcadmin`) para gestionar todas las reglas y configuraciones.
+This version polishes the administration experience and makes the identity rotation much more stable on real servers.
+
+* 🎮 **Team Formation Episode:**
+  - Choose the episode (1–10) in which teams are formed and the compasses are given out.
+  - Configurable from the Admin Panel (*General Rules → Team Formation Episode*) or with the `/setteamepisode <1-10>` command.
+
+* ⌨️ **Tab Completion in Commands:**
+  - Autocomplete across all commands: border sizes in `/start`, languages in `/lang`, episodes in `/setteamepisode` and online players in `/assignteam` and `/abandon`.
+
+* 🛠️ **Reworked Admin Panel:**
+  - Dedicated sub-menus and clearer navigation (shulkers, episodes, rules, border, time).
+  - Slots are centralized in a single source of truth (*AdminSlots*) to avoid mismatches between the menu and the clicks.
+
+* 🎭 **More Stable Skin Rotation:**
+  - Staggered application (1 player every 5 s) to avoid lag spikes at chapter changes.
+  - Combat protection: if a player is in the middle of PvP, their rotation is postponed or skipped.
+  - Offline players no longer waste their skin: they re-sync when they rejoin.
+  - Revealed identities are never masked again in the same game.
+
+* 🔄 **`/reset` Restores Real Skins:**
+  - On reset, every player gets their own skin back (internal cache + SkinsRestorer) instead of keeping the fake ones from the previous chapter.
+
+* 📂 **Extended Modular Architecture:**
+  - Skins, TAB and world logic extracted into their own managers (`SkinsManager`, `TABManager`, `WorldManager`).
 
 ---
 
-## 🛠️ Comandos
+## ✨ Main Features
 
-| Comando                 | Descripción                                       | Permiso |
-|:------------------------|:--------------------------------------------------|:--------|
-| `/uhcadmin`             | Abre el panel de administración principal.        | `admin` |
-| `/start <size>`         | Inicia la partida con el tamaño de equipo elegido.| `admin` |
-| `/tpartes <M>`          | Ajusta el tiempo de capítulos en minutos.        | `admin` |
-| `/reset`                | Limpia estados y prepara el lobby.                | `admin` |
-| `/asignarequipo <P> <C>`| Asigna un jugador a un equipo específico.         | `admin` |
-| `/lang <idioma>`        | Cambia el idioma personal (`es` / `en`).          | `user`  |
-| `/nequipo <nombre>`     | Renombra tu equipo.                               | `user`  |
+* 🌍 **Multi-language System:** Dynamic support for **Spanish** and **English**. Instant scoreboard and message switching via `/lang`.
+* 📊 **Dynamic Scoreboard:** Shows phase, chapter timer, total accumulated time and teammates' health with real-time health icons.
+* 🍎 **Golden Heads:** Craft fallen players' heads with 8 gold ingots. Grants Regeneration II (12 s) and Absorption II (5 min).
+* ⚔️ **Hybrid 1.8 Combat:** Configurable from the panel: spam-click enabled, adjusted axe damage and *Sweep Attack* removal.
+* 🧭 **Automatic Tracking:** Compass that automatically points to your nearest teammate.
+* 🏨 **Lobby System:** Standby mode with `/reset` that prepares the world and the players for the start.
+* 💬 **Chat Management:** Team chat by default and global chat via the `!` prefix.
+* 📦 **Automatic Supplies:** Scheduled delivery of *Shulker Boxes* on key episodes.
+* ⚙️ **Admin Panel (GUI):** Powerful visual interface (`/uhcadmin`) to manage all the rules and settings.
 
 ---
 
-## 🚀 Instalación y Requisitos
+## 🛠️ Commands
 
-* **Requisitos:** 
-  - Java 21+
-  - [SkinsRestorer](https://skinsrestorer.net/) (Obligatorio para rotación de skins)
-  - [TAB](https://github.com/NEZNAMY/TAB) (Recomendado para visualización pro)
-* **PLATAFORMA/API:** Paper / Spigot / Purpur para MC 1.21.11
+| Command                  | Description                                        | Permission |
+|:-------------------------|:---------------------------------------------------|:-----------|
+| `/uhcadmin`              | Opens the main admin panel.                        | `admin`    |
+| `/start <size>`          | Starts the game with the chosen team size.         | `admin`    |
+| `/tpartes <M>`           | ...DEPRECATED - use `/settime`.                    | `admin`    |
+| `/settime <h> <m> <s>`   | Sets the chapter time.                             | `admin`    |
+| `/reset`                 | Clears states and prepares the lobby.              | `admin`    |
+| `/asignarequipo <P> <C>` | ...DEPRECATED - use `/assignteam`.                 | `admin`    |
+| `/assignteam <P> <C>`    | Assigns a player to a specific team.               | `admin`    |
+| `/setteamepisode <1-10>` | Sets the team formation episode.                   | `admin`    |
+| `/abandon [player]`      | Leaves the game or marks a player as eliminated.   | `user`     |
+| `/lang <language>`       | Changes your personal language (`es` / `en`).      | `user`     |
+| `/nequipo <name>`        | ...DEPRECATED - use `/team`.                       | `user`     |
+| `/team [name]`           | Creates or renames your team.                      | `user`     |
 
-1. Coloca `ELOUD_UHC.jar` en la carpeta `/plugins`.
-2. Asegúrate de tener instalados SkinsRestorer y TAB.
-3. Reinicia el servidor.
-4. Usa `/reset` para preparar el mundo.
-5. Usa `/uhcadmin` para elegir el modo y configurar las reglas antes de empezar.
-. Ejecuta `/reset` para preparar el Lobby una vez estén todos los jugadores.
-4. Ejecuta `/start [tamaño]` para iniciar la partida.
+---
+
+## 🚀 Installation and Requirements
+
+* **Requirements:**
+  - Java 21+ installed
+  - [SkinsRestorer](https://skinsrestorer.net/) (Required for skin rotation)
+  - [TAB](https://github.com/NEZNAMY/TAB) (Required for visualization)
+* **PLATFORM/API:** Paper / Spigot / Purpur for MC 1.21.11
+
+1. Place `ELOUD_UHC.jar` in the `/plugins` folder.
+2. Make sure SkinsRestorer and TAB are installed.
+3. Restart the server.
+4. Use `/reset` to prepare the world once all players joined (not required but recommended).
+5. Use `/uhcadmin` to choose gamemode, teams, and configure all rules before starting.
+6. Run `/start [size]` to start the game.

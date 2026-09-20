@@ -115,7 +115,7 @@ public class GameLogicListener implements Listener {
     private void handleIdentityRevelation(Player attacker, Player victim) {
         GameManager gm = plugin.getGameManager();
         if (!gm.isGameStarted()) return;
-        if (plugin.getSkinsManager().getRevealedPlayers().contains(victim.getUniqueId())) return;
+        if (plugin.getSkinsManager().getRevealedPlayers().contains(victim.getName().toLowerCase())) return;
         if (plugin.getTeamManager().areInSameTeam(attacker, victim)) return;
 
         plugin.getSkinsManager().revealIdentity(victim);

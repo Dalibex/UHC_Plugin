@@ -25,6 +25,23 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:26.2.build.+")
     compileOnly 'net.skinsrestorer:skinsrestorer-api:15.12.4'
     compileOnly 'com.github.NEZNAMY:TAB-API:6.0.0'
+
+    // Tests unitarios (JUnit 5). paper-api y las APIs de terceros (SkinsRestorer
+    // y TAB) como testImplementation para que el runtime de tests pueda cargar
+    // SkinsManager/TABManager sin estar dentro del servidor.
+    testImplementation("io.papermc.paper:paper-api:26.2.build.+")
+    testImplementation 'net.skinsrestorer:skinsrestorer-api:15.12.4'
+    testImplementation 'com.github.NEZNAMY:TAB-API:6.0.0'
+    testImplementation("org.junit.jupiter:junit-jupiter:5.12.2")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
 }
 
 tasks {

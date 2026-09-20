@@ -38,8 +38,8 @@ public class TABManager {
             if (v == null || t == null) return "";
             if (!plugin.getGameManager().isGameStarted()) { return "§f" + t.getName(); }
             if (v.equals(t) || plugin.getTeamManager().areInSameTeam(v, t)) { return "§a" + t.getName(); }
-            if (plugin.getSkinsManager().getRevealedPlayers().contains(t.getUniqueId())) { return "§c" + t.getName(); }
-            String nombreFalso = plugin.getSkinsManager().getLastAssignedSkin().getOrDefault(t.getUniqueId(), t.getName());
+            if (plugin.getSkinsManager().getRevealedPlayers().contains(t.getName().toLowerCase())) { return "§c" + t.getName(); }
+            String nombreFalso = plugin.getSkinsManager().getLastAssignedSkin().getOrDefault(t.getName().toLowerCase(), t.getName());
             return "§d" + nombreFalso;
         });
 
@@ -50,7 +50,7 @@ public class TABManager {
             if (v == null || t == null) return "";
             if (!plugin.getGameManager().isGameStarted()) {return "§f";}
             if (v.equals(t) || plugin.getTeamManager().areInSameTeam(v, t)) {return "§a";}
-            if (plugin.getSkinsManager().getRevealedPlayers().contains(t.getUniqueId())) {return "§c"; }
+            if (plugin.getSkinsManager().getRevealedPlayers().contains(t.getName().toLowerCase())) {return "§c"; }
             return "§c";
         });
     }

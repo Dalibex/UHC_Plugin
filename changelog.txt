@@ -1,48 +1,46 @@
-Changelog - UHC ELOUD 1.5.2-SNAPSHOT
+Changelog - UHC ELOUD 1.5.3-SNAPSHOT
 
 Note: This is a SNAPSHOT version. It is recommended to perform tests on development servers. I have conducted intensive testing (including simulations with bots), but I do not guarantee that minor errors will not exist in specific environments.
 
 === ENGLISH ===
 
 New Features
-- Resource Rush Mode: A brand new game mode where teams compete to find 12 random items first. Includes a dynamic scoreboard to track progress.
-- Team Selection System: Players can now choose their sides and form custom teams using a new Nether Star GUI in the lobby once selected (need at least 4 players, teams of 2).
-- Dynamic Skin Rotation: Integrated with SkinsRestorer to automatically swap player skins and names between chapters for anonymity, you can reveal players identities when hitted.
-- Tab menu overhoul: Integrated with TAB to display names on scoreboard based on skin rotation, so you can not now how much HP each players has until they get hitted.
+- Team Formation Episode: You can now choose the episode (1-10) in which teams are formed (when the compasses are given). Set it from the Admin Panel (General Rules -> Team Formation Episode) or directly with the new command /setteamepisode <1-10>.
+- Tab Completion: All commands now include autocomplete suggestions (/start with border sizes, /lang with languages, /setteamepisode with episodes 1-10, /assignteam and /abandon with online players, /settime, /team...).
 
 Adjustments and Improvements
-- Admin Panel: Adjusted with new sound feedback for better experience.
-- Automated Lobby: Refined the lobby startup; the plugin now automatically sets up the spawn and saturation mode 3 seconds after boot.
-- Tracking Compass: Adjusted logic to better target nearby teammates or the world spawn point.
-- TAB Integration: Improved synchronization of colored prefixes and health display on the player list.
-- Better Dependency Feedback: If mandatory plugins (TAB or SkinsRestorer) are missing, the plugin now notifies you clearly in the console instead of crashing.
+- Admin Panel Rework: The administration panel was restructured with dedicated sub-menus and a single source of truth for its slots (AdminSlots), improving the flow for choosing shulkers, episodes, game rules, border and chapter time.
+- New Admin Commands: /abandon [player] lets you leave the game (or mark another player as eliminated, online or offline) without the GUI, and the admin commands were reorganized (/assignteam, /settime, /team...).
+- Extracted Managers: The skin rotation now lives in its own SkinsManager, the TAB integration in TABManager and the world/supplies logic in WorldManager, making the plugin easier to maintain.
+- Language System: Translations updated for all the new options (es/en).
 
 Bugfixes
-- Resource Rush Victory: Fixed victory message errors and prevented duplicate victory event triggers.
-- Team Selection: Fixed an issue where the team selection menu appeared empty after a world reset.
-- Performance: Optimized the identity rotation system to try to ensure a lag-free experience during chapter changes (mid to big servers may experience some lag when skins change).
-- Scoreboard Sync: Improved visual consistency of the scoreboard during game transitions.
+- Smooth Skin Rotation: Skins are now applied staggered (first batch 10 seconds after the chapter change, then one player every 5 seconds), avoiding the lag spike when everyone rotated at once.
+- Combat Protection: If a player is in combat when their rotation turn comes, they are postponed (up to 6 retries inside a 30 seconds window) and skipped if the fight lasts too long, instead of changing their skin mid-fight.
+- Offline Players: Players who are offline during the rotation no longer waste their skin; when they rejoin, their identity is re-synchronized instantly and again a few seconds later.
+- Revealed identities are never masked again in the same game.
+- Reset restores real skins: /reset now applies each player's own real skin back (from the internal cache and via SkinsRestorer), so the lobby no longer keeps the fake skins from the previous game.
+- Start cancellation (auto-cancel) no longer leaves the rotation half-applied.
 
 === ESPAÑOL ===
 
 Nuevas Funciones
-- Modo Resource Rush: Un nuevo modo de juego donde los equipos compiten por ser los primeros en encontrar 12 objetos aleatorios. Incluye marcador dinamico en tiempo real.
-- Equipos Personalizados: Cuando hay al menos 4 jugadores en el lobby, ahora puedes activar los equipos personalizados; los jugadores recibiran una estrella del nether para elegir y unirse a diferentes equipos, dependiendo del tamaño de equipo seleccionado.
-- Rotacion de Skins Dinamica: Integracion con SkinsRestorer para rotar skins y nombres automaticamente; las identidades pueden revelarse al recibir daño.
-- Rediseño del Menu Tab: Integracion total con TAB para mostrar nombres basados en la skin; ahora no podras saber la vida de los demas hasta que sean golpeados.
+- Episodio de Formación de Equipos: Ahora puedes elegir el episodio (1-10) en el que se forman los equipos (cuando se reparten las brújulas). Selecciónalo desde el Panel de Admin (Reglas Generales -> Episodio de Formación de Equipos) o directamente con el nuevo comando /setteamepisode <1-10>.
+- Autocompletado (Tab-Completion): Todos los comandos incluyen ahora sugerencias de autocompletado (/start con tamaños de borde, /lang con idiomas, /setteamepisode con episodios 1-10, /assignteam y /abandon con jugadores online, /settime, /team...).
 
 Ajustes y Mejoras
-- Panel Administrativo: Ajustado con nuevos efectos de sonido para una mejor experiencia.
-- Lobby Automatizado: Refinado el inicio del lobby; el plugin ahora configura el spawn y el modo saturacion automaticamente 3 segundos tras encenderse.
-- Brujula de Rastreo: Ajustada la logica para apuntar mejor a aliados cercanos o al punto de spawn del mundo.
-- Integracion con TAB: Sincronizacion de prefijos coloreados y visualizacion de salud en la lista de jugadores mejorada.
-- Feedback de Dependencias: Si faltan plugins obligatorios (TAB o SkinsRestorer), el plugin ahora te avisa claramente en la consola en lugar de crashear el servidor.
+- Panel de Admin Reestructurado: El panel de administración se reorganizó con sub-menus dedicados y una unica fuente de verdad para sus slots (AdminSlots), mejorando el flujo para elegir shulkers, episodios, reglas, borde y tiempo de capítulo.
+- Nuevos Comandos Admin: /abandon [jugador] permite abandonar la partida (o marcar a otro jugador como eliminado, online u offline) sin necesidad de la GUI, y se reorganizaron los comandos admin (/assignteam, /settime, /team...).
+- Managers Extraídos: La rotación de skins ahora vive en su propio SkinsManager, la integración con TAB en TABManager y la lógica de mundo/suministros en WorldManager, facilitando el mantenimiento del plugin.
+- Sistema de Idiomas: Traducciones actualizadas para todas las opciones nuevas (es/en).
 
-Correccion de Errores
-- Victoria en Resource Rush: Corregidos errores en el mensaje de victoria y añadida proteccion contra disparos duplicados del evento final.
-- Seleccion de Equipos: Arreglado el fallo que dejaba los menus de equipos vacios tras un reinicio del mundo.
-- Rendimiento: Optimizado el sistema de identidades para intentar garantizar una experiencia sin lag (servidores medianos/grandes podrian notar algo de lag durante el cambio de skins).
-- Sincronizacion del Marcador: Mejorada la consistencia visual del scoreboard durante las transiciones de la partida.
+Corrección de Errores
+- Rotación de Skins sin Lag: Las skins se aplican ahora de forma escalonada (primera tanda a los 10 segundos del cambio de capítulo y luego 1 jugador cada 5 segundos), evitando el pico de lag cuando todos rotaban a la vez.
+- Proteccion en Combate: Si un jugador está en pleno combate cuando le toca rotar, se pospone (hasta 6 reintentos dentro de una ventana de 30 segundos) y se salta si la pelea dura demasiado, en lugar de cambiarle la skin en mitad del PvP.
+- Jugadores Desconectados: Los jugadores que están offline cuando toca la rotacion ya no gastan su skin; al reconectar, su identidad se resincroniza al instante y de nuevo unos segundos después.
+- Las identidades reveladas ya nunca se vuelven a camuflar en la misma partida.
+- El reset restaura las skins reales: /reset vuelve a aplicar la skin propia de cada jugador (desde la caché interna y via SkinsRestorer), de modo que el lobby ya no conserva las skins falsas de la partida anterior.
+- La cancelacion del inicio (auto-cancel) ya no deja la rotacion a medias.
 
 Version compatible with:
 
