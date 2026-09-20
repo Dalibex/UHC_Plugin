@@ -61,6 +61,8 @@ help:
     - ""
     - "&e/settime <H> <M> <S> &7- &fAjusta el tiempo de las partes manualmente."
     - ""
+    - "&e/setteamepisode <episodio> &7- &fDefine la parte en la que se forman los equipos."
+    - ""
     - "&e/assignteam <player> <team> &7- &fAsigna jugadores a equipos."
     - ""
     - "&e/abandon &7- &fTe marcas como eliminado de la partida en curso (o como admin a otro jugador)."
@@ -90,6 +92,10 @@ teams:
     light_blue: "Celeste"
     magenta: "Magenta"
     white: "Blanco"
+  episode:
+    usage: "%error-prefix%§fUso correcto: /setteamepisode <episodio 1-10>"
+    range: "%error-prefix%§fEl episodio debe estar entre 1 y 10."
+    success: "%prefix%&fLos equipos se formarán en la &aParte %episode%"
 
 
 # Uso de /reset
@@ -250,6 +256,45 @@ menus:
           - "&fEstado actual: %status%"
           - ""
           - "&eClick para cambiar"
+      shulkers-menu:
+        name: "&6Shulkers de Episodio"
+        lore:
+          - "&7Configura las shulkers que se"
+          - "&7entregan en el episodio 1 y 8."
+          - ""
+          - "&eClick para abrir"
+      teams-episode-menu:
+        name: "&bEpisodio de Formación de Equipos"
+        lore:
+          - "&7Define en qué parte se forman los equipos:"
+          - "&7se entregan las brújulas y se anuncia el sorteo."
+          - ""
+          - "&eClick para abrir"
+
+  shulkers:
+    title: "&8⚙ Shulkers de Episodio"
+
+  teamsepisode:
+    title: "&8⚙ Formación de Equipos"
+    selected-status: "&a● &lSeleccionado"
+    info:
+      name: "&bEpisodio de Formación"
+      lore:
+        - "&fFormación actual: &eParte %episode%"
+        - ""
+        - "&7Elige en qué parte se forman los equipos."
+        - "&7En ese momento se entregan las brújulas"
+        - "&7de aliados y se anuncia la formación."
+        - ""
+        - "&7Puedes usar &f/setteamepisode <episodio>"
+        - "&7para cambiar este ajuste."
+    button:
+      name: "&6Parte %episode%"
+      lore:
+        - "&7Los equipos se formarán en la"
+        - "&7parte %episode%."
+        - ""
+        - "&eClick para seleccionar"
 
   gamerules:
     title: "&8⚙ Cambiar GameRules"

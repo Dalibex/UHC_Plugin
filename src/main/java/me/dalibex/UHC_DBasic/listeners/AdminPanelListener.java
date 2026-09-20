@@ -56,6 +56,12 @@ public class AdminPanelListener implements Listener {
         } else if (title.equals(lang.get("menus.generalrules.title", p))) {
             event.setCancelled(true);
             handleGeneralRulesClick(p, event.getSlot(), admin);
+        } else if (title.equals(lang.get("menus.shulkers.title", p))) {
+            event.setCancelled(true);
+            handleShulkersClick(p, event.getSlot(), admin);
+        } else if (title.equals(lang.get("menus.teamsepisode.title", p))) {
+            event.setCancelled(true);
+            handleTeamsEpisodeClick(p, event.getSlot(), admin);
         } else if (title.equals(lang.get("menus.gamerules.title", p))) {
             event.setCancelled(true);
             handleGameRulesClick(p, item.getType(), admin);
@@ -171,10 +177,50 @@ public class AdminPanelListener implements Listener {
     }
 
     private void handleGeneralRulesClick(Player p, int slot, AdminPanelManager admin) {
-        if (slot == AdminSlots.GENERAL_SHULKER_1) { admin.setShulkerOneEnabled(!admin.isShulkerOneEnabled()); p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1f, 1f); }
-        else if (slot == AdminSlots.GENERAL_SHULKER_2) { admin.setShulkerTwoEnabled(!admin.isShulkerTwoEnabled()); p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1f, 1f); }
-        else if (slot == AdminSlots.GENERAL_BACK) { admin.openMainAdminPanel(p); p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, 1f, 1f); return; }
-        admin.openGeneralRulesPanel(p);
+        if (slot == AdminSlots.GENERAL_SHULKERS_MENU) {
+            p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_DIAMOND, 1f, 1f);
+            admin.openShulkersPanel(p);
+        } else if (slot == AdminSlots.GENERAL_TEAMS_EPISODE_MENU) {
+            p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1f, 1f);
+            admin.openTeamsEpisodePanel(p);
+        } else if (slot == AdminSlots.GENERAL_BACK) {
+            p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, 1f, 1f);
+            admin.openMainAdminPanel(p);
+        }
+    }
+
+    private void handleShulkersClick(Player p, int slot, AdminPanelManager admin) {
+        if (slot == AdminSlots.SHULKERS_BACK) {
+            p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, 1f, 1f);
+            admin.openGeneralRulesPanel(p);
+            return;
+        }
+        if (slot == AdminSlots.SHULKERS_TOGGLE_1) {
+            admin.setShulkerOneEnabled(!admin.isShulkerOneEnabled());
+            p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1f, 1f);
+        } else if (slot == AdminSlots.SHULKERS_TOGGLE_2) {
+            admin.setShulkerTwoEnabled(!admin.isShulkerTwoEnabled());
+            p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1f, 1f);
+        }
+        admin.openShulkersPanel(p);
+    }
+
+    private void handleTeamsEpisodeClick(Player p, int slot, AdminPanelManager admin) {
+        if (slot == AdminSlots.TEAMS_EPISODE_BACK) {
+            p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, 1f, 1f);
+            admin.openGeneralRulesPanel(p);
+            return;
+        }
+        if (plugin.getGameManager().getTotalSeconds() > 0) {
+            p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
+            return;
+        }
+        int episode = AdminSlots.episodeForSlot(slot);
+        if (episode != -1) {
+            plugin.getTeamManager().setTeamsFormedEpisode(episode);
+            p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1f, 1.2f);
+        }
+        admin.openTeamsEpisodePanel(p);
     }
 
     private void handleGameRulesClick(Player p, Material mat, AdminPanelManager admin) {

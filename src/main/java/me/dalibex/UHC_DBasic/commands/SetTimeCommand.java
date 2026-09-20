@@ -3,17 +3,21 @@ package me.dalibex.UHC_DBasic.commands;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.managers.GameManager;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
+import me.dalibex.UHC_DBasic.utils.CommandTabs;
 import me.dalibex.UHC_DBasic.utils.TimeUtil;
 import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 
-public class SetTimeCommand implements CommandExecutor {
+public class SetTimeCommand implements CommandExecutor, TabCompleter {
 
     private final UHC_DBasic plugin;
 
@@ -104,5 +108,13 @@ public class SetTimeCommand implements CommandExecutor {
         if (player != null) {
             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1f, 1.2f);
         }
+    }
+
+    @Override
+    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        if (args.length == 1) return CommandTabs.prefixFilter(List.of("0"), args[0]);
+        if (args.length == 2) return CommandTabs.prefixFilter(List.of("20"), args[1]);
+        if (args.length == 3) return CommandTabs.prefixFilter(List.of("0"), args[2]);
+        return new ArrayList<>();
     }
 }

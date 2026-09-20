@@ -42,6 +42,10 @@ commands:
   abandon:
     description: Marks yourself (or another player as admin) as eliminated from the running game, offline or online
     usage: /abandon [player]
+  setteamepisode:
+    description: Sets the episode in which teams are formed (compasses are given)
+    usage: /setteamepisode <episode> <1-10>
+    permission: uhc.admin
 
 permissions:
   uhc.admin:

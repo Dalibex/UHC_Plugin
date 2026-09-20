@@ -19,7 +19,6 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import io.papermc.paper.datacomponent.item.ResolvableProfile;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.managers.GameManager;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
@@ -60,8 +59,8 @@ public class GameLogicListener implements Listener {
         loc.getBlock().setType(Material.NETHER_BRICK_FENCE);
         loc.clone().add(0, 1, 0).getBlock().setType(Material.PLAYER_HEAD);
         if (loc.clone().add(0, 1, 0).getBlock().getState() instanceof Skull skull) {
-            skull.setProfile(ResolvableProfile.resolvableProfile(p.getPlayerProfile()));
-            skull.update();
+            // La cabeza muestra la skin REAL del muerto (no la falsa que llevaba)
+            plugin.getSkinsManager().applyOwnHead(skull, p);
         }
     }
 
@@ -77,7 +76,13 @@ public class GameLogicListener implements Listener {
             handleCombat18(event, attacker);
         }
 
-        // 2. Revelación de identidades (Skins)
+        // 2. Marcar combate para el retardo del cambio de skin (30s)
+        if (plugin.getGameManager().isGameStarted()) {
+            plugin.getSkinsManager().markInCombat(attacker);
+            plugin.getSkinsManager().markInCombat(victim);
+        }
+
+        // 3. Revelación de identidades (Skins)
         handleIdentityRevelation(attacker, victim);
     }
 
@@ -110,10 +115,10 @@ public class GameLogicListener implements Listener {
     private void handleIdentityRevelation(Player attacker, Player victim) {
         GameManager gm = plugin.getGameManager();
         if (!gm.isGameStarted()) return;
-        if (gm.getRevealedPlayers().contains(victim.getUniqueId())) return;
+        if (plugin.getSkinsManager().getRevealedPlayers().contains(victim.getUniqueId())) return;
         if (plugin.getTeamManager().areInSameTeam(attacker, victim)) return;
 
-        gm.revealIdentity(victim);
+        plugin.getSkinsManager().revealIdentity(victim);
         LanguageManager lang = plugin.getLang();
 
         victim.sendMessage(legacySection().deserialize(lang.get("game-events.skins.revealed-victim", victim).replace("%player%", attacker.getName())));

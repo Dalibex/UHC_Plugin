@@ -26,10 +26,31 @@ public final class AdminSlots {
     public static final int GAMEMODE_CLASSIC = 2;
     public static final int GAMEMODE_RESOURCE_RUSH = 4;
 
-    // ---- Panel de reglas generales (27 slots) ----
-    public static final int GENERAL_SHULKER_1 = 11;
-    public static final int GENERAL_SHULKER_2 = 15;
+    // ---- Panel de reglas generales (hub, 27 slots) ----
+    public static final int GENERAL_SHULKERS_MENU = 11;
+    public static final int GENERAL_TEAMS_EPISODE_MENU = 15;
     public static final int GENERAL_BACK = 18;
+
+    // ---- Sub-panel de shulkers de episodio (27 slots) ----
+    public static final int SHULKERS_TOGGLE_1 = 11;
+    public static final int SHULKERS_TOGGLE_2 = 15;
+    public static final int SHULKERS_BACK = 18;
+
+    // ---- Sub-panel de episodio de formación de equipos (45 slots) ----
+    public static final int TEAMS_EPISODE_INFO = 13;
+    public static final int TEAMS_EPISODE_BACK = 40;
+    public static final int[] TEAMS_EPISODE_BUTTONS = {20, 21, 22, 23, 24, 29, 30, 31, 32, 33};
+
+    /**
+     * Devuelve el episodio (1-10) asociado a un slot del sub-panel, o -1 si
+     * el slot no es un botón de episodio.
+     */
+    public static int episodeForSlot(int slot) {
+        for (int i = 0; i < TEAMS_EPISODE_BUTTONS.length; i++) {
+            if (TEAMS_EPISODE_BUTTONS[i] == slot) return i + 1;
+        }
+        return -1;
+    }
 
     // ---- Panel de gamerules (36 slots) ----
     public static final int RULES_NATURAL_REGENERATION = 10;

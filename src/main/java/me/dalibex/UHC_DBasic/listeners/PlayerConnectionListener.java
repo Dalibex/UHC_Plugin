@@ -67,14 +67,17 @@ public class PlayerConnectionListener implements Listener {
             p.setGameMode(GameMode.SPECTATOR);
         } else {
             p.setGameMode(GameMode.SURVIVAL);
-            // Restaurar identidad visual si no ha sido revelado.
-            // Durante PlayerJoinEvent TAB aún no ha cargado al jugador
-            // y lanzaría IllegalStateException; se difiere 1 tick.
-            if (!gm.getRevealedPlayers().contains(p.getUniqueId())) {
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    if (p.isOnline()) gm.updateVisualIdentity(p);
-                });
-            }
+            // Synch identidad: re-aplica la skin correcta (falsa si aún no fue
+            // revelado, la propia si ya lo fue). Durante PlayerJoinEvent TAB
+            // aún no ha cargado al jugador y lanzaría IllegalStateException;
+            // se difiere la actualización visual a los 1 y 20 ticks.
+            plugin.getSkinsManager().reapplyCurrentSkin(p);
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (p.isOnline()) plugin.getSkinsManager().updateVisualIdentity(p);
+            }, 1L);
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (p.isOnline()) plugin.getSkinsManager().updateVisualIdentity(p);
+            }, 20L);
         }
     }
 

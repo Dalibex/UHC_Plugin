@@ -3,16 +3,19 @@ package me.dalibex.UHC_DBasic.commands;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import me.dalibex.UHC_DBasic.managers.TeamManager;
+import me.dalibex.UHC_DBasic.utils.CommandTabs;
 import net.kyori.adventure.title.Title;
 import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -22,7 +25,7 @@ import java.util.UUID;
 import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 import static org.bukkit.GameRules.*;
 
-public class ConfirmStartCommand implements CommandExecutor {
+public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
 
     private final UHC_DBasic plugin;
     private final StartCommand startCmd;
@@ -246,5 +249,13 @@ public class ConfirmStartCommand implements CommandExecutor {
                 }
             }
         }.runTaskTimer(plugin, 20L, 20L);
+    }
+
+    @Override
+    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        if (args.length == 1 && startCmd.hasPendingConfirmation()) {
+            return CommandTabs.prefixFilter(List.of(String.valueOf(startCmd.getPendingSize())), args[0]);
+        }
+        return new ArrayList<>();
     }
 }

@@ -61,6 +61,8 @@ help:
     - ""
     - "&e/settime <H> <M> <S> &7- &fManually adjust part durations."
     - ""
+    - "&e/setteamepisode <episode> &7- &fSets the part in which teams are formed."
+    - ""
     - "&e/assignteam <player> <team> &7- &fAssign players to teams."
     - ""
     - "&e/abandon &7- &fMarks yourself as eliminated from the running game (or another player as admin)."
@@ -90,6 +92,10 @@ teams:
     light_blue: "Light Blue"
     magenta: "Magenta"
     white: "White"
+  episode:
+    usage: "%error-prefix%§fCorrect usage: /setteamepisode <episode 1-10>"
+    range: "%error-prefix%§fEpisode must be between 1 and 10."
+    success: "%prefix%&fTeams will be formed on &aPart %episode%"
 
 
 # /reset usage
@@ -250,6 +256,45 @@ menus:
           - "&fCurrent status: %status%"
           - ""
           - "&eClick to toggle"
+      shulkers-menu:
+        name: "&6Episode Shulkers"
+        lore:
+          - "&7Configure the shulkers given"
+          - "&7on episodes 1 and 8."
+          - ""
+          - "&eClick to open"
+      teams-episode-menu:
+        name: "&bTeam Formation Episode"
+        lore:
+          - "&7Set the part in which teams are formed:"
+          - "&7compasses are given and the draw is announced."
+          - ""
+          - "&eClick to open"
+
+  shulkers:
+    title: "&8⚙ Episode Shulkers"
+
+  teamsepisode:
+    title: "&8⚙ Team Formation"
+    selected-status: "&a● &lSelected"
+    info:
+      name: "&bFormation Episode"
+      lore:
+        - "&fCurrent formation: &ePart %episode%"
+        - ""
+        - "&7Choose the part in which teams are formed."
+        - "&7At that moment the ally compasses are"
+        - "&7given and the formation is announced."
+        - ""
+        - "&7You can use &f/setteamepisode <episode>"
+        - "&7to change this setting."
+    button:
+      name: "&6Part %episode%"
+      lore:
+        - "&7Teams will be formed on"
+        - "&7part %episode%."
+        - ""
+        - "&eClick to select"
 
   gamerules:
     title: "&8⚙ Change GameRules"

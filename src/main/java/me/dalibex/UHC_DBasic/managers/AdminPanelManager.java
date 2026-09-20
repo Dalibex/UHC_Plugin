@@ -163,11 +163,64 @@ public class AdminPanelManager {
         LanguageManager lang = plugin.getLang();
         Inventory inv = Bukkit.createInventory(null, 27, lang.getComponent("menus.generalrules.title", player));
 
-        inv.setItem(AdminSlots.GENERAL_SHULKER_1, createShulkerBtn(Material.ORANGE_SHULKER_BOX, "menus.generalrules.settings.shulker-item-1", isShulkerOneEnabled(), player));
-        inv.setItem(AdminSlots.GENERAL_SHULKER_2, createShulkerBtn(Material.LIGHT_BLUE_SHULKER_BOX, "menus.generalrules.settings.shulker-item-2", isShulkerTwoEnabled(), player));
+        ItemStack shulkersBtn = new ItemStack(Material.ORANGE_SHULKER_BOX);
+        ItemMeta sMeta = shulkersBtn.getItemMeta();
+        sMeta.displayName(lang.getComponent("menus.generalrules.settings.shulkers-menu.name", player));
+        sMeta.lore(lang.getComponentList("menus.generalrules.settings.shulkers-menu.lore", player));
+        shulkersBtn.setItemMeta(sMeta);
+        inv.setItem(AdminSlots.GENERAL_SHULKERS_MENU, shulkersBtn);
+
+        ItemStack teamsEpBtn = new ItemStack(Material.BLUE_BANNER);
+        ItemMeta tMeta = teamsEpBtn.getItemMeta();
+        tMeta.displayName(lang.getComponent("menus.generalrules.settings.teams-episode-menu.name", player));
+        tMeta.lore(lang.getComponentList("menus.generalrules.settings.teams-episode-menu.lore", player));
+        teamsEpBtn.setItemMeta(tMeta);
+        inv.setItem(AdminSlots.GENERAL_TEAMS_EPISODE_MENU, teamsEpBtn);
 
         ItemStack back = createBackButton(player);
         inv.setItem(AdminSlots.GENERAL_BACK, back);
+
+        player.openInventory(inv);
+    }
+
+    public void openShulkersPanel(Player player) {
+        LanguageManager lang = plugin.getLang();
+        Inventory inv = Bukkit.createInventory(null, 27, lang.getComponent("menus.shulkers.title", player));
+
+        inv.setItem(AdminSlots.SHULKERS_TOGGLE_1, createShulkerBtn(Material.ORANGE_SHULKER_BOX, "menus.generalrules.settings.shulker-item-1", isShulkerOneEnabled(), player));
+        inv.setItem(AdminSlots.SHULKERS_TOGGLE_2, createShulkerBtn(Material.LIGHT_BLUE_SHULKER_BOX, "menus.generalrules.settings.shulker-item-2", isShulkerTwoEnabled(), player));
+
+        ItemStack back = createBackButton(player);
+        inv.setItem(AdminSlots.SHULKERS_BACK, back);
+
+        player.openInventory(inv);
+    }
+
+    public void openTeamsEpisodePanel(Player player) {
+        LanguageManager lang = plugin.getLang();
+        TeamManager tm = plugin.getTeamManager();
+        boolean partidaEnCurso = plugin.getGameManager().getTotalSeconds() > 0;
+        int selected = tm.getTeamsFormedEpisode();
+
+        Inventory inv = Bukkit.createInventory(null, 45, lang.getComponent("menus.teamsepisode.title", player));
+
+        ItemStack info = new ItemStack(Material.CLOCK);
+        ItemMeta iMeta = info.getItemMeta();
+        iMeta.displayName(lang.getComponent("menus.teamsepisode.info.name", player));
+        List<Component> infoLore = new ArrayList<>();
+        for (String line : lang.getList("menus.teamsepisode.info.lore", player)) {
+            infoLore.add(txt(line.replace("%episode%", String.valueOf(selected))));
+        }
+        iMeta.lore(infoLore);
+        info.setItemMeta(iMeta);
+        inv.setItem(AdminSlots.TEAMS_EPISODE_INFO, info);
+
+        for (int i = 0; i < AdminSlots.TEAMS_EPISODE_BUTTONS.length; i++) {
+            inv.setItem(AdminSlots.TEAMS_EPISODE_BUTTONS[i], createEpisodeButton(i + 1, selected, partidaEnCurso, player, lang));
+        }
+
+        ItemStack back = createBackButton(player);
+        inv.setItem(AdminSlots.TEAMS_EPISODE_BACK, back);
 
         player.openInventory(inv);
     }
@@ -373,6 +426,30 @@ public class AdminPanelManager {
         }
 
         meta.lore(finalLore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack createEpisodeButton(int episode, int selected, boolean locked, Player player, LanguageManager lang) {
+        boolean isSelected = episode == selected;
+        ItemStack item = new ItemStack(isSelected ? Material.LIME_DYE : Material.GRAY_DYE);
+        ItemMeta meta = item.getItemMeta();
+        String name = (isSelected ? "§6§l" : "§f") + lang.get("menus.teamsepisode.button.name", player).replace("%episode%", String.valueOf(episode));
+        meta.displayName(txt(name));
+        List<Component> lore = new ArrayList<>();
+        for (String line : lang.getList("menus.teamsepisode.button.lore", player)) {
+            lore.add(txt(line.replace("%episode%", String.valueOf(episode))));
+        }
+        if (isSelected) {
+            lore.add(Component.empty());
+            lore.add(lang.getComponent("menus.teamsepisode.selected-status", player));
+            meta.addEnchant(org.bukkit.enchantments.Enchantment.LUCK_OF_THE_SEA, 1, true);
+            meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
+        } else if (locked) {
+            lore.add(Component.empty());
+            lore.add(lang.getComponent("menus.common.locked", player));
+        }
+        meta.lore(lore);
         item.setItemMeta(meta);
         return item;
     }

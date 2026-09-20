@@ -48,7 +48,6 @@ public class Classic extends AbstractUHCGameMode {
     @Override
     protected void onChapterChange(int nuevoCap) {
         LanguageManager lang = plugin.getLang();
-        TeamManager tm = plugin.getTeamManager();
 
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (nuevoCap < 10) {
@@ -72,16 +71,8 @@ public class Classic extends AbstractUHCGameMode {
             giveGlobalItem("items.shulker.name", Material.LIGHT_BLUE_SHULKER_BOX);
         }
 
-        // Formación de Equipos Aleatorios (Condicional: Ep 3)
-        if (tm.getTeamSize() > 1 && !teamsFormed && !tm.isCustomTeamsEnabled() && nuevoCap == 3) {
-            tm.shuffleTeams();
-            giveTrackingCompasses(lang);
-            teamsFormed = true;
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                p.sendMessage(lang.get("game-events.teams-formed", p));
-                p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, 1f, 1f);
-            }
-        }
+        // Formación de Equipos (episodio configurable)
+        maybeFormTeams(nuevoCap, null);
 
         // Activación de PVP (Episodio 4)
         if (nuevoCap == 4) {
@@ -190,8 +181,8 @@ public class Classic extends AbstractUHCGameMode {
         gm.setGameStarted(false);
 
         for (Player online : Bukkit.getOnlinePlayers()) {
-            gm.revealIdentity(online);
-            gm.updateVisualIdentity(online);
+            plugin.getSkinsManager().revealIdentity(online);
+            plugin.getSkinsManager().updateVisualIdentity(online);
         }
 
         if (ganador != null) {

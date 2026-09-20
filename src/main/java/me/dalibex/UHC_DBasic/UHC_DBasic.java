@@ -1,16 +1,8 @@
 package me.dalibex.UHC_DBasic;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import me.dalibex.UHC_DBasic.commands.AbandonCommand;
@@ -21,6 +13,7 @@ import me.dalibex.UHC_DBasic.commands.ConfirmStartCommand;
 import me.dalibex.UHC_DBasic.commands.GCommandsCommand;
 import me.dalibex.UHC_DBasic.commands.LangCommand;
 import me.dalibex.UHC_DBasic.commands.PrepareWorldCommand;
+import me.dalibex.UHC_DBasic.commands.SetTeamEpisodeCommand;
 import me.dalibex.UHC_DBasic.commands.SetTimeCommand;
 import me.dalibex.UHC_DBasic.commands.StartCommand;
 import me.dalibex.UHC_DBasic.commands.TeamCommand;
@@ -34,15 +27,21 @@ import me.dalibex.UHC_DBasic.managers.ChatManager;
 import me.dalibex.UHC_DBasic.managers.DependencyManager;
 import me.dalibex.UHC_DBasic.managers.GameManager;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
+import me.dalibex.UHC_DBasic.managers.SkinsManager;
 import me.dalibex.UHC_DBasic.managers.SpecialCraftsManager;
+import me.dalibex.UHC_DBasic.managers.TABManager;
 import me.dalibex.UHC_DBasic.managers.TeamManager;
+import me.dalibex.UHC_DBasic.managers.WorldManager;
+import me.dalibex.UHC_DBasic.utils.CommandTabs;
 import me.dalibex.UHC_DBasic.utils.UpdateChecker;
-import me.neznamy.tab.api.TabAPI;
 
 public final class UHC_DBasic extends JavaPlugin {
 
     private GameManager gameManager;
     private TeamManager teamManager;
+    private SkinsManager skinsManager;
+    private WorldManager worldManager;
+    private TABManager tabManager;
     private AdminPanelManager adminPanelManager;
     private ChatManager chatManager;
     private PlayerConnectionListener connectionListener;
@@ -70,9 +69,9 @@ public final class UHC_DBasic extends JavaPlugin {
         // INICIALIZAR MANAGERS
         teamManager = new TeamManager(this);
         gameManager = new GameManager(this);
-
-        createTABAnimations();
-        setupTABAutomatically();
+        skinsManager = new SkinsManager(this);
+        worldManager = new WorldManager(this);
+        tabManager = new TABManager(this);
 
         // CONFIGURACIÓN E IDIOMA
         saveDefaultConfig();
@@ -101,7 +100,7 @@ public final class UHC_DBasic extends JavaPlugin {
         registerCommands();
 
         Bukkit.getScheduler().runTaskLater(this, () -> {
-            registerPlaceholders();
+            tabManager.registerPlaceholders();
             // Automatizar reset inicial tras cargar todo
             gameManager.fullReset();
         }, 60L);
@@ -113,15 +112,31 @@ public final class UHC_DBasic extends JavaPlugin {
 
     private void registerCommands() {
         getCommand("uhcadmin").setExecutor(new AdminPanelCommand(this));
+        getCommand("uhcadmin").setTabCompleter(CommandTabs.NO_SUGGESTIONS);
         getCommand("reset").setExecutor(new PrepareWorldCommand(this));
+        getCommand("reset").setTabCompleter(CommandTabs.NO_SUGGESTIONS);
         getCommand("uhccommands").setExecutor(new GCommandsCommand(this));
-        getCommand("team").setExecutor(new TeamCommand(this));
-        getCommand("settime").setExecutor(new SetTimeCommand(this));
+        getCommand("uhccommands").setTabCompleter(CommandTabs.NO_SUGGESTIONS);
+
+        TeamCommand teamCmd = new TeamCommand(this);
+        getCommand("team").setExecutor(teamCmd);
+        getCommand("team").setTabCompleter(teamCmd);
+
+        SetTimeCommand setTimeCmd = new SetTimeCommand(this);
+        getCommand("settime").setExecutor(setTimeCmd);
+        getCommand("settime").setTabCompleter(setTimeCmd);
 
         StartCommand startCmd = new StartCommand(this);
         getCommand("start").setExecutor(startCmd);
-        getCommand("confirmstart").setExecutor(new ConfirmStartCommand(this, startCmd));
-        getCommand("cancelstart").setExecutor(new CancelStartCommand(this, startCmd));
+        getCommand("start").setTabCompleter(startCmd);
+
+        ConfirmStartCommand confirmCmd = new ConfirmStartCommand(this, startCmd);
+        getCommand("confirmstart").setExecutor(confirmCmd);
+        getCommand("confirmstart").setTabCompleter(confirmCmd);
+
+        CancelStartCommand cancelCmd = new CancelStartCommand(this, startCmd);
+        getCommand("cancelstart").setExecutor(cancelCmd);
+        getCommand("cancelstart").setTabCompleter(CommandTabs.NO_SUGGESTIONS);
 
         getCommand("lang").setExecutor(new LangCommand(this));
         getCommand("lang").setTabCompleter(new LangCommand(this));
@@ -134,6 +149,10 @@ public final class UHC_DBasic extends JavaPlugin {
         getCommand("abandon").setExecutor(abandonCmd);
         getCommand("abandon").setTabCompleter(abandonCmd);
 
+        SetTeamEpisodeCommand setTeamEpisodeCmd = new SetTeamEpisodeCommand(this);
+        getCommand("setteamepisode").setExecutor(setTeamEpisodeCmd);
+        getCommand("setteamepisode").setTabCompleter(setTeamEpisodeCmd);
+
         getCommand("test").setExecutor((sender, command, s, strings) -> {
             if (!isAdmin(sender)) {
                 if (sender instanceof Player pl) {
@@ -144,102 +163,7 @@ public final class UHC_DBasic extends JavaPlugin {
             sender.sendMessage("§a[UHC] Plugin and its dependencies (TAB/SkinsRestorer) working perfectly!");
             return true;
         });
-    }
-
-    private void registerPlaceholders() {
-        TabAPI.getInstance().getPlaceholderManager().registerRelationalPlaceholder("%rel_uhc_identidad%", 500, (viewer, target) -> {
-            if (viewer == null || target == null) return "";
-            Player v = Bukkit.getPlayer(viewer.getUniqueId());
-            Player t = Bukkit.getPlayer(target.getUniqueId());
-            if (v == null || t == null) return "";
-            if (!gameManager.isGameStarted()) { return "§f" + t.getName(); }
-            if (v.equals(t) || teamManager.areInSameTeam(v, t)) { return "§a" + t.getName(); }
-            if (gameManager.getRevealedPlayers().contains(t.getUniqueId())) { return "§c" + t.getName(); }
-            String nombreFalso = gameManager.getLastAssignedSkin().getOrDefault(t.getUniqueId(), t.getName());
-            return "§d" + nombreFalso;
-        });
-
-        TabAPI.getInstance().getPlaceholderManager().registerRelationalPlaceholder("%rel_nametag_color%", 500, (viewer, target) -> {
-            if (viewer == null || target == null) return "";
-            Player v = Bukkit.getPlayer(viewer.getUniqueId());
-            Player t = Bukkit.getPlayer(target.getUniqueId());
-            if (v == null || t == null) return "";
-            if (!gameManager.isGameStarted()) {return "§f";}
-            if (v.equals(t) || teamManager.areInSameTeam(v, t)) {return "§a";}
-            if (gameManager.getRevealedPlayers().contains(t.getUniqueId())) {return "§c"; }
-            return "§c";
-        });
-    }
-
-    private void setupTABAutomatically() {
-        Plugin tabPlugin = Bukkit.getPluginManager().getPlugin("TAB");
-        if (tabPlugin == null) return;
-
-        File configFile = new File(tabPlugin.getDataFolder(), "config.yml");
-        if (!configFile.exists()) return;
-
-        FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
-
-        config.set("scoreboard-teams.sorting-types", Arrays.asList("PLACEHOLDER_A_TO_Z:%player%", "GROUPS:owner,admin,mod,helper,builder,vip,default,none"));
-        config.set("playerlist-objective.enabled", false);
-        config.set("playerlist-objective.value", 0);
-
-        // CONFIGURACIÓN HEADER Y FOOTER
-        config.set("header-footer.enabled", true);
-        List<String> header = Arrays.asList(
-                "<#FFFFFF>&m                                       </#FFFF00>",
-                "",
-                "%animation:UHC-Brillo%",
-                ""
-        );
-        List<String> footer = Arrays.asList(
-                "",
-                "&fPing: &6%ping%ms",
-                "%animation:Firma-Brillo%",
-                "",
-                "<#FFFFFF>&m                                       </#FFFF00>"
-        );
-        config.set("header-footer.designs.default.header", header);
-        config.set("header-footer.designs.default.footer", footer);
-
-        try {
-            config.save(configFile);
-            Bukkit.getScheduler().runTaskLater(this, () -> {
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tab reload");
-            }, 40L);
-        } catch (IOException e) {
-            getLogger().severe(() -> "ERROR SAVING TAB CONFIG: " + e.getMessage());
-        }
-    }
-
-    private void createTABAnimations() {
-        Plugin tabPlugin = Bukkit.getPluginManager().getPlugin("TAB");
-        if (tabPlugin == null) return;
-
-        File animFile = new File(tabPlugin.getDataFolder(), "animations.yml");
-        FileConfiguration animConfig = YamlConfiguration.loadConfiguration(animFile);
-
-        List<String> framesTitulo = Arrays.asList(
-                "&6&lUHC ELOUD", "&e&lUHC ELOUD", "&f&lU&e&lHC ELOUD",
-                "&6&lU&f&lH&e&lC ELOUD", "&6&lUH&f&lC&e&l ELOUD", "&6&lUHC &f&lE&e&lLOUD",
-                "&6&lUHC E&f&lL&e&lOUD", "&6&lUHC EL&f&lO&e&lUD", "&6&lUHC ELO&f&lU&e&lD",
-                "&6&lUHC ELOU&f&lD", "&6&lUHC ELOUD"
-        );
-        animConfig.set("UHC-Brillo.texts", framesTitulo);
-        animConfig.set("UHC-Brillo.change-interval", 100);
-
-        List<String> framesFirma = Arrays.asList(
-                "&6made by Dalibex", "&emade by Dalibex", "&fmade by Dalibex",
-                "&6made by Dalibex", "&6made by Dalibex"
-        );
-        animConfig.set("Firma-Brillo.texts", framesFirma);
-        animConfig.set("Firma-Brillo.change-interval", 100);
-
-        try {
-            animConfig.save(animFile);
-        } catch (IOException e) {
-            getLogger().severe(() -> "ERROR SAVING animations.yml: " + e.getMessage());
-        }
+        getCommand("test").setTabCompleter(CommandTabs.NO_SUGGESTIONS);
     }
 
     private void logBanner() {
@@ -260,6 +184,9 @@ public final class UHC_DBasic extends JavaPlugin {
     // --- GETTERS ---
     public GameManager getGameManager() { return gameManager; }
     public TeamManager getTeamManager() { return teamManager; }
+    public SkinsManager getSkinsManager() { return skinsManager; }
+    public WorldManager getWorldManager() { return worldManager; }
+    public TABManager getTABManager() { return tabManager; }
     public AdminPanelManager getAdminPanel() { return adminPanelManager; }
     public ChatManager getChatManager() { return chatManager; }
     public SpecialCraftsManager getSpecialCraftsManager() { return specialCraftsManager; }

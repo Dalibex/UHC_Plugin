@@ -95,7 +95,6 @@ public class ResourceRush extends AbstractUHCGameMode {
     @Override
     protected void onChapterChange(int nuevoCap) {
         LanguageManager lang = plugin.getLang();
-        TeamManager tm = plugin.getTeamManager();
 
         // Notificación de nuevo capítulo y actualización de objetivos
         Bukkit.getScheduler().runTaskLater(plugin, () -> updateActiveObjectives(nuevoCap), 100L);
@@ -114,17 +113,8 @@ public class ResourceRush extends AbstractUHCGameMode {
             giveGlobalItem("items.shulker.name", Material.LIGHT_BLUE_SHULKER_BOX);
         }
 
-        // Formación de Equipos Aleatorios (Ep 3)
-        if (tm.getTeamSize() > 1 && !teamsFormed && !tm.isCustomTeamsEnabled() && nuevoCap == 3) {
-            tm.shuffleTeams();
-            syncResourceRushTeams();
-            giveTrackingCompasses(lang);
-            teamsFormed = true;
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                p.sendMessage(lang.get("game-events.teams-formed", p));
-                p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, 1f, 1f);
-            }
-        }
+        // Formación de Equipos (episodio configurable)
+        maybeFormTeams(nuevoCap, this::syncResourceRushTeams);
 
         // Activación de PVP (Episodio 4)
         if (nuevoCap == 4) {

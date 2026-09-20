@@ -4,10 +4,15 @@ import me.dalibex.UHC_DBasic.UHC_DBasic;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public class TeamCommand implements CommandExecutor {
+import java.util.ArrayList;
+import java.util.List;
+
+public class TeamCommand implements CommandExecutor, TabCompleter {
 
     private final UHC_DBasic plugin;
 
@@ -32,5 +37,10 @@ public class TeamCommand implements CommandExecutor {
         }
 
         return true;
+    }
+
+    @Override
+    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        return new ArrayList<>();
     }
 }

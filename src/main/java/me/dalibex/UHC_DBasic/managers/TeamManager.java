@@ -29,6 +29,7 @@ public class TeamManager {
     private final Scoreboard board;
     private int teamSize = 1;
     private boolean customTeamsEnabled = false;
+    private int teamsFormedEpisode = 3;
 
     private static final Material[] TEAM_DYES = {
             Material.RED_DYE, Material.BLUE_DYE, Material.GREEN_DYE,
@@ -62,6 +63,10 @@ public class TeamManager {
     public void setCustomTeamsEnabled(boolean enabled) { this.customTeamsEnabled = enabled; }
     public void setTeamSize(int size) { this.teamSize = size; }
     public int getTeamSize() { return teamSize; }
+
+    /** Episodio (parte) en el que se forman los equipos y se entregan las brújulas. */
+    public int getTeamsFormedEpisode() { return teamsFormedEpisode; }
+    public void setTeamsFormedEpisode(int episode) { this.teamsFormedEpisode = episode; }
 
     public void initializeCustomTeams() {
         deleteAllTeams();

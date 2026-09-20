@@ -2,20 +2,26 @@ package me.dalibex.UHC_DBasic.commands;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
+import me.dalibex.UHC_DBasic.utils.CommandTabs;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
-public class StartCommand implements CommandExecutor {
+public class StartCommand implements CommandExecutor, TabCompleter {
 
     private final UHC_DBasic plugin;
     private boolean confirmacionPendiente = false;
@@ -130,5 +136,13 @@ public class StartCommand implements CommandExecutor {
 
     public int getPendingSize() {
         return tamanoPendiente;
+    }
+
+    @Override
+    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        if (args.length == 1) {
+            return CommandTabs.prefixFilter(Arrays.asList("500", "1000", "2000", "3000"), args[0]);
+        }
+        return new ArrayList<>();
     }
 }

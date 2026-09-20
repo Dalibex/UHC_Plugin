@@ -10,7 +10,6 @@ import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
-import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -34,7 +33,6 @@ import me.dalibex.UHC_DBasic.managers.GameManager;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import me.dalibex.UHC_DBasic.managers.TeamManager;
 import me.dalibex.UHC_DBasic.utils.ScoreboardHelper;
-import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
 /**
  * Clase base abstracta para todos los modos de juego de UHC.
@@ -101,27 +99,35 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
      */
     protected void handleInitialSecond(LanguageManager lang) {
         TeamManager tm = plugin.getTeamManager();
-        if (tm.getTeamSize() > 1 && !teamsFormed && tm.isCustomTeamsEnabled()) {
-            giveTrackingCompasses(lang);
-            teamsFormed = true;
-            broadcastChapterOne(lang);
-        } else if (tm.getTeamSize() == 1) {
+        if (tm.getTeamSize() == 1) {
             tm.shuffleTeams();
-            teamsFormed = true;
         }
     }
 
     /**
-     * Envía los mensajes iniciales del capítulo 1.
+     * Forma los equipos ("sorteo") en el capítulo configurado: baraja los
+     * nombres solo si los equipos NO son personalizados, entrega las brújulas
+     * y anuncia el evento a todos los jugadores.
+     *
+     * @param onFormed hook a ejecutar una vez formados los equipos (p.ej. re-sync del modo ResourceRush).
      */
-    protected void broadcastChapterOne(LanguageManager lang) {
+    protected void maybeFormTeams(int nuevoCap, Runnable onFormed) {
+        TeamManager tm = plugin.getTeamManager();
+        if (teamsFormed || tm.getTeamSize() <= 1) return;
+        if (nuevoCap < tm.getTeamsFormedEpisode()) return;
+
+        if (!tm.isCustomTeamsEnabled()) {
+            tm.shuffleTeams();
+        }
+        teamsFormed = true;
+        if (onFormed != null) onFormed.run();
+
+        LanguageManager lang = plugin.getLang();
         for (Player p : Bukkit.getOnlinePlayers()) {
-            p.sendMessage(lang.get("game-events.chapter-start", p)
-                    .replace("%prefix%", lang.get("general.prefix", p))
-                    .replace("%chapter%", "1"));
             p.sendMessage(lang.get("game-events.teams-formed", p));
             p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, 1f, 1f);
         }
+        giveTrackingCompasses(lang);
     }
 
     /**
@@ -161,21 +167,11 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
     }
 
     /**
-     * Ejecuta la rotación de skins y notifica a los jugadores.
+     * Ejecuta la rotación de skins (escalonada por jugador). El mensaje de
+     * identidad se envía desde SkinsManager al aplicar cada skin.
      */
     protected void runSkinRotation() {
-        gm.rotateSkins();
-        LanguageManager lang = plugin.getLang();
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            if (p.getGameMode() == GameMode.SURVIVAL) {
-                String nombreSkinNueva = gm.getLastAssignedSkin()
-                        .getOrDefault(p.getUniqueId(), "???");
-                String rawMsg = lang.get("game-events.skins.identity-changed", p);
-                String mensajePersonalizado = rawMsg.replace("%player%", nombreSkinNueva);
-                p.sendMessage(legacySection().deserialize(mensajePersonalizado));
-                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1f, 1f);
-            }
-        }
+        plugin.getSkinsManager().rotateSkins();
     }
 
     /**
