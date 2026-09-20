@@ -51,12 +51,20 @@ public class LanguageManager {
     private void loadPlayerPreferences() {
         preferencesFile = new File(plugin.getDataFolder(), "player_langs.yml");
         if (!preferencesFile.exists()) {
-            try { preferencesFile.createNewFile(); } catch (IOException e) {}
+            try {
+                preferencesFile.createNewFile();
+            } catch (IOException e) {
+                plugin.getLogger().warning(() -> "Could not create player language preferences: " + e.getMessage());
+            }
         }
         preferencesConfig = YamlConfiguration.loadConfiguration(preferencesFile);
 
         for (String uuidStr : preferencesConfig.getKeys(false)) {
-            playerPreferences.put(UUID.fromString(uuidStr), preferencesConfig.getString(uuidStr));
+            try {
+                playerPreferences.put(UUID.fromString(uuidStr), preferencesConfig.getString(uuidStr));
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning(() -> "Skipping malformed UUID in player_langs.yml: " + uuidStr);
+            }
         }
     }
 
@@ -65,7 +73,11 @@ public class LanguageManager {
 
         playerPreferences.put(player.getUniqueId(), lang);
         preferencesConfig.set(player.getUniqueId().toString(), lang);
-        try { preferencesConfig.save(preferencesFile); } catch (IOException e) {}
+        try {
+            preferencesConfig.save(preferencesFile);
+        } catch (IOException e) {
+            plugin.getLogger().warning(() -> "Could not save player language preferences: " + e.getMessage());
+        }
     }
 
     public String getPlayerLang(Player player) {

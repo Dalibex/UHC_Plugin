@@ -5,7 +5,7 @@
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Platform](https://img.shields.io/badge/Platform-Spigot%20%7C%20Paper-blue)
 
-A lightweight and efficient **UHC (Ultra Hardcore)** plugin. It automatically manages the game phases, the dynamic scoreboard, the victory system and a visual anonymity system.
+A lightweight and efficient **UHC (Ultra Hardcore)** plugin. It automatically manages the game phases, the dynamic scoreboard, the victory system, and a visual anonymity system.
 
 Based on **UHC ESPAÑA** created by **ElRichMC**.
 
@@ -20,7 +20,7 @@ This version polishes the administration experience and makes the identity rotat
   - Configurable from the Admin Panel (*General Rules → Team Formation Episode*) or with the `/setteamepisode <1-10>` command.
 
 * ⌨️ **Tab Completion in Commands:**
-  - Autocomplete across all commands: border sizes in `/start`, languages in `/lang`, episodes in `/setteamepisode` and online players in `/assignteam` and `/abandon`.
+  - Autocomplete across all commands: border sizes in `/start`, languages in `/lang`, episodes in, and online players in `/assignteam` and `/abandon`.
 
 * 🛠️ **Reworked Admin Panel:**
   - Dedicated sub-menus and clearer navigation (shulkers, episodes, rules, border, time).
@@ -30,20 +30,36 @@ This version polishes the administration experience and makes the identity rotat
   - Staggered application (1 player every 5 s) to avoid lag spikes at chapter changes.
   - Combat protection: if a player is in the middle of PvP, their rotation is postponed or skipped.
   - Offline players no longer waste their skin: they re-sync when they rejoin.
-  - Revealed identities are never masked again in the same game.
+  - Identities revealed during an episode stay revealed for that episode only; at the next chapter rotation, surviving players are masked again with a fresh identity.
 
 * 🔄 **`/reset` Restores Real Skins:**
   - On reset, every player gets their own skin back (internal cache + SkinsRestorer) instead of keeping the fake ones from the previous chapter.
 
 * 📂 **Extended Modular Architecture:**
-  - Skins, TAB and world logic extracted into their own managers (`SkinsManager`, `TABManager`, `WorldManager`).
+  - Skins, TAB, and world logic extracted into their own managers (`SkinsManager`, `TABManager`, `WorldManager`).
+
+* 🔒 **Hardened Team & GUI Security:**
+  - Teams are namespaced (`h_` prefix), so the plugin never touches teams from other plugins.
+  - A deterministic team selector only runs in the lobby / with custom teams; admin menus validate recognized clicks (before inspecting items), protect against drag, and require the admin permission.
+
+* 🎯 **Robust Game Lifecycle:**
+  - New safe phases (initializing → preparing → countdown → running/ending).
+  - Frozen roster, stored border size (confirmation never trusts its argument), planned scatter positions, and cancellable tasks: resets and cancellation invalidate pending operations.
+  - Rejoins during the start sequence get their planned position and re-enter the game.
+
+* 🧪 **Unit Tests and CI:**
+  - JUnit 5 suite (**47 green tests**) covering pure policy logic (skin rotation, version comparison, sidebars, victory evaluation, command parsing, resource integrity).
+  - GitHub Actions CI on Java 25 (`test`, `jar`, JaCoCo report, artifacts).
+
+* 📋 **Resource Rush Hardening:**
+  - Goals are awarded only on real pickups and verified crafting (not generic clicks); offline participant progress is tracked and an individual winner is supported.
 
 ---
 
 ## ✨ Main Features
 
 * 🌍 **Multi-language System:** Dynamic support for **Spanish** and **English**. Instant scoreboard and message switching via `/lang`.
-* 📊 **Dynamic Scoreboard:** Shows phase, chapter timer, total accumulated time and teammates' health with real-time health icons.
+* 📊 **Dynamic Scoreboard:** Shows phase, chapter timer, total accumulated time, and teammates' health with real-time health icons.
 * 🍎 **Golden Heads:** Craft fallen players' heads with 8 gold ingots. Grants Regeneration II (12 s) and Absorption II (5 min).
 * ⚔️ **Hybrid 1.8 Combat:** Configurable from the panel: spam-click enabled, adjusted axe damage and *Sweep Attack* removal.
 * 🧭 **Automatic Tracking:** Compass that automatically points to your nearest teammate.
@@ -76,10 +92,9 @@ This version polishes the administration experience and makes the identity rotat
 ## 🚀 Installation and Requirements
 
 * **Requirements:**
-  - Java 21+ installed
-  - [SkinsRestorer](https://skinsrestorer.net/) (Required for skin rotation)
-  - [TAB](https://github.com/NEZNAMY/TAB) (Required for visualization)
-* **PLATFORM/API:** Paper / Spigot / Purpur for MC 1.21.11
+  - Java 25
+  - [SkinsRestorer](https://skinsrestorer.net/) and [TAB](https://github.com/NEZNAMY/TAB) (**hard dependencies**, required at startup)
+* **PLATFORM/API:** Paper / Spigot / Purpur for MC 1.21.11 (Paper recommended)
 
 1. Place `ELOUD_UHC.jar` in the `/plugins` folder.
 2. Make sure SkinsRestorer and TAB are installed.

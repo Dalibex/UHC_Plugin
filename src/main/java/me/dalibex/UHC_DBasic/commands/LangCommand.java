@@ -2,6 +2,7 @@ package me.dalibex.UHC_DBasic.commands;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
+import me.dalibex.UHC_DBasic.managers.GamePhase;
 import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -62,7 +63,7 @@ public class LangCommand implements CommandExecutor, TabCompleter {
             return null;
         }
 
-        if (plugin.getGameManager().getTotalSeconds() > 0) {
+        if (plugin.getGameManager().getPhase() != GamePhase.LOBBY) {
             player.sendMessage(lang.get("lang.already-started", player).replace("%error-prefix%", errorPrefix));
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
             return null;

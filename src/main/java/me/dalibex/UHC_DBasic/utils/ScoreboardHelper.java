@@ -69,7 +69,7 @@ public class ScoreboardHelper {
      * Añade la información del equipo y compañeros vivos/muertos.
      */
     public static void addTeamInfo(Objective obj, AtomicInteger next, List<String> keys, Player player, LanguageManager lang, TeamManager tm, GameManager gm) {
-        Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(player.getName());
+        Team team = tm.getPlayerTeam(player.getName());
         int teamSize = tm.getTeamSize();
         int capitulo = gm.getChapter();
 
@@ -80,7 +80,7 @@ public class ScoreboardHelper {
             score(obj, line, next.getAndDecrement(), keys);
         } else {
             boolean manual = tm.isCustomTeamsEnabled();
-            if (capitulo < 3 && !manual) {
+            if (capitulo < tm.getTeamsFormedEpisode() && !manual) {
                 for (int i = 1; i < teamSize; i++) {
                     score(obj, " §d👥 §f: §k??????" + (" ".repeat(i)), next.getAndDecrement(), keys);
                 }
@@ -91,8 +91,8 @@ public class ScoreboardHelper {
                 
                 score(obj, line, next.getAndDecrement(), keys);
                 if (team != null) {
-                    for (String entry : team.getEntries()) {
-                        if (entry.equals(player.getName())) continue;
+                    for (String entry : tm.getMemberNames(team)) {
+                        if (entry.equalsIgnoreCase(player.getName())) continue;
                         addMateLine(obj, next, keys, player, entry, lang, gm);
                     }
                 }

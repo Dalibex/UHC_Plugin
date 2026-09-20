@@ -20,7 +20,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scoreboard.Criteria;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
@@ -48,6 +48,8 @@ public class ResourceRush extends AbstractUHCGameMode {
 
     private final Map<String, List<Material>> progresoGlobal = new HashMap<>();
     private final List<String> podioFinal = new ArrayList<>();
+    private final List<BukkitTask> delayedTasks = new ArrayList<>();
+    private int sessionGeneration = 0;
     private boolean terminando = false;
 
     public ResourceRush(UHC_DBasic plugin, GameManager gm) {
@@ -86,7 +88,7 @@ public class ResourceRush extends AbstractUHCGameMode {
 
         // Activación de primeros objetivos con delay inicial
         if (cronometroSegundos == 1) {
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            scheduleForCurrentSession(() -> {
                 if (gm.getTotalSeconds() > 0) updateActiveObjectives(1);
             }, 100L); 
         }
@@ -97,7 +99,7 @@ public class ResourceRush extends AbstractUHCGameMode {
         LanguageManager lang = plugin.getLang();
 
         // Notificación de nuevo capítulo y actualización de objetivos
-        Bukkit.getScheduler().runTaskLater(plugin, () -> updateActiveObjectives(nuevoCap), 100L);
+        scheduleForCurrentSession(() -> updateActiveObjectives(nuevoCap), 100L);
 
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.sendMessage(lang.get("game-events.chapter-start", p)
@@ -106,7 +108,9 @@ public class ResourceRush extends AbstractUHCGameMode {
             p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
         }
 
-        runSkinRotation();
+        if (me.dalibex.UHC_DBasic.managers.SkinsManager.isRotationEpisode(nuevoCap)) {
+            runSkinRotation();
+        }
 
         // Shulker 2
         if (nuevoCap == 8 && plugin.getAdminPanel().isShulkerTwoEnabled()) {
@@ -124,6 +128,22 @@ public class ResourceRush extends AbstractUHCGameMode {
                 p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
             }
         }
+    }
+
+    @Override
+    protected void handleInitialSecond(LanguageManager lang) {
+        super.handleInitialSecond(lang);
+        syncResourceRushTeams();
+    }
+
+    private void scheduleForCurrentSession(Runnable action, long delay) {
+        int generation = sessionGeneration;
+        final BukkitTask[] taskRef = new BukkitTask[1];
+        taskRef[0] = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            delayedTasks.remove(taskRef[0]);
+            if (generation == sessionGeneration && !terminando && gm.isMatchActive()) action.run();
+        }, delay);
+        delayedTasks.add(taskRef[0]);
     }
 
     private void updateActiveObjectives(int capitulo) {
@@ -180,7 +200,6 @@ public class ResourceRush extends AbstractUHCGameMode {
         }
 
         Objective obj = getOrCreateSidebar(board, player, lang);
-        clearStaleSidebarKeys(obj, player);
         List<String> keys = new ArrayList<>();
 
         if (!partidaActiva) {
@@ -190,10 +209,10 @@ public class ResourceRush extends AbstractUHCGameMode {
             ScoreboardHelper.addPhaseInfo(obj, next, keys, player, lang, gm);
             ScoreboardHelper.addTeamInfo(obj, next, keys, player, lang, plugin.getTeamManager(), gm);
 
-            // Sección específica de logros de Resource Rush
+// Sección específica de logros de Resource Rush
             keys.add("§8 ");
             obj.getScore("§8 ").setScore(next.getAndDecrement());
-            Team team = board.getEntryTeam(player.getName());
+            Team team = plugin.getTeamManager().getPlayerTeam(player.getName());
             String clave = (team != null) ? team.getName() : player.getName();
             int realizados = progresoGlobal.getOrDefault(clave, new ArrayList<>()).size();
             String counter = lang.get("scoreboard-rr.rr-counter", player)
@@ -205,12 +224,12 @@ public class ResourceRush extends AbstractUHCGameMode {
             ScoreboardHelper.addTimers(obj, next, keys, tiempo, tiempoTotal, player, lang, gm);
         }
 
-        storeSidebarKeys(player, keys);
+        reconcileSidebarKeys(obj, player, keys);
     }
 
     @Override
     public void checkVictory() {
-        if (!gm.isGameStarted() || gm.getTotalSeconds() <= 0 || terminando) return;
+        if (!gm.isMatchActive() || gm.getTotalSeconds() <= 0 || terminando) return;
 
         Set<String> eliminados = gm.getEliminatedPlayers();
 
@@ -220,7 +239,7 @@ public class ResourceRush extends AbstractUHCGameMode {
 
         Set<String> entidadesVivas = vivos.stream()
                 .map(p -> {
-                    Team t = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
+                    Team t = plugin.getTeamManager().getPlayerTeam(p.getName());
                     return (t != null) ? t.getName() : p.getName();
                 }).collect(Collectors.toSet());
 
@@ -230,7 +249,7 @@ public class ResourceRush extends AbstractUHCGameMode {
         for (String nombre : gm.getInitialParticipants()) {
             if (eliminados.contains(nombre)) continue;
             if (Bukkit.getPlayer(nombre) != null) continue;
-            Team t = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(nombre);
+            Team t = plugin.getTeamManager().getPlayerTeam(nombre);
             String clave = (t != null) ? t.getName() : nombre;
             if (!podioFinal.contains(clave)) entidadesVivas.add(clave);
         }
@@ -251,15 +270,21 @@ public class ResourceRush extends AbstractUHCGameMode {
         terminando = true;
 
         LanguageManager lang = plugin.getLang();
-        gm.stopGameTask();
-        gm.setGameStarted(false);
+        finishGameSession();
+
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            plugin.getSkinsManager().revealIdentity(online);
+            plugin.getSkinsManager().updateVisualIdentity(online);
+        }
 
         if (podioFinal.isEmpty()) {
             Bukkit.broadcast(legacySection().deserialize(lang.get("victory.no-survivors", null)));
         } else {
             Bukkit.broadcast(legacySection().deserialize(lang.get("resource-rush.podio-header", null)));
-            for (int i = 0; i < podioFinal.size(); i++) {
-                String medal = lang.get("resource-rush.medals." + (i + 1), null);
+            for (int i = 0; i < Math.min(3, podioFinal.size()); i++) {
+                String medalKey = "resource-rush.medals." + (i + 1);
+                String medal = lang.get(medalKey, null);
+                if (medal == null || medal.isBlank() || medal.equals(medalKey)) medal = "§7#" + (i + 1);
                 String clave = podioFinal.get(i);
                 Team t = Bukkit.getScoreboardManager().getMainScoreboard().getTeam(clave);
                 String nombre = (t != null) ? legacySection().serialize(t.displayName()) : clave;
@@ -269,14 +294,14 @@ public class ResourceRush extends AbstractUHCGameMode {
             Bukkit.broadcast(legacySection().deserialize(lang.get("resource-rush.podio-footer", null)));
 
             Team ganador = Bukkit.getScoreboardManager().getMainScoreboard().getTeam(podioFinal.get(0));
-            applyFinalEffects(ganador);
+            applyFinalEffects(podioFinal.get(0), ganador);
         }
     }
 
     public void completeObjective(Player p, Material mat) {
         if (!objetivosActivos.contains(mat)) return;
         
-        Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
+        Team team = plugin.getTeamManager().getPlayerTeam(p.getName());
         String clave = (team != null) ? team.getName() : p.getName();
         List<Material> logros = progresoGlobal.computeIfAbsent(clave, k -> new ArrayList<>());
 
@@ -317,31 +342,28 @@ public class ResourceRush extends AbstractUHCGameMode {
         Bukkit.broadcast(legacySection().deserialize(lang.get("resource-rush.team-finished", null)
                 .replace("%color%", color).replace("%team%", nombre)));
 
-        String alert = lang.get("resource-rush.finish-alert", p);
-        if (team != null) team.getEntries().forEach(e -> { Player m = Bukkit.getPlayer(e); if (m != null) m.sendMessage(alert); });
+String alert = lang.get("resource-rush.finish-alert", p);
+        if (team != null) teamMembers(team).forEach(e -> { Player m = Bukkit.getPlayer(e); if (m != null) m.sendMessage(alert); });
         else p.sendMessage(alert);
 
-        new BukkitRunnable() {
-            @Override
-            public void run() {
+        scheduleForCurrentSession(() -> {
                 String specMsg = lang.get("resource-rush.spectator-message", null);
                 if (team != null) {
-                    team.getEntries().forEach(e -> { 
+                    teamMembers(team).forEach(e -> {
                         Player m = Bukkit.getPlayer(e); 
                         if (m != null && m.isOnline()) { m.setGameMode(GameMode.SPECTATOR); m.sendMessage(legacySection().deserialize(specMsg)); }
                     });
                 } else if (p.isOnline()) { p.setGameMode(GameMode.SPECTATOR); p.sendMessage(legacySection().deserialize(specMsg)); }
-            }
-        }.runTaskLater(plugin, 200L);
+        }, 200L);
 
         checkVictory();
     }
 
-    private void applyFinalEffects(Team ganador) {
-        if (ganador == null) return;
+private void applyFinalEffects(String winnerKey, Team ganador) {
         LanguageManager lang = plugin.getLang();
         List<Player> winners = new ArrayList<>();
-        for (String entry : ganador.getEntries()) {
+        Set<String> entries = (ganador != null) ? teamMembers(ganador) : Collections.singleton(winnerKey);
+        for (String entry : entries) {
             Player p = Bukkit.getPlayer(entry);
             if (p != null && !gm.getEliminatedPlayers().contains(entry)) {
                 winners.add(p);
@@ -349,8 +371,8 @@ public class ResourceRush extends AbstractUHCGameMode {
             }
         }
         
-        String color = TextUtil.legacyColor(ganador.color());
-        String teamName = legacySection().serialize(ganador.displayName());
+        String color = (ganador != null) ? TextUtil.legacyColor(ganador.color()) : "§f";
+        String teamName = (ganador != null) ? legacySection().serialize(ganador.displayName()) : winnerKey;
         
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.sendMessage(legacySection().deserialize(""));
@@ -364,20 +386,32 @@ public class ResourceRush extends AbstractUHCGameMode {
         applyVictoryEffects(winners);
     }
 
+/** Entradas de un equipo del plugin mediante la caché autoritativa. */
+    private Set<String> teamMembers(Team team) {
+        if (team == null) return Collections.emptySet();
+        if (team.getName().startsWith(ScoreboardHelper.TEAM_PREFIX)) {
+            return new java.util.HashSet<>(plugin.getTeamManager().getMemberNames(team));
+        }
+        return new java.util.HashSet<>(team.getEntries());
+    }
+
     private void syncResourceRushTeams() {
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            Team t = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
-            if (t != null && progresoGlobal.containsKey(p.getName())) {
-                List<Material> ind = progresoGlobal.get(p.getName());
+        for (String participant : gm.getInitialParticipants()) {
+            Team t = plugin.getTeamManager().getPlayerTeam(participant);
+            if (t != null && progresoGlobal.containsKey(participant)) {
+                List<Material> ind = progresoGlobal.get(participant);
                 List<Material> eq = progresoGlobal.computeIfAbsent(t.getName(), k -> new ArrayList<>());
                 ind.forEach(m -> { if (!eq.contains(m)) eq.add(m); });
-                progresoGlobal.remove(p.getName());
+                progresoGlobal.remove(participant);
             }
         }
     }
 
     @Override
     public void onReset() {
+        sessionGeneration++;
+        delayedTasks.forEach(BukkitTask::cancel);
+        delayedTasks.clear();
         super.onReset();
         this.progresoGlobal.clear();
         this.podioFinal.clear();
@@ -387,10 +421,10 @@ public class ResourceRush extends AbstractUHCGameMode {
         initializePool();
     }
 
-    public List<Material> getPlayerAchievements(Player p) {
-        Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
-        return progresoGlobal.getOrDefault((team != null) ? team.getName() : p.getName(), new ArrayList<>());
+public List<Material> getPlayerAchievements(Player p) {
+        Team team = plugin.getTeamManager().getPlayerTeam(p.getName());
+        return List.copyOf(progresoGlobal.getOrDefault((team != null) ? team.getName() : p.getName(), Collections.emptyList()));
     }
 
-    public List<Material> getActiveObjectives() { return objetivosActivos; }
+    public List<Material> getActiveObjectives() { return List.copyOf(objetivosActivos); }
 }

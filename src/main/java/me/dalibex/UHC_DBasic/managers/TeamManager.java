@@ -3,21 +3,28 @@ package me.dalibex.UHC_DBasic.managers;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
+import me.dalibex.UHC_DBasic.utils.ScoreboardHelper;
 import me.dalibex.UHC_DBasic.utils.TextUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -25,11 +32,23 @@ import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializ
 
 public class TeamManager {
 
+    private static final String LEGACY_MIGRATION_MARKER = "migrations.legacy-bare-teams";
+
     private final UHC_DBasic plugin;
     private final Scoreboard board;
+    private final NamespacedKey teamSelectorKey;
     private int teamSize = 1;
     private boolean customTeamsEnabled = false;
     private int teamsFormedEpisode = 3;
+
+    /**
+     * Caché de membresías del plugin (name canónico -> nombre del equipo h_*).
+     * Autoritativa para lectura de pertenencia: TAB gestiona los teams del
+     * scoreboard principal (scoreboard-teams) y puede reasignar o borrar
+     * entries, por lo que no se puede depender de {@code getEntryTeam} para
+     * la lógica de juego (brújula, chat, victoria, sidebar).
+     */
+    private final Map<String, String> memberToTeam = new LinkedHashMap<>();
 
     private static final Material[] TEAM_DYES = {
             Material.RED_DYE, Material.BLUE_DYE, Material.GREEN_DYE,
@@ -57,6 +76,7 @@ public class TeamManager {
     public TeamManager(UHC_DBasic plugin) {
         this.plugin = plugin;
         this.board = Bukkit.getScoreboardManager().getMainScoreboard();
+        this.teamSelectorKey = new NamespacedKey(plugin, "team_selector");
     }
 
     public boolean isCustomTeamsEnabled() { return customTeamsEnabled; }
@@ -67,6 +87,74 @@ public class TeamManager {
     /** Episodio (parte) en el que se forman los equipos y se entregan las brújulas. */
     public int getTeamsFormedEpisode() { return teamsFormedEpisode; }
     public void setTeamsFormedEpisode(int episode) { this.teamsFormedEpisode = episode; }
+
+    private static String key(String name) {
+        return name == null ? "" : name.toLowerCase(Locale.ROOT);
+    }
+
+    /** Busca la clave canónica (con mayúsculas) de la caché para una entrada. */
+    private String canonicalTrackedName(String playerName) {
+        if (playerName == null) return null;
+        for (String known : memberToTeam.keySet()) {
+            if (known.equalsIgnoreCase(playerName)) return known;
+        }
+        return playerName;
+    }
+
+    /**
+     * Equipo del plugin al que pertenece el jugador según la caché
+     * autoritativa. Nunca devuelve teams ajenos (p. ej. los equipos
+     * individuales que TAB crea en el scoreboard principal).
+     */
+    public Team getPlayerTeam(String playerName) {
+        if (playerName == null) return null;
+        String canonical = canonicalTrackedName(playerName);
+        Team cached = byName(memberToTeam.get(canonical));
+        if (cached != null) return cached;
+        Team entry = board.getEntryTeam(playerName);
+        return isPluginTeam(entry) ? entry : null;
+    }
+
+    /** Entradas de un equipo del plugin según la caché autoritativa. */
+    public List<String> getMemberNames(Team team) {
+        if (team == null || !isPluginTeam(team)) return List.of();
+        List<String> members = new ArrayList<>();
+        for (Map.Entry<String, String> e : memberToTeam.entrySet()) {
+            if (e.getValue().equals(team.getName())) members.add(e.getKey());
+        }
+        return members;
+    }
+
+    /** Número de miembros de un equipo del plugin según la caché. */
+    public int getMemberCount(Team team) {
+        if (team == null || !isPluginTeam(team)) return 0;
+        int count = 0;
+        for (String teamName : memberToTeam.values()) {
+            if (teamName.equals(team.getName())) count++;
+        }
+        return count;
+    }
+
+    public boolean hasPlayerTeam(String playerName) {
+        return getPlayerTeam(playerName) != null;
+    }
+
+    private Team byName(String teamName) {
+        if (teamName == null) return null;
+        Team t = board.getTeam(teamName);
+        return isPluginTeam(t) ? t : null;
+    }
+
+    private void track(String name, Team team) {
+        if (name == null || team == null) return;
+        memberToTeam.put(name, team.getName());
+    }
+
+    private void untrack(String name) {
+        if (name == null) return;
+        String canonical = canonicalTrackedName(name);
+        memberToTeam.remove(canonical);
+    }
 
     public void initializeCustomTeams() {
         deleteAllTeams();
@@ -84,7 +172,7 @@ public class TeamManager {
     private Team createTeam(int index) {
         LanguageManager lang = plugin.getLang();
         String colorKey = TEAM_COLOR_KEYS[index % TEAM_COLOR_KEYS.length];
-        Team team = board.registerNewTeam(colorKey);
+        Team team = board.registerNewTeam(ScoreboardHelper.TEAM_PREFIX + colorKey);
         team.color(TEAM_NAMED_COLORS[index % TEAM_NAMED_COLORS.length]);
 
         String localizedName = lang.get("teams.colors." + colorKey, null);
@@ -104,13 +192,28 @@ public class TeamManager {
         team.prefix(TextUtil.deserialize(prefix));
     }
 
-    public Team getTeamByColorSearch(String input) {
-        String lower = input.toLowerCase();
-        for (Team team : board.getTeams()) {
-            if (team.getName().equalsIgnoreCase(lower)) return team;
-            if (legacySection().serialize(team.displayName()).equalsIgnoreCase(input)) return team;
+public Team getTeamByColorSearch(String input) {
+        String normalized = normalizeColorInput(input);
+        for (Team team : getPluginTeams()) {
+            String colorKey = team.getName().substring(ScoreboardHelper.TEAM_PREFIX.length());
+            if (colorKey.equalsIgnoreCase(normalized)) return team;
+            if (legacySection().serialize(team.displayName()).equalsIgnoreCase(normalized)) return team;
         }
         return null;
+    }
+
+    /**
+     * Normaliza un input de color aceptando el formato visible (p. ej. "red"),
+     * el interno con prefijo (p. ej. "h_red") y el localizado sin importar
+     * mayúsculas. El prefijo {@code h_} es interno: no debe exigirse al usuario.
+     */
+    public static String normalizeColorInput(String input) {
+        if (input == null) return "";
+        String lower = input.toLowerCase(Locale.ROOT);
+        if (lower.startsWith(ScoreboardHelper.TEAM_PREFIX)) {
+            lower = lower.substring(ScoreboardHelper.TEAM_PREFIX.length());
+        }
+        return lower;
     }
 
     public void giveTeamSelectorItem(Player p) {
@@ -121,28 +224,28 @@ public class TeamManager {
         ItemMeta meta = selector.getItemMeta();
         meta.displayName(lang.getComponent("items.team-selector.name", p));
         meta.lore(lang.getComponentList("items.team-selector.lore", p));
+        meta.getPersistentDataContainer().set(teamSelectorKey, PersistentDataType.BYTE, (byte) 1);
         selector.setItemMeta(meta);
 
         p.getInventory().setItem(8, selector);
     }
 
     public void removeTeamSelectorItem(Player p) {
-        LanguageManager lang = plugin.getLang();
-        Component selectorName = lang.getComponent("items.team-selector.name", p);
-
         for (int i = 0; i < p.getInventory().getSize(); i++) {
             ItemStack item = p.getInventory().getItem(i);
-            if (item != null && item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
-                if (item.getItemMeta().displayName().equals(selectorName)) {
-                    p.getInventory().setItem(i, null);
-                }
-            }
+            if (isTeamSelector(item)) p.getInventory().setItem(i, null);
         }
     }
 
+    public boolean isTeamSelector(ItemStack item) {
+        if (item == null || item.getType() != Material.NETHER_STAR || !item.hasItemMeta()) return false;
+        return item.getItemMeta().getPersistentDataContainer().has(teamSelectorKey, PersistentDataType.BYTE);
+    }
+
     public void openTeamSelectorGUI(Player p) {
+        if (plugin.getGameManager().getPhase() != GamePhase.LOBBY || !customTeamsEnabled) return;
         LanguageManager lang = plugin.getLang();
-        Set<Team> teams = board.getTeams();
+        List<Team> teams = getPluginTeams();
         int invSize = Math.max(9, (int) Math.ceil(teams.size() / 9.0) * 9);
         Inventory gui = Bukkit.createInventory(null, invSize, lang.getComponent("menus.team-selector.title", p));
 
@@ -156,17 +259,17 @@ public class TeamManager {
             meta.displayName(TextUtil.item(
                     lang.get("menus.team-selector.team-item.name", p).replace("%name%", legacySection().serialize(team.displayName()))));
             List<Component> lore = new ArrayList<>();
-            int current = team.getEntries().size();
+            int current = getMemberCount(team);
             for (String l : lang.getList("menus.team-selector.team-item.lore", p)) {
                 lore.add(TextUtil.item(l.replace("%current%", String.valueOf(current)).replace("%max%", String.valueOf(teamSize))));
             }
-            for (String entry : team.getEntries()) {
+            for (String entry : getMemberNames(team)) {
                 lore.add(TextUtil.item(lang.get("menus.team-selector.member-format", p).replace("%player%", entry)));
             }
             int huecos = teamSize - current;
             for (int h = 0; h < huecos; h++) lore.add(TextUtil.item(lang.get("menus.team-selector.empty-slot", p)));
 
-            Team playerTeam = board.getEntryTeam(p.getName());
+            Team playerTeam = getPlayerTeam(p.getName());
             if (playerTeam != null && playerTeam.equals(team)) {
                 lore.add(Component.empty());
                 lore.add(TextUtil.item("§a✔ Tu equipo actual"));
@@ -180,34 +283,57 @@ public class TeamManager {
         p.openInventory(gui);
     }
 
+/**
+     * Mueve a un jugador al equipo indicado liberándolo primero de su equipo
+     * actual. Compatible con la caché de membresías.
+     */
+    public void movePlayerToTeam(Player p, Team target) {
+        if (p == null || target == null) return;
+        Team current = getPlayerTeam(p.getName());
+        if (current != null && !current.equals(target)) {
+            current.removeEntry(p.getName());
+            untrack(p.getName());
+        }
+        target.addEntry(p.getName());
+        track(p.getName(), target);
+    }
+
     public boolean tryJoinTeam(Player p, int slot) {
+        if (plugin.getGameManager().getPhase() != GamePhase.LOBBY || !customTeamsEnabled) return false;
         LanguageManager lang = plugin.getLang();
-        List<Team> teamList = new ArrayList<>(board.getTeams());
+        List<Team> teamList = getPluginTeams();
         if (slot < 0 || slot >= teamList.size()) return false;
         Team target = teamList.get(slot);
-        Team current = board.getEntryTeam(p.getName());
+        Team current = getPlayerTeam(p.getName());
+        if (current != null && !isPluginTeam(current)) return false;
 
         if (current != null && current.equals(target)) {
             p.sendMessage(lang.get("menus.team-selector.already-in-team", p));
             p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
             return false;
         }
-        if (target.getEntries().size() >= teamSize) {
+        if (getMemberCount(target) >= teamSize) {
             p.sendMessage(lang.get("menus.team-selector.already-full", p));
             p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
             return false;
         }
-        if (current != null) current.removeEntry(p.getName());
+        if (current != null) {
+            current.removeEntry(p.getName());
+            untrack(p.getName());
+        }
         target.addEntry(p.getName());
+        track(p.getName(), target);
         p.sendMessage(lang.get("menus.team-selector.joined", p).replace("%name%", legacySection().serialize(target.displayName().color(target.color()))));
         p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
         return true;
     }
 
     public boolean tryLeaveTeam(Player p) {
-        Team current = board.getEntryTeam(p.getName());
+        if (plugin.getGameManager().getPhase() != GamePhase.LOBBY || !customTeamsEnabled) return false;
+        Team current = getPlayerTeam(p.getName());
         if (current != null) {
             current.removeEntry(p.getName());
+            untrack(p.getName());
             p.sendMessage(plugin.getLang().get("menus.team-selector.left", p));
             p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1f, 0.5f);
             return true;
@@ -218,7 +344,7 @@ public class TeamManager {
     public boolean allPlayersHaveTeam() {
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (p.getGameMode() == org.bukkit.GameMode.SPECTATOR) continue;
-            if (board.getEntryTeam(p.getName()) == null) return false;
+            if (!hasPlayerTeam(p.getName())) return false;
         }
         return true;
     }
@@ -227,7 +353,7 @@ public class TeamManager {
         Set<Team> used = new HashSet<>();
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (p.getGameMode() == org.bukkit.GameMode.SPECTATOR) continue;
-            Team t = board.getEntryTeam(p.getName());
+            Team t = getPlayerTeam(p.getName());
             if (t != null) used.add(t);
         }
         return used.size();
@@ -250,7 +376,7 @@ public class TeamManager {
     }
 
     private int getTeamIndexForGui(Team team) {
-        String name = team.getName().toLowerCase();
+        String name = team.getName().substring(ScoreboardHelper.TEAM_PREFIX.length()).toLowerCase(Locale.ROOT);
         for (int i = 0; i < TEAM_COLOR_KEYS.length; i++) {
             if (TEAM_COLOR_KEYS[i].equalsIgnoreCase(name)) return i;
         }
@@ -278,10 +404,10 @@ public class TeamManager {
             listaEquipos.add(createTeam(i));
         }
 
-        for (int i = 0; i < vivos.size(); i++) assignTeamByName(vivos.get(i), listaEquipos.get(i % numeroDeEquipos), lang);
+for (int i = 0; i < vivos.size(); i++) assignTeamByName(vivos.get(i), listaEquipos.get(i % numeroDeEquipos), lang);
         if (!listaEquipos.isEmpty()) {
             for (String m : muertos) {
-                Team MasVacio = listaEquipos.stream().min(Comparator.comparingInt(t -> t.getEntries().size())).get();
+                Team MasVacio = listaEquipos.stream().min(Comparator.comparingInt(this::getMemberCount)).get();
                 assignTeamByName(m, MasVacio, lang);
             }
         }
@@ -289,6 +415,7 @@ public class TeamManager {
 
     private void assignTeamByName(String name, Team team, LanguageManager lang) {
         team.addEntry(name);
+        track(name, team);
         Player p = Bukkit.getPlayer(name);
         if (p != null && p.isOnline()) {
             String legacyCode = TEAM_LEGACY_CODES[getTeamIndexForGui(team) % TEAM_LEGACY_CODES.length];
@@ -301,13 +428,13 @@ public class TeamManager {
 
     public boolean areInSameTeam(Player a, Player b) {
         if (a == null || b == null) return false;
-        Team ta = board.getEntryTeam(a.getName());
-        Team tb = board.getEntryTeam(b.getName());
+        Team ta = getPlayerTeam(a.getName());
+        Team tb = getPlayerTeam(b.getName());
         return ta != null && ta.equals(tb);
     }
 
     public boolean renameTeam(Player player, String nuevoNombre) {
-        Team team = board.getEntryTeam(player.getName());
+        Team team = getPlayerTeam(player.getName());
         if (team == null) return false;
         LanguageManager lang = plugin.getLang();
         if (nuevoNombre.length() > 16) nuevoNombre = nuevoNombre.substring(0, 16);
@@ -331,7 +458,8 @@ public class TeamManager {
 
     private boolean isDefaultName(Team team, String displayNameToCheck) {
         if (team == null) return true;
-        String name = team.getName().toLowerCase();
+        if (!isPluginTeam(team)) return true;
+        String name = team.getName().substring(ScoreboardHelper.TEAM_PREFIX.length()).toLowerCase(Locale.ROOT);
         LanguageManager lang = plugin.getLang();
         for (String key : TEAM_COLOR_KEYS) {
             if (key.equalsIgnoreCase(name)) {
@@ -342,7 +470,74 @@ public class TeamManager {
         return name.startsWith("team_");
     }
 
-    public void deleteAllTeams() {
-        for (Team team : board.getTeams()) team.unregister();
+public void deleteAllTeams() {
+        for (Team team : getPluginTeams()) team.unregister();
+        memberToTeam.clear();
+    }
+
+    /**
+     * Instantánea de las membresías actuales (nombre de jugador -> nombre de
+     * equipo h_*) para restaurarlas después de un reset de equipos.
+     */
+    public Map<String, String> snapshotTeamMembers() {
+        return new LinkedHashMap<>(memberToTeam);
+    }
+
+    /**
+     * Restaura una instantánea de membresías tras recrear los equipos. Solo
+     * re-incorpora jugadores a equipos que existen; una entrada huérfana (por
+     * ejemplo, un equipo eliminado) se descarta.
+     */
+    public void restoreTeamMembers(Map<String, String> snapshot) {
+        if (snapshot == null) return;
+        for (Map.Entry<String, String> e : snapshot.entrySet()) {
+            Team team = byName(e.getValue());
+            if (team == null) continue;
+            team.addEntry(e.getKey());
+            track(e.getKey(), team);
+        }
+    }
+
+    /**
+     * Re-incorpora la entry de un jugador a su equipo h_* en el scoreboard
+     * principal. TAB (scoreboard-teams) puede haber movido la entry a sus
+     * propios equipos; la caché de pertenencia sigue intacta, solo se corrige
+     * la reflejo visual del scoreboard.
+     */
+    public void resyncPlayerEntry(String playerName) {
+        if (playerName == null) return;
+        String canonical = canonicalTrackedName(playerName);
+        if (canonical == null) return;
+        Team team = byName(memberToTeam.get(canonical));
+        if (team == null) return;
+        if (!team.getEntries().contains(canonical)) team.addEntry(canonical);
+    }
+
+    public void migrateLegacyTeamsOnce() {
+        if (plugin.getConfig().getBoolean(LEGACY_MIGRATION_MARKER, false)) return;
+        for (String legacyName : TEAM_COLOR_KEYS) {
+            Team legacy = board.getTeam(legacyName);
+            if (legacy != null) legacy.unregister();
+        }
+        plugin.getConfig().set(LEGACY_MIGRATION_MARKER, true);
+        plugin.saveConfig();
+    }
+
+    private boolean isPluginTeam(Team team) {
+        return team != null && team.getName().startsWith(ScoreboardHelper.TEAM_PREFIX);
+    }
+
+private List<Team> getPluginTeams() {
+        return getTeams();
+    }
+
+    /** Equipos del plugin (prefijo interno h_*), ordenados por índice de color. */
+    public List<Team> getTeams() {
+        List<Team> teams = new ArrayList<>();
+        for (Team team : board.getTeams()) {
+            if (isPluginTeam(team)) teams.add(team);
+        }
+        teams.sort(Comparator.comparingInt(this::getTeamIndexForGui).thenComparing(Team::getName));
+        return teams;
     }
 }

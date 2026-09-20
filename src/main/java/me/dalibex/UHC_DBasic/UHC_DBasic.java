@@ -55,6 +55,8 @@ public final class UHC_DBasic extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        saveDefaultConfig();
+
         // 1. INICIALIZAR GESTOR DE DEPENDENCIAS
         dependencyManager = new DependencyManager(this);
         if (!dependencyManager.checkDependencies()) {
@@ -74,7 +76,6 @@ public final class UHC_DBasic extends JavaPlugin {
         tabManager = new TABManager(this);
 
         // CONFIGURACIÓN E IDIOMA
-        saveDefaultConfig();
         languageManager = new LanguageManager(this);
 
         // INICIALIZAR RESTO DE COMPONENTES
@@ -209,6 +210,7 @@ public final class UHC_DBasic extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (gameManager != null) gameManager.cancelStartup();
         getLogger().info("UHC_DBasic Plugin Disabled");
     }
 }

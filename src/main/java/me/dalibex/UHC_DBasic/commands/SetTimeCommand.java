@@ -2,6 +2,7 @@ package me.dalibex.UHC_DBasic.commands;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.managers.GameManager;
+import me.dalibex.UHC_DBasic.managers.GamePhase;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import me.dalibex.UHC_DBasic.utils.CommandTabs;
 import me.dalibex.UHC_DBasic.utils.TimeUtil;
@@ -59,7 +60,7 @@ public class SetTimeCommand implements CommandExecutor, TabCompleter {
             return -1;
         }
 
-        if (plugin.getGameManager().getTotalSeconds() > 0) {
+        if (plugin.getGameManager().getPhase() != GamePhase.LOBBY) {
             sender.sendMessage(lang.get("timer.already-started", player));
             return -1;
         }

@@ -57,7 +57,7 @@ public class SetTeamEpisodeCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        if (episode < MIN_EPISODE || episode > MAX_EPISODE) {
+        if (!isValidEpisode(episode)) {
             sender.sendMessage(plugin.getLang().get("teams.episode.range", null)
                     .replace("%error-prefix%", plugin.getLang().get("general.error-prefix", null)));
             return true;
@@ -72,6 +72,10 @@ public class SetTeamEpisodeCommand implements CommandExecutor, TabCompleter {
             p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1f, 1.2f);
         }
         return true;
+    }
+
+    static boolean isValidEpisode(int episode) {
+        return episode >= MIN_EPISODE && episode <= MAX_EPISODE;
     }
 
     @Override

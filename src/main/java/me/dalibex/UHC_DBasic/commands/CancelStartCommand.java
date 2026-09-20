@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
+import me.dalibex.UHC_DBasic.managers.GamePhase;
 
 public class CancelStartCommand implements CommandExecutor {
 
@@ -23,16 +24,18 @@ public class CancelStartCommand implements CommandExecutor {
         if (!(sender instanceof Player player)) return true;
         if (!plugin.isAdmin(player)) return true;
 
-        if (plugin.getGameManager().isGameStarted()) {
+        GamePhase phase = plugin.getGameManager().getPhase();
+        if (!startCommand.hasPendingConfirmation()
+                && phase != GamePhase.PREPARING
+                && phase != GamePhase.COUNTDOWN) {
             return true;
         }
 
-        if (!startCommand.hasPendingConfirmation()) {
-            return true;
+        if (phase == GamePhase.PREPARING || phase == GamePhase.COUNTDOWN) {
+            plugin.getGameManager().fullReset();
+        } else {
+            plugin.getGameManager().cancelStartup();
         }
-
-        startCommand.setConfirmationPending(false);
-        plugin.getGameManager().setGameStarted(false);
 
         player.sendMessage(plugin.getLang().get("start-menu.cancelled", player));
 

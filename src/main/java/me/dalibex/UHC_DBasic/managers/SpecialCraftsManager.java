@@ -8,15 +8,18 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 
 public class SpecialCraftsManager {
 
     private final UHC_DBasic plugin;
+    private final NamespacedKey goldenHeadKey;
 
     public SpecialCraftsManager(UHC_DBasic plugin) {
         this.plugin = plugin;
+        this.goldenHeadKey = new NamespacedKey(plugin, "golden_head_item");
         registerRecipes();
     }
 
@@ -36,6 +39,7 @@ public class SpecialCraftsManager {
 
             meta.addEnchant(Enchantment.LUCK_OF_THE_SEA, 1, true);
             meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            meta.getPersistentDataContainer().set(goldenHeadKey, PersistentDataType.BYTE, (byte) 1);
 
             goldenHead.setItemMeta(meta);
         }
@@ -60,5 +64,10 @@ public class SpecialCraftsManager {
             Bukkit.removeRecipe(key);
         }
         registerGoldenHead();
+    }
+
+    public boolean isGoldenHead(ItemStack item) {
+        if (item == null || item.getType() != Material.GOLDEN_APPLE || !item.hasItemMeta()) return false;
+        return item.getItemMeta().getPersistentDataContainer().has(goldenHeadKey, PersistentDataType.BYTE);
     }
 }

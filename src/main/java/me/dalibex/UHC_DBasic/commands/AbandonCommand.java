@@ -44,7 +44,7 @@ public class AbandonCommand implements CommandExecutor, TabCompleter {
         GameManager gm = plugin.getGameManager();
         LanguageManager lang = plugin.getLang();
 
-        if (!gm.isGameStarted()) {
+        if (!gm.isMatchActive()) {
             executor.sendMessage(lang.get("game.abandon-game-not-started", executor));
             executor.playSound(executor.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
             return true;

@@ -1,9 +1,9 @@
 name: ELOUD_UHC
-version: "1.5.3-SNAPSHOT"
+version: "${version}"
 main: me.dalibex.UHC_DBasic.UHC_DBasic
 api-version: "1.21"
 authors: [Dalibex]
-softdepend: ["TAB", "SkinsRestorer"]
+depend: ["TAB", "SkinsRestorer"]
 
 commands:
   uhcadmin:
@@ -44,7 +44,7 @@ commands:
     usage: /abandon [player]
   setteamepisode:
     description: Sets the episode in which teams are formed (compasses are given)
-    usage: /setteamepisode <episode> <1-10>
+    usage: /setteamepisode <episode 1-10>
     permission: uhc.admin
 
 permissions:

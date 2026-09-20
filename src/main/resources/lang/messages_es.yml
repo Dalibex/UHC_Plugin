@@ -10,7 +10,7 @@ general:
 
 # Comandos de inicio y confirmación, juego
 game:
-  invalid-number: "§cEl tamaño debe ser un número entero válido."
+  invalid-number: "%error-prefix% §fEl tamaño debe ser un número entero válido."
   teleporting-progress: "§fTeletransportando jugadores... §e(%current%/%total%)"
   loading-world: "§6§l[!] §fTodos los jugadores teletransportados. Cargando mundo y chunks..."
   game-already-started: "§fLa partida ya ha comenzado."

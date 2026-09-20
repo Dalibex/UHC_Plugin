@@ -31,7 +31,7 @@ public class PrepareWorldCommand implements CommandExecutor {
             return true;
         }
 
-        // Delegar toda la lógica al GameManager
+        // fullReset invalidates every pending startup callback before resetting worlds.
         plugin.getGameManager().fullReset();
 
         String prefix = lang.get("general.prefix", player);

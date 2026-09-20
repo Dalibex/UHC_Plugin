@@ -24,10 +24,6 @@ import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializ
 public class StartCommand implements CommandExecutor, TabCompleter {
 
     private final UHC_DBasic plugin;
-    private boolean confirmacionPendiente = false;
-    private UUID confirmadorUuid = null;
-    private int tamanoPendiente = 0;
-
     public StartCommand(UHC_DBasic plugin) {
         this.plugin = plugin;
     }
@@ -49,9 +45,11 @@ public class StartCommand implements CommandExecutor, TabCompleter {
         int size = validate(player, args);
         if (size == -1) return true;
 
-        this.confirmacionPendiente = true;
-        this.confirmadorUuid = player.getUniqueId();
-        this.tamanoPendiente = size;
+        if (!plugin.getGameManager().requestStart(player.getUniqueId(), size)) {
+            player.sendMessage(plugin.getLang().get("start-menu.already-starting", player)
+                    .replace("%error-prefix%", plugin.getLang().get("general.error-prefix", player)));
+            return true;
+        }
         sendConfirmationMenu(player, size);
 
         return true;
@@ -61,7 +59,7 @@ public class StartCommand implements CommandExecutor, TabCompleter {
      * Valida argumentos, formato numérico, rango mínimo y estado del juego.
      * @return el tamaño (size) si es válido, -1 si falla (enviando mensaje de error).
      */
-    private int validate(Player player, String[] args) {
+    int validate(Player player, String[] args) {
         LanguageManager lang = plugin.getLang();
         String errorPrefix = lang.get("general.error-prefix", player);
 
@@ -73,7 +71,7 @@ public class StartCommand implements CommandExecutor, TabCompleter {
         int size;
         try {
             size = Integer.parseInt(args[0]);
-            if (size < 20) {
+            if (!isValidBorderSize(size)) {
                 player.sendMessage(lang.get("menus.barrier.min-size-error", player).replace("%error-prefix%", errorPrefix));
                 return -1;
             }
@@ -82,17 +80,23 @@ public class StartCommand implements CommandExecutor, TabCompleter {
             return -1;
         }
 
-        if (plugin.getGameManager().isGameStarted()) {
+        if (!isStartablePhase(plugin.getGameManager().getPhase())) {
             player.sendMessage(errorPrefix + lang.get("game.game-already-started", player));
             return -1;
         }
 
-        if (confirmacionPendiente) {
+        if (plugin.getGameManager().hasPendingStart()) {
             player.sendMessage(lang.get("start-menu.already-starting", player).replace("%error-prefix%", errorPrefix));
             return -1;
         }
 
         return size;
+    }
+
+    static boolean isValidBorderSize(int size) { return size >= 20; }
+
+    static boolean isStartablePhase(me.dalibex.UHC_DBasic.managers.GamePhase phase) {
+        return phase == me.dalibex.UHC_DBasic.managers.GamePhase.LOBBY;
     }
 
     /**
@@ -118,24 +122,16 @@ public class StartCommand implements CommandExecutor, TabCompleter {
         player.sendMessage(mensaje);
     }
 
-    public void setConfirmationPending(boolean estado) {
-        this.confirmacionPendiente = estado;
-        if (!estado) {
-            this.confirmadorUuid = null;
-            this.tamanoPendiente = 0;
-        }
-    }
-
     public boolean hasPendingConfirmation() {
-        return confirmacionPendiente;
+        return plugin.getGameManager().hasPendingStart();
     }
 
     public UUID getConfirmerUuid() {
-        return confirmadorUuid;
+        return plugin.getGameManager().getStartupOwner();
     }
 
     public int getPendingSize() {
-        return tamanoPendiente;
+        return plugin.getGameManager().getPendingBorderSize();
     }
 
     @Override

@@ -90,7 +90,7 @@ public class AdminPanelManager {
         mainGui.setItem(AdminSlots.MAIN_TIME, createSimpleItem(Material.CLOCK, "menus.main-admin.time-item", player));
 
         GameManager rpm = plugin.getGameManager();
-        boolean partidaEnCurso = rpm.getTotalSeconds() > 0;
+        boolean partidaEnCurso = rpm.getPhase() != GamePhase.LOBBY;
 
         ItemStack gmItem = new ItemStack(partidaEnCurso ? Material.BARRIER : Material.NETHER_STAR);
         ItemMeta gmMeta = gmItem.getItemMeta();
@@ -199,7 +199,7 @@ public class AdminPanelManager {
     public void openTeamsEpisodePanel(Player player) {
         LanguageManager lang = plugin.getLang();
         TeamManager tm = plugin.getTeamManager();
-        boolean partidaEnCurso = plugin.getGameManager().getTotalSeconds() > 0;
+        boolean partidaEnCurso = plugin.getGameManager().getPhase() != GamePhase.LOBBY;
         int selected = tm.getTeamsFormedEpisode();
 
         Inventory inv = Bukkit.createInventory(null, 45, lang.getComponent("menus.teamsepisode.title", player));
@@ -301,7 +301,7 @@ public class AdminPanelManager {
 
         GameManager rpm = plugin.getGameManager();
         boolean estaPausado = rpm.isPaused();
-        boolean partidaEnCurso = rpm.getTotalSeconds() > 0;
+        boolean partidaEnCurso = rpm.getPhase() != GamePhase.LOBBY;
         int totalSecs = rpm.getSecondsPerChapter();
 
         String tiempoVisual = TimeUtil.formatHms(totalSecs);
@@ -361,7 +361,7 @@ public class AdminPanelManager {
     }
 
     private ItemStack createBorderItem(Material mat, String name, int amount, Player player, LanguageManager lang) {
-        boolean bloqueado = plugin.getGameManager().getTotalSeconds() <= 0;
+        boolean bloqueado = !plugin.getGameManager().isMatchActive();
         ItemStack item = new ItemStack(bloqueado ? Material.BARRIER : mat);
         ItemMeta meta = item.getItemMeta();
         if (bloqueado) {

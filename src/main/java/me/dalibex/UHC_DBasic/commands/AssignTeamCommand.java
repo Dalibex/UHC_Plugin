@@ -75,20 +75,14 @@ public class AssignTeamCommand implements CommandExecutor, TabCompleter {
         }
 
         // Verificar si el equipo está lleno
-        if (team.getEntries().size() >= tm.getTeamSize()) {
+        if (tm.getMemberCount(team) >= tm.getTeamSize()) {
             admin.sendMessage(lang.get("menus.team-selector.already-full", admin));
             admin.playSound(admin.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
             return true;
         }
 
-        // Quitar del equipo anterior si tiene uno
-        Team currentTeam = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(target.getName());
-        if (currentTeam != null) {
-            currentTeam.removeEntry(target.getName());
-        }
-
-        // Asignar al equipo
-        team.addEntry(target.getName());
+        // Quitar del equipo anterior (si es del plugin) y asignar al objetivo.
+        tm.movePlayerToTeam(target, team);
 
         String teamDisplay = legacySection().serialize(team.displayName().color(team.color()));
         String successMsg = lang.get("game.assign-team-success", admin)
@@ -117,10 +111,12 @@ public class AssignTeamCommand implements CommandExecutor, TabCompleter {
                     .filter(name -> name.toLowerCase().startsWith(partial))
                     .collect(Collectors.toList());
         } else if (args.length == 2) {
-            // Autocompletar nombres de colores (Solo nombres internos/en inglés)
+            // Autocompletar colores del plugin sin el prefijo interno "h_":
+            // el usuario ve el color, pero internamente es h_<color>.
             String partial = args[1].toLowerCase();
-            for (Team team : Bukkit.getScoreboardManager().getMainScoreboard().getTeams()) {
-                if (team.getName().toLowerCase().startsWith(partial)) completions.add(team.getName());
+            for (Team team : plugin.getTeamManager().getTeams()) {
+                String colorKey = TeamManager.normalizeColorInput(team.getName());
+                if (colorKey.startsWith(partial)) completions.add(colorKey);
             }
         }
 

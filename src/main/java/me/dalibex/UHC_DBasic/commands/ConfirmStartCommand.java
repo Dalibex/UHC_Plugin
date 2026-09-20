@@ -46,14 +46,6 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        int size;
-        try {
-            size = Integer.parseInt(args[0]);
-        } catch (NumberFormatException e) {
-            player.sendMessage(plugin.getLang().get("game.invalid-number", player).replace("%error-prefix%", errorPrefix));
-            return true;
-        }
-
         if (!startCmd.hasPendingConfirmation() || plugin.getGameManager().isGameStarted()) {
             return true;
         }
@@ -76,7 +68,7 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
             if (!tm.allPlayersHaveTeam()) {
                 player.sendMessage(plugin.getLang().get("game.start-blocked-custom-teams", player));
                 player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
-                startCmd.setConfirmationPending(false);
+                plugin.getGameManager().cancelStartup();
                 return true;
             }
             
@@ -89,15 +81,14 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
                         .replace("%min%", String.valueOf(minRequired))
                         .replace("%n%", String.valueOf(tm.getTeamSize())));
                 player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
-                startCmd.setConfirmationPending(false);
+                plugin.getGameManager().cancelStartup();
                 return true;
             }
         }
 
-        plugin.getGameManager().setGameStarted(true);
-        startCmd.setConfirmationPending(false);
+        if (!plugin.getGameManager().beginPreparation(player.getUniqueId())) return true;
 
-        startUHCProcess(player, size);
+        startUHCProcess(plugin.getGameManager().getPendingBorderSize());
 
         return true;
     }
@@ -105,9 +96,10 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
     /**
      * Coordina el borde, el scatter (TP) y la cuenta atrás.
      */
-    private void startUHCProcess(Player admin, int size) {
-        World world = admin.getWorld();
+    private void startUHCProcess(int size) {
+        World world = plugin.getGameManager().getStartupWorld();
         LanguageManager lang = plugin.getLang();
+        long generation = plugin.getGameManager().getStartupGeneration();
 
         // Limpiar ítems de selector de equipo INMEDIATAMENTE al confirmar
         plugin.getTeamManager().removeAllSelectorItems();
@@ -115,7 +107,7 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
         world.getWorldBorder().setCenter(0, 0);
         world.getWorldBorder().setSize(size);
 
-        List<Player> jugadores = new ArrayList<>(Bukkit.getOnlinePlayers());
+        List<UUID> jugadores = new ArrayList<>(plugin.getGameManager().getEligibleRoster());
         int totalJugadores = jugadores.size();
         int numPosiciones = Math.max(4, totalJugadores);
         List<Integer> indices = new ArrayList<>();
@@ -123,14 +115,21 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
         java.util.Collections.shuffle(indices);
 
         // --- Tarea de Teletransporte Escalonado ---
-        new BukkitRunnable() {
+        BukkitRunnable scatter = new BukkitRunnable() {
             int current = 0;
 
             @Override
             public void run() {
+                if (!plugin.getGameManager().isStartupGeneration(generation)) {
+                    cancel();
+                    return;
+                }
                 if (current < totalJugadores) {
-                    Player p = jugadores.get(current);
-                    prepareAndTeleport(p, world, indices.get(current), numPosiciones, size);
+                    UUID playerId = jugadores.get(current);
+                    Location location = calculateScatterLocation(world, indices.get(current), numPosiciones, size);
+                    plugin.getGameManager().setPlannedScatterLocation(playerId, location);
+                    Player p = Bukkit.getPlayer(playerId);
+                    if (p != null) prepareAndTeleport(p, location);
 
                     for (Player online : Bukkit.getOnlinePlayers()) {
                         online.sendMessage(lang.get("game.teleporting-progress", online)
@@ -145,18 +144,20 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
                         online.sendMessage(lang.get("game.loading-world", online));
                     }
 
-                    new BukkitRunnable() {
+                    BukkitRunnable delay = new BukkitRunnable() {
                         @Override
                         public void run() {
-                            startCountdown(world, lang);
+                            if (plugin.getGameManager().enterCountdown(generation)) startCountdown(lang, generation);
                         }
-                    }.runTaskLater(plugin, 120L); // 6 segundos de delay
+                    };
+                    plugin.getGameManager().trackStartupTask(delay.runTaskLater(plugin, 120L)); // 6 segundos de delay
                 }
             }
-        }.runTaskTimer(plugin, 0L, 40L);
+        };
+        plugin.getGameManager().trackStartupTask(scatter.runTaskTimer(plugin, 0L, 40L));
     }
 
-    private void prepareAndTeleport(Player p, World world, int i, int numPosiciones, int size) {
+    private Location calculateScatterLocation(World world, int i, int numPosiciones, int size) {
         double radio = size / 2.0;
         double angulo = (2 * Math.PI * i / numPosiciones) + (Math.PI / 4);
         double xCircular = Math.cos(angulo);
@@ -189,6 +190,10 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
         }
 
         Location loc = new Location(world, spawnX, blockY + 1.5, spawnZ);
+        return loc;
+    }
+
+    private void prepareAndTeleport(Player p, Location loc) {
         p.teleport(loc);
 
         for (PotionEffect effect : p.getActivePotionEffects()) {
@@ -201,12 +206,16 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
         p.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 3600, 255, false, false, false));
     }
 
-    private void startCountdown(World world, LanguageManager lang) {
-        new BukkitRunnable() {
+    private void startCountdown(LanguageManager lang, long generation) {
+        BukkitRunnable countdown = new BukkitRunnable() {
             int segundos = 10;
 
             @Override
             public void run() {
+                if (!plugin.getGameManager().isStartupGeneration(generation)) {
+                    cancel();
+                    return;
+                }
                 if (segundos > 0) {
                     for (Player p : Bukkit.getOnlinePlayers()) {
                         String title = lang.get("game.countdown-title", p).replace("%time%", String.valueOf(segundos));
@@ -220,7 +229,11 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
                     segundos--;
                 } else {
                     for (Player p : Bukkit.getOnlinePlayers()) {
-                        p.setGameMode(GameMode.SURVIVAL);
+                        if (plugin.getGameManager().getEligibleRoster().contains(p.getUniqueId())) {
+                            p.setGameMode(GameMode.SURVIVAL);
+                        } else {
+                            p.setGameMode(GameMode.SPECTATOR);
+                        }
                         for (PotionEffect effect : p.getActivePotionEffects()) {
                             p.removePotionEffect(effect.getType());
                         }
@@ -245,10 +258,12 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
                     }
 
                     plugin.getGameManager().startGame();
+                    plugin.getGameManager().clearCompletedStartup();
                     this.cancel();
                 }
             }
-        }.runTaskTimer(plugin, 20L, 20L);
+        };
+        plugin.getGameManager().trackStartupTask(countdown.runTaskTimer(plugin, 20L, 20L));
     }
 
     @Override

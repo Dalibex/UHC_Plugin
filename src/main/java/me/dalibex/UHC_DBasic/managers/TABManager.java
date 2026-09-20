@@ -4,6 +4,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -26,33 +29,67 @@ public class TABManager {
 
     public TABManager(UHC_DBasic plugin) {
         this.plugin = plugin;
-        createTABAnimations();
-        setupTABAutomatically();
+        applyTABSetupPolicy();
+    }
+
+    private void applyTABSetupPolicy() {
+        String mode = plugin.getConfig().getString("tab.setup-mode", "once").toLowerCase(Locale.ROOT);
+        if (mode.equals("off")) return;
+        if (!mode.equals("once") && !mode.equals("force")) {
+            plugin.getLogger().warning("Unknown tab.setup-mode '" + mode + "'; using 'once'.");
+            mode = "once";
+        }
+        if (mode.equals("once") && plugin.getConfig().getBoolean("tab.setup-completed", false)) return;
+
+        if (createTABAnimations() && setupTABAutomatically()) {
+            plugin.getConfig().set("tab.setup-completed", true);
+            plugin.saveConfig();
+        }
     }
 
     public void registerPlaceholders() {
         TabAPI.getInstance().getPlaceholderManager().registerRelationalPlaceholder("%rel_uhc_identidad%", 500, (viewer, target) -> {
             if (viewer == null || target == null) return "";
-            Player v = Bukkit.getPlayer(viewer.getUniqueId());
-            Player t = Bukkit.getPlayer(target.getUniqueId());
-            if (v == null || t == null) return "";
-            if (!plugin.getGameManager().isGameStarted()) { return "§f" + t.getName(); }
-            if (v.equals(t) || plugin.getTeamManager().areInSameTeam(v, t)) { return "§a" + t.getName(); }
-            if (plugin.getSkinsManager().getRevealedPlayers().contains(t.getName().toLowerCase())) { return "§c" + t.getName(); }
-            String nombreFalso = plugin.getSkinsManager().getLastAssignedSkin().getOrDefault(t.getName().toLowerCase(), t.getName());
-            return "§d" + nombreFalso;
+            return resolveIdentityPlaceholder(viewer.getUniqueId(), target.getUniqueId(), false);
         });
 
         TabAPI.getInstance().getPlaceholderManager().registerRelationalPlaceholder("%rel_nametag_color%", 500, (viewer, target) -> {
             if (viewer == null || target == null) return "";
-            Player v = Bukkit.getPlayer(viewer.getUniqueId());
-            Player t = Bukkit.getPlayer(target.getUniqueId());
-            if (v == null || t == null) return "";
-            if (!plugin.getGameManager().isGameStarted()) {return "§f";}
-            if (v.equals(t) || plugin.getTeamManager().areInSameTeam(v, t)) {return "§a";}
-            if (plugin.getSkinsManager().getRevealedPlayers().contains(t.getName().toLowerCase())) {return "§c"; }
-            return "§c";
+            return resolveIdentityPlaceholder(viewer.getUniqueId(), target.getUniqueId(), true);
         });
+    }
+
+    private String resolveIdentityPlaceholder(UUID viewerId, UUID targetId, boolean colorOnly) {
+        if (Bukkit.isPrimaryThread()) return resolveIdentityPlaceholderOnMain(viewerId, targetId, colorOnly);
+        try {
+            return Bukkit.getScheduler().callSyncMethod(plugin,
+                    () -> resolveIdentityPlaceholderOnMain(viewerId, targetId, colorOnly)).get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return "";
+        } catch (ExecutionException e) {
+            return "";
+        }
+    }
+
+    private String resolveIdentityPlaceholderOnMain(UUID viewerId, UUID targetId, boolean colorOnly) {
+        Player viewer = Bukkit.getPlayer(viewerId);
+        Player target = Bukkit.getPlayer(targetId);
+        if (viewer == null || target == null) return "";
+
+        String color;
+        String displayName = target.getName();
+        if (!plugin.getGameManager().isMatchActive()) {
+            color = "§f";
+        } else if (viewer.equals(target) || plugin.getTeamManager().areInSameTeam(viewer, target)) {
+            color = "§a";
+        } else if (plugin.getSkinsManager().isIdentityRevealed(target.getName())) {
+            color = "§c";
+        } else {
+            color = colorOnly ? "§c" : "§d";
+            displayName = plugin.getSkinsManager().getAssignedSkin(target.getName());
+        }
+        return colorOnly ? color : color + displayName;
     }
 
     public void updateTabIdentity(Player p) {
@@ -63,24 +100,27 @@ public class TABManager {
         if (tabPlayer == null) return;
 
         GamePhase phase = plugin.getGameManager().getPhase();
-        if (phase != GamePhase.LOBBY && phase != GamePhase.ENDING) {
-            TabListFormatManager tfm = tabApi.getTabListFormatManager();
-            NameTagManager ntm = tabApi.getNameTagManager();
+        TabListFormatManager tfm = tabApi.getTabListFormatManager();
+        NameTagManager ntm = tabApi.getNameTagManager();
+        if (phase == GamePhase.RUNNING || phase == GamePhase.PAUSED) {
             if (tfm != null) {
                 tfm.setName(tabPlayer, "%rel_uhc_identidad%");
             }
             if (ntm != null) {
-                ntm.setPrefix(tabPlayer, "%%rel_nametag_color%");
+                ntm.setPrefix(tabPlayer, "%rel_nametag_color%");
             }
+        } else {
+            if (tfm != null) tfm.setName(tabPlayer, null);
+            if (ntm != null) ntm.setPrefix(tabPlayer, null);
         }
     }
 
-    private void setupTABAutomatically() {
+    private boolean setupTABAutomatically() {
         Plugin tabPlugin = Bukkit.getPluginManager().getPlugin("TAB");
-        if (tabPlugin == null) return;
+        if (tabPlugin == null) return false;
 
         File configFile = new File(tabPlugin.getDataFolder(), "config.yml");
-        if (!configFile.exists()) return;
+        if (!configFile.exists()) return false;
 
         FileConfiguration config = YamlConfiguration.loadConfiguration(configFile);
 
@@ -111,14 +151,16 @@ public class TABManager {
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tab reload");
             }, 40L);
+            return true;
         } catch (IOException e) {
             plugin.getLogger().severe(() -> "ERROR SAVING TAB CONFIG: " + e.getMessage());
+            return false;
         }
     }
 
-    private void createTABAnimations() {
+    private boolean createTABAnimations() {
         Plugin tabPlugin = Bukkit.getPluginManager().getPlugin("TAB");
-        if (tabPlugin == null) return;
+        if (tabPlugin == null) return false;
 
         File animFile = new File(tabPlugin.getDataFolder(), "animations.yml");
         FileConfiguration animConfig = YamlConfiguration.loadConfiguration(animFile);
@@ -141,8 +183,10 @@ public class TABManager {
 
         try {
             animConfig.save(animFile);
+            return true;
         } catch (IOException e) {
             plugin.getLogger().severe(() -> "ERROR SAVING animations.yml: " + e.getMessage());
+            return false;
         }
     }
 }

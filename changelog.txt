@@ -18,9 +18,29 @@ Bugfixes
 - Smooth Skin Rotation: Skins are now applied staggered (first batch 10 seconds after the chapter change, then one player every 5 seconds), avoiding the lag spike when everyone rotated at once.
 - Combat Protection: If a player is in combat when their rotation turn comes, they are postponed (up to 6 retries inside a 30 seconds window) and skipped if the fight lasts too long, instead of changing their skin mid-fight.
 - Offline Players: Players who are offline during the rotation no longer waste their skin; when they rejoin, their identity is re-synchronized instantly and again a few seconds later.
-- Revealed identities are never masked again in the same game.
+- Revealed identities stay revealed for the current episode only: at the next chapter rotation, surviving players are masked again with a new identity.
 - Reset restores real skins: /reset now applies each player's own real skin back (from the internal cache and via SkinsRestorer), so the lobby no longer keeps the fake skins from the previous game.
 - Start cancellation (auto-cancel) no longer leaves the rotation half-applied.
+
+Audit (Security, Lifecycle and Reliability)
+- Team Security: teams are now namespaced with an internal prefix, so the plugin no longer deletes or touches scoreboard teams from other plugins; legacy bare teams are migrated once (config marker).
+- GUI Security: admin menus cancel recognized clicks before inspecting items, validate the top inventory with raw slots, protect against drags, and require the admin permission.
+- Game Lifecycle: new safe phases (INITIALIZING, PREPARING, COUNTDOWN); the roster is frozen by UUID/name at prepare time (spectators excluded); the stored border size is used by /confirmstart (its argument is never trusted); scatter uses the main world with planned positions; resets and cancellation invalidate pending tasks; RUNNING starts only after the countdown; victories go through a single enterEnding() path.
+- Resource Rush: objectives are only awarded on real pickups and verified crafting (amount compared before/after), not generic clicks; delayed tasks are tracked and invalidated; offline participant progress is migrated; individual winners are supported; team formation on episode 1 fixed.
+- TAB: %rel_nametag_color% fixed, overrides are cleared outside RUNNING/PAUSED, automatic setup is governed by tab.setup-mode (off/once/force) with a persistent setup-completed marker.
+- Threading: the whole skin rotation queue runs on the main thread (only remote SkinsRestorer lookups are async), with stale responses ignored.
+- Update Checker: corrupted UUIDs are skipped, IO errors are no longer silent, HTTP connections are disconnected on exit, parsing tolerates whitespace and version comparison is covered by tests.
+- Build: Paper pinned to 26.2.build.126-stable, plugin.yml expands ${version} and hard-depends on TAB and SkinsRestorer, JaCoCo coverage added.
+- Tests/CI: the JUnit 5 suite grew from 24 to 47 tests (all green) and GitHub Actions CI runs tests, the JAR build and the coverage report on Java 25.
+
+User Feedback Fixes
+- Reset keeps custom teams: /reset no longer unregisters the h_* teams it just recreated, so the Nether Star team selector keeps listing teams right after a reset (no need to toggle the mode off/on).
+- Clean color input in /assignteam: the color is now read as the visible color ("red", "RED") or with the internal prefix ("h_red") interchangeably; the h_ prefix is internal and is no longer shown in tab-complete, which suggests plain colors instead.
+- Foreign teams untouched by /assignteam: the command only removes the target from a team if it belongs to this plugin, never from other plugins' teams.
+- Compass actionbar fixed: the ally compass now shows name + distance every second over the health bar while held in the main hand OR off-hand (previously it only flashed when the target changed and only in the main hand).
+- Global chat no longer obfuscates your own message: the identity name keeps its hidden/obfuscated look during a match, but the message you send is explicitly forced to plain grey, so it no longer "vibrates".
+- Compass no longer points to 0,0 after a skin change: team membership is tracked in an internal cache instead of reading the main scoreboard, because TAB manages the scoreboard teams (scoreboard-teams/sorting) and can move a player away from their h_* team when refreshing their nametag/prefix; the compass and team logic now read from the plugin's own authoritative membership, immune to TAB reassignments.
+- /reset keeps the teams you had selected: the selected team memberships are snapshotted before the reset and restored right after the h_* teams are recreated, so the Nether Star selector lists the same members again instead of empty teams.
 
 === ESPAÑOL ===
 
@@ -38,13 +58,33 @@ Corrección de Errores
 - Rotación de Skins sin Lag: Las skins se aplican ahora de forma escalonada (primera tanda a los 10 segundos del cambio de capítulo y luego 1 jugador cada 5 segundos), evitando el pico de lag cuando todos rotaban a la vez.
 - Proteccion en Combate: Si un jugador está en pleno combate cuando le toca rotar, se pospone (hasta 6 reintentos dentro de una ventana de 30 segundos) y se salta si la pelea dura demasiado, en lugar de cambiarle la skin en mitad del PvP.
 - Jugadores Desconectados: Los jugadores que están offline cuando toca la rotacion ya no gastan su skin; al reconectar, su identidad se resincroniza al instante y de nuevo unos segundos después.
-- Las identidades reveladas ya nunca se vuelven a camuflar en la misma partida.
+- Las identidades reveladas permanecen así durante el episodio actual: en la siguiente rotación de capítulo, los supervivientes vuelven a ser camuflados con una identidad nueva.
 - El reset restaura las skins reales: /reset vuelve a aplicar la skin propia de cada jugador (desde la caché interna y via SkinsRestorer), de modo que el lobby ya no conserva las skins falsas de la partida anterior.
 - La cancelacion del inicio (auto-cancel) ya no deja la rotacion a medias.
+
+Auditoría (Seguridad, Ciclo de partida y Fiabilidad)
+- Seguridad de equipos: los equipos ahora llevan un prefijo interno, de modo que el plugin ya no borra ni toca equipos de scoreboard de otros plugins; los equipos legacy sin prefijo se migran una sola vez (marcador de config).
+- Seguridad de GUI: los menús admin cancelan los clics reconocidos antes de inspeccionar ítems, validan el inventario superior con raw slots, protegen contra drags y exigen permiso admin.
+- Ciclo de partida: nuevas fases seguras (INITIALIZING, PREPARING, COUNTDOWN); el roster se congela por UUID/nombre al preparar (excluye espectadores); /confirmstart usa el tamaño almacenado (nunca confía en su argumento); el scatter usa el mundo principal con posiciones planificadas; los resets y la cancelación invalidan las tareas pendientes; RUNNING empieza solo tras el countdown; las victorias pasan por un único enterEnding().
+- Resource Rush: los objetivos solo se conceden por pickups reales y crafting verificado (cantidad antes/después), no por clics genéricos; las tareas diferidas se registran e invalidan; el progreso de participantes offline migra; se soportan ganadores individuales; corregida la formación de equipos en el episodio 1.
+- TAB: corregido %rel_nametag_color%, los overrides se limpian fuera de RUNNING/PAUSED y la configuración automática se gobierna con tab.setup-mode (off/once/force) más el marcador persistente setup-completed.
+- Threading: toda la cola de rotación de skins corre en el hilo principal (solo las búsquedas remotas de SkinsRestorer son async), ignorando respuestas obsoletas.
+- Update checker: los UUID corruptos se omiten, los errores IO ya no se silencian, las conexiones HTTP se desconectan al salir, el parsing tolera espacios y el comparador de versiones tiene tests.
+- Build: Paper fijado a 26.2.build.126-stable, plugin.yml expande ${version} y depende de forma obligatoria de TAB y SkinsRestorer, con cobertura JaCoCo.
+- Tests/CI: la suite JUnit 5 crece de 24 a 47 tests (todos verdes) y la CI de GitHub Actions ejecuta tests, el build del JAR y el informe de cobertura en Java 25.
+
+Correcciones por Feedback de Usuario
+- El reset conserva los equipos custom: /reset ya no desregistra los equipos h_* que acaba de recrear, así que la estrella de Nether sigue mostrando equipos justo después de un reset (sin necesidad de desactivar y reactivar el modo a mano).
+- Entrada de color limpia en /assignteam: el color se lee de forma intercambiable como color visible ("red", "RED") o con el prefijo interno ("h_red"); el prefijo h_ es interno y ya no aparece en el autocompletado, que sugiere colores limpios.
+- /assignteam no toca equipos ajenos: el comando solo retira al objetivo de un equipo si pertenece a este plugin, nunca de equipos de otros plugins.
+- Actionbar de brújula corregida: la brújula de aliado muestra ahora nombre + distancia cada segundo sobre la barra de vida mientras se sostiene en mano principal U off-hand (antes solo parpadeaba al cambiar el objetivo y solo en la mano principal).
+- El chat global ya no obfuscate tu propio mensaje: el nombre mantiene su aspecto oculto/obfuscado durante la partida, pero el mensaje que envías se fuerza a gris plano explícitamente, así que ya no "vibra".
+- La brújula ya no apunta a 0,0 tras un cambio de skin: la pertenencia a equipos se registra en una caché interna en lugar de leer el scoreboard principal, porque TAB gestiona los teams del scoreboard (scoreboard-teams/sorting) y puede mover al jugador fuera de su equipo h_* al refrescar su nametag/prefix; la brújula y la lógica de equipos ahora leen de la membresía autoritativa del plugin, inmune a las reasignaciones de TAB.
+- /reset conserva los equipos seleccionados: las membresías elegidas se capturan antes del reset y se restauran justo después de recrear los equipos h_*, de modo que la estrella de Nether vuelve a listar los mismos miembros en lugar de equipos vacíos.
 
 Version compatible with:
 
 Bukkit implementations for 1.21.11 only (Paper recommended)
 VERSION IS NOT COMPATIBLE WITH VERSIONS PRIOR TO 1.21.11
-As of Minecraft 1.20.6, Java 21 or higher is required.
+As of this build, Java 25 or higher is required.
 Source code and full details here: https://github.com/Dalibex/UHC_Plugin

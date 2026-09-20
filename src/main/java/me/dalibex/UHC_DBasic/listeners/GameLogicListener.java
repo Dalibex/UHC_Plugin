@@ -1,5 +1,7 @@
 package me.dalibex.UHC_DBasic.listeners;
 
+import java.util.Locale;
+
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -8,13 +10,13 @@ import org.bukkit.block.Skull;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -36,10 +38,12 @@ public class GameLogicListener implements Listener {
         this.plugin = plugin;
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player muerto = event.getEntity();
         GameManager gm = plugin.getGameManager();
+        if (!gm.isMatchActive() || !gm.getInitialParticipants().contains(muerto.getName())
+                || gm.getEliminatedPlayers().contains(muerto.getName())) return;
 
         muerto.setGameMode(GameMode.SPECTATOR);
         gm.eliminatePlayer(muerto.getName());
@@ -64,23 +68,27 @@ public class GameLogicListener implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onCombat(EntityDamageByEntityEvent event) {
         if (!(event.getEntity() instanceof Player victim)) return;
         
         Player attacker = getAttacker(event);
         if (attacker == null || attacker.equals(victim)) return;
+        GameManager gm = plugin.getGameManager();
+        if (!gm.isMatchActive() || !gm.getInitialParticipants().contains(attacker.getName())
+                || !gm.getInitialParticipants().contains(victim.getName())
+                || gm.getEliminatedPlayers().contains(attacker.getName())
+                || gm.getEliminatedPlayers().contains(victim.getName())) return;
 
         // 1. Mecánicas de combate 1.8 alternativo
         if (plugin.getAdminPanel().isCombate18()) {
             handleCombat18(event, attacker);
+            if (event.isCancelled()) return;
         }
 
         // 2. Marcar combate para el retardo del cambio de skin (30s)
-        if (plugin.getGameManager().isGameStarted()) {
-            plugin.getSkinsManager().markInCombat(attacker);
-            plugin.getSkinsManager().markInCombat(victim);
-        }
+        plugin.getSkinsManager().markInCombat(attacker);
+        plugin.getSkinsManager().markInCombat(victim);
 
         // 3. Revelación de identidades (Skins)
         handleIdentityRevelation(attacker, victim);
@@ -114,8 +122,8 @@ public class GameLogicListener implements Listener {
 
     private void handleIdentityRevelation(Player attacker, Player victim) {
         GameManager gm = plugin.getGameManager();
-        if (!gm.isGameStarted()) return;
-        if (plugin.getSkinsManager().getRevealedPlayers().contains(victim.getName().toLowerCase())) return;
+        if (!gm.isMatchActive()) return;
+        if (plugin.getSkinsManager().getRevealedPlayers().contains(victim.getName().toLowerCase(Locale.ROOT))) return;
         if (plugin.getTeamManager().areInSameTeam(attacker, victim)) return;
 
         plugin.getSkinsManager().revealIdentity(victim);
@@ -129,13 +137,10 @@ public class GameLogicListener implements Listener {
     @EventHandler
     public void onConsume(PlayerItemConsumeEvent event) {
         ItemStack item = event.getItem();
-        if (item.getType() == Material.GOLDEN_APPLE && item.hasItemMeta()) {
-            ItemMeta gMeta = item.getItemMeta();
-            if (gMeta != null && plugin.getLang().getComponent("crafts.golden-head.name", null).equals(gMeta.displayName())) {
-                Player p = event.getPlayer();
-                p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 12 * 20, 1));
-                p.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 300 * 20, 1));
-            }
+        if (plugin.getSpecialCraftsManager().isGoldenHead(item)) {
+            Player p = event.getPlayer();
+            p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 12 * 20, 1));
+            p.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 300 * 20, 1));
         }
     }
 }

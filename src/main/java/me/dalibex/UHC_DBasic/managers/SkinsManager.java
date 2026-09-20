@@ -6,10 +6,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Random;
+import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -74,7 +76,7 @@ public class SkinsManager {
     /** Skin falsa asignada por jugador (nombre en minúsculas → nombre de la skin). */
     private final Map<String, String> ultimaSkinAsignada = new HashMap<>();
     /** Timestamp del último golpe por jugador (nombre en minúsculas → ms). */
-    private final Map<String, Long> combatTags = new ConcurrentHashMap<>();
+    private final Map<String, Long> combatTags = new HashMap<>();
 
     /** Caché de la skin REAL de cada jugador por nombre (minúsculas). Se
      *  alimenta al resolver skins durante la rotación y es la fuente fiable
@@ -98,7 +100,7 @@ public class SkinsManager {
 
     /** Clave normalizada de un nombre de jugador. */
     static String key(String name) {
-        return name == null ? "" : name.toLowerCase();
+        return name == null ? "" : name.toLowerCase(Locale.ROOT);
     }
 
     /**
@@ -118,6 +120,11 @@ public class SkinsManager {
      * menos de 2 vivos devuelve un mapa vacío.
      */
     static Map<String, String> assignNewSkins(List<String> vivos, Map<String, String> ultimaPorNombre) {
+        return assignNewSkins(vivos, ultimaPorNombre, new Random());
+    }
+
+    static Map<String, String> assignNewSkins(List<String> vivos, Map<String, String> ultimaPorNombre,
+            Random random) {
         Map<String, String> asignacion = new HashMap<>();
         if (vivos.size() < 2) return asignacion;
 
@@ -125,7 +132,7 @@ public class SkinsManager {
         boolean asignacionValida = false;
         int intentos = 0;
         while (!asignacionValida && intentos < SHUFFLE_INTENTOS) {
-            Collections.shuffle(asignados);
+            Collections.shuffle(asignados, random);
             asignacionValida = true;
             for (int i = 0; i < vivos.size(); i++) {
                 String skinAsignada = asignados.get(i);
@@ -141,7 +148,7 @@ public class SkinsManager {
         // Esfuerzo final: aunque cumpla las reglas, al menos evitar la propia skin.
         if (!asignacionValida) {
             for (int k = 0; k < SHUFFLE_FALLBACK_INTENTOS && !asignacionValida; k++) {
-                Collections.shuffle(asignados);
+                Collections.shuffle(asignados, random);
                 asignacionValida = true;
                 for (int i = 0; i < vivos.size(); i++) {
                     if (asignados.get(i).equalsIgnoreCase(vivos.get(i))) {
@@ -189,6 +196,10 @@ public class SkinsManager {
                 }
             }
         }
+    }
+
+    public static boolean isRotationEpisode(int episode) {
+        return episode >= 2 && episode <= 10;
     }
 
     /**
@@ -249,13 +260,16 @@ public class SkinsManager {
         cancelarRotacion();
         generacion++;
 
+        // Una revelación es global durante el episodio actual. Cada rotación
+        // empieza un episodio nuevo y vuelve a enmascarar todas las identidades.
+        jugadoresRevelados.clear();
+
         List<String> vivosNombres = gm.getInitialParticipants().stream()
                 .filter(name -> !gm.getEliminatedPlayers().contains(name))
                 .collect(Collectors.toList());
 
         if (vivosNombres.size() < 2) return;
 
-        jugadoresRevelados.clear();
         Map<String, String> nuevaAsignacion = assignNewSkins(vivosNombres, ultimaSkinAsignada);
         if (nuevaAsignacion.isEmpty()) return;
         ultimaSkinAsignada.clear();
@@ -289,7 +303,7 @@ public class SkinsManager {
                 if (nombreSkinElegida == null) return;
                 applySkinByNameAsync(Bukkit.getPlayer(nombre), nombreSkinElegida, true);
             }
-        }.runTaskTimerAsynchronously(plugin, ROTATION_START_TICKS, ROTATION_INTERVAL_TICKS);
+        }.runTaskTimer(plugin, ROTATION_START_TICKS, ROTATION_INTERVAL_TICKS);
     }
 
     /**
@@ -297,34 +311,37 @@ public class SkinsManager {
      * red). Actualiza el nombre visual y, si {@code notify}, avisa al jugador.
      */
     private void applySkinByNameAsync(Player p, String nombreSkin, boolean notify) {
-        boolean esPropia = nombreSkin.equalsIgnoreCase(p.getName());
+        UUID playerId = p.getUniqueId();
+        String playerName = p.getName();
+        boolean esPropia = nombreSkin.equalsIgnoreCase(playerName);
         long generacionSolicitada = generacion;
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
-                PlayerStorage playerStorage = skinsApi.getPlayerStorage();
                 SkinStorage skinStorage = skinsApi.getSkinStorage();
                 Optional<InputDataResult> result = skinStorage.findOrCreateSkinData(nombreSkin);
                 if (!result.isPresent()) return;
-                // Guardar la skin real resuelta de ese jugador para restaurarla
-                // de forma inmediata y sin red en el reset.
-                skinRealPorNombre.put(key(nombreSkin), result.get().getProperty());
-                // Si hubo un reset o una rotación posterior, esta aplicación está obsoleta.
-                if (generacionSolicitada != generacion) return;
-                playerStorage.setSkinIdOfPlayer(p.getUniqueId(), result.get().getIdentifier());
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     if (generacionSolicitada != generacion) return;
+                    Player current = Bukkit.getPlayer(playerId);
+                    if (current == null || !current.isOnline() || !current.getName().equals(playerName)) return;
                     // Nunca recamuflejar a un jugador ya revelado con una skin ajena.
-                    if (!esPropia && jugadoresRevelados.contains(key(p.getName()))) return;
+                    if (!esPropia && jugadoresRevelados.contains(key(playerName))) return;
+                    // Tanto la caché local como el ID persistente se mutan solo
+                    // en main y únicamente para la generación que los solicitó.
+                    skinRealPorNombre.put(key(nombreSkin), result.get().getProperty());
+                    PlayerStorage playerStorage = skinsApi.getPlayerStorage();
+                    playerStorage.setSkinIdOfPlayer(playerId, result.get().getIdentifier());
                     try {
-                        skinsApi.getSkinApplier(Player.class).applySkin(p);
+                        skinsApi.getSkinApplier(Player.class).applySkin(current);
                     } catch (DataRequestException e) {
                         plugin.getLogger().warning(() -> "Error aplicando skin: " + e.getMessage());
                     }
-                    updateVisualIdentity(p);
-                    if (notify) notifyIdentityChanged(p);
+                    updateVisualIdentity(current);
+                    if (notify) notifyIdentityChanged(current);
                 });
             } catch (DataRequestException | MineSkinException e) {
-                plugin.getLogger().warning(() -> "Error al aplicar skin a " + p.getName() + ": " + e.getMessage());
+                Bukkit.getScheduler().runTask(plugin, () -> plugin.getLogger()
+                        .warning(() -> "Error al aplicar skin a " + playerName + ": " + e.getMessage()));
             }
         });
     }
@@ -356,6 +373,15 @@ public class SkinsManager {
     }
 
     /**
+     * Restaura la identidad propia sin marcar al jugador como revelado. Se usa
+     * fuera de una partida (lobby/reset), donde no existe revelación de episodio.
+     */
+    public void restoreOwnIdentity(Player p) {
+        if (p == null) return;
+        restaurarSkinPropia(p);
+    }
+
+    /**
      * Restaura la skin REAL del jugador de forma fiable y sin red. Prioriza la
      * caché propia (alimentada durante la rotación, donde la skin de cada
      * jugador se resuelve por nombre) y aplica directamente la SkinProperty;
@@ -364,10 +390,6 @@ public class SkinsManager {
      */
     private void restaurarSkinPropia(Player p) {
         SkinProperty propia = skinRealPorNombre.get(key(p.getName()));
-        if (propia == null) {
-            propia = skinsApi.getSkinStorage().findSkinData(p.getName())
-                    .map(InputDataResult::getProperty).orElse(null);
-        }
         if (propia == null) {
             applySkinByNameAsync(p, p.getName(), false);
             return;
@@ -398,42 +420,49 @@ public class SkinsManager {
      * en el mismo tick por su nombre. Si no, se resuelve en segundo plano.
      */
     public void applyOwnHead(Skull skull, Player victim) {
-        SkinProperty cached = skinsApi.getSkinStorage()
-                .findSkinData(victim.getName())
-                .map(InputDataResult::getProperty)
-                .orElse(null);
+        String victimName = victim.getName();
+        UUID victimId = victim.getUniqueId();
+        UUID worldId = skull.getWorld().getUID();
+        int x = skull.getX();
+        int y = skull.getY();
+        int z = skull.getZ();
+        long generacionSolicitada = generacion;
+        SkinProperty cached = skinRealPorNombre.get(key(victimName));
         if (cached != null) {
-            setHeadProfile(skull, victim, cached);
+            setHeadProfile(worldId, x, y, z, victimId, victimName, cached);
             return;
         }
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
-                Optional<InputDataResult> result = skinsApi.getSkinStorage().findOrCreateSkinData(victim.getName());
+                Optional<InputDataResult> result = skinsApi.getSkinStorage().findOrCreateSkinData(victimName);
                 if (result.isPresent()) {
-                    skinRealPorNombre.put(key(victim.getName()), result.get().getProperty());
-                    setHeadProfile(skull, victim, result.get().getProperty());
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        if (generacionSolicitada != generacion) return;
+                        skinRealPorNombre.put(key(victimName), result.get().getProperty());
+                        setHeadProfile(worldId, x, y, z, victimId, victimName, result.get().getProperty());
+                    });
                 }
             } catch (DataRequestException | MineSkinException e) {
-                plugin.getLogger().warning(() -> "Cabeza de " + victim.getName() + " no resuelta: " + e.getMessage());
+                Bukkit.getScheduler().runTask(plugin, () -> plugin.getLogger()
+                        .warning(() -> "Cabeza de " + victimName + " no resuelta: " + e.getMessage()));
             }
         });
     }
 
-    private void setHeadProfile(Skull skull, Player victim, SkinProperty property) {
+    private void setHeadProfile(UUID worldId, int x, int y, int z, UUID victimId,
+            String victimName, SkinProperty property) {
         try {
-            PlayerProfile perfil = Bukkit.createProfile(victim.getUniqueId(), victim.getName());
+            if (Bukkit.getWorld(worldId) == null) return;
+            Location loc = new Location(Bukkit.getWorld(worldId), x, y, z);
+            if (!(loc.getBlock().getState() instanceof Skull skull)) return;
+            if (loc.getBlock().getType() != Material.PLAYER_HEAD) return;
+            PlayerProfile perfil = Bukkit.createProfile(victimId, victimName);
             perfil.setProperty(new ProfileProperty("textures", property.getValue(), property.getSignature()));
-            Location loc = skull.getLocation();
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                if (loc.getWorld() == null) return;
-                if (!(loc.getBlock().getState() instanceof Skull s)) return;
-                if (loc.getBlock().getType() != Material.PLAYER_HEAD) return;
-                s.setProfile(ResolvableProfile.resolvableProfile(perfil));
-                s.update();
-            });
+            skull.setProfile(ResolvableProfile.resolvableProfile(perfil));
+            skull.update();
         } catch (IllegalArgumentException e) {
-            plugin.getLogger().warning(() -> "Perfil de cabeza inválido para " + victim.getName());
+            plugin.getLogger().warning(() -> "Perfil de cabeza inválido para " + victimName);
         }
     }
 
@@ -441,6 +470,10 @@ public class SkinsManager {
         if (p == null) return;
 
         plugin.getTABManager().updateTabIdentity(p);
+        // TAB (scoreboard-teams) puede reasignar la entry del jugador a un equipo
+        // propio al refrescar su nametag/prefix; se re-incorpora al equipo h_*
+        // para que el scoreboard refleje de nuevo la pertenencia real.
+        plugin.getTeamManager().resyncPlayerEntry(p.getName());
 
         GamePhase phase = gm.getPhase();
         if (phase != GamePhase.LOBBY && phase != GamePhase.ENDING) {
@@ -459,14 +492,22 @@ public class SkinsManager {
      * Jugadores cuya identidad real ya fue revelada (nombres en minúsculas).
      */
     public Set<String> getRevealedPlayers() {
-        return jugadoresRevelados;
+        return Set.copyOf(jugadoresRevelados);
     }
 
     /**
      * Mapa de skin falsa asignada por jugador (nombre minúsculas → nombre de skin).
      */
     public Map<String, String> getLastAssignedSkin() {
-        return ultimaSkinAsignada;
+        return Map.copyOf(ultimaSkinAsignada);
+    }
+
+    public boolean isIdentityRevealed(String playerName) {
+        return jugadoresRevelados.contains(key(playerName));
+    }
+
+    public String getAssignedSkin(String playerName) {
+        return ultimaSkinAsignada.getOrDefault(key(playerName), playerName);
     }
 
     private void cancelarRotacion() {

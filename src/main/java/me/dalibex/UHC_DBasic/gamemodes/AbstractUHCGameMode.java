@@ -12,12 +12,14 @@ import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -50,7 +52,7 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
     /**
      * Claves de las líneas del sidebar del objetivo "uhc" por jugador,
      * para poder limpiar solo las líneas obsoletas sin re-registrar el
-     * objetivo en cada tick (ver getOrCreateSidebar/clearStaleSidebarKeys).
+     * objetivo en cada tick (ver getOrCreateSidebar/reconcileSidebarKeys).
      */
     private final Map<UUID, Set<String>> sidebarKeys = new HashMap<>();
 
@@ -101,6 +103,10 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
         TeamManager tm = plugin.getTeamManager();
         if (tm.getTeamSize() == 1) {
             tm.shuffleTeams();
+        } else {
+            // Chapter 1 has no chapter-change event, so configured episode 1
+            // team formation must be triggered from the initial-second path.
+            maybeFormTeams(1, null);
         }
     }
 
@@ -143,7 +149,7 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
                 meta.displayName(lang.getComponent(nombreKey, p));
                 item.setItemMeta(meta);
             }
-            p.getInventory().addItem(item);
+            giveOrDrop(p, item, "general.inv-full");
         }
     }
 
@@ -160,10 +166,20 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
                 meta.lore(lang.getComponentList("tracking-compass.lore", p));
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.LUCK_OF_THE_SEA, 1, true);
                 meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
+                meta.getPersistentDataContainer().set(new NamespacedKey(plugin, "tracking_compass"), PersistentDataType.BYTE, (byte) 1);
                 compass.setItemMeta(meta);
             }
-            p.getInventory().addItem(compass);
+            giveOrDrop(p, compass, "tracking-compass.inv-full");
         }
+    }
+
+    private void giveOrDrop(Player player, ItemStack item, String fullInventoryMessageKey) {
+        Map<Integer, ItemStack> leftovers = player.getInventory().addItem(item);
+        if (leftovers.isEmpty()) return;
+        for (ItemStack leftover : leftovers.values()) {
+            player.getWorld().dropItemNaturally(player.getLocation(), leftover);
+        }
+        player.sendMessage(plugin.getLang().get(fullInventoryMessageKey, player));
     }
 
     /**
@@ -221,15 +237,22 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
     }
 
     /**
-     * Limpia las claves de línea del tick anterior que ya no se renderizan.
+     * Limpia solo las claves del tick anterior que ya no se renderizan y
+     * conserva las líneas sin cambios.
      */
-    protected void clearStaleSidebarKeys(Objective obj, Player player) {
-        Set<String> stale = sidebarKeys.remove(player.getUniqueId());
-        if (stale == null) return;
+    protected void reconcileSidebarKeys(Objective obj, Player player, List<String> currentKeys) {
+        Set<String> stale = sidebarKeys.get(player.getUniqueId());
+        if (stale == null) {
+            storeSidebarKeys(player, currentKeys);
+            return;
+        }
+        stale = new HashSet<>(stale);
+        stale.removeAll(currentKeys);
         for (String key : stale) {
             Score score = obj.getScore(key);
             if (score.isScoreSet()) score.resetScore();
         }
+        storeSidebarKeys(player, currentKeys);
     }
 
     /**
@@ -240,10 +263,15 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
         sidebarKeys.put(player.getUniqueId(), new HashSet<>(keys));
     }
 
+    /** Cambia la sesión a ENDING y cancela sus tareas principales. */
+    protected void finishGameSession() {
+        gm.enterEnding();
+    }
+
     /**
      * Devuelve la caché de claves de sidebar y la vacía de esta instancia.
      * Permite transferir las líneas pendientes de limpiar a una instancia
-     * nueva de gamemode (ver GameManager.cambiarModo).
+     * nueva de gamemode (ver GameManager.changeMode).
      */
     public Map<UUID, Set<String>> takeSidebarKeys() {
         Map<UUID, Set<String>> transfer = new HashMap<>(sidebarKeys);
@@ -253,7 +281,7 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
 
     /**
      * Adopta la caché de claves de sidebar de una instancia anterior de
-     * gamemode para que clearStaleSidebarKeys pueda limpiar las líneas
+     * gamemode para que reconcileSidebarKeys pueda limpiar las líneas
      * obsoletas tras un cambio de modo.
      */
     public void adoptSidebarKeys(Map<UUID, Set<String>> keys) {
@@ -265,6 +293,7 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
         this.shulkerOneDelivered = false;
         this.shulkerTwoDelivered = false;
         this.teamsFormed = false;
+        plugin.getItemsListener().clearCompassTargetCache();
 
         // Limpiar las líneas obsoletas de los scoreboards de los jugadores online
         for (Player p : Bukkit.getOnlinePlayers()) {

@@ -5,7 +5,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.bukkit.Bukkit;
 
@@ -18,6 +21,9 @@ import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializ
  * releases publicadas, hace fallback a la lista de tags y usa la más alta.
  */
 public class UpdateChecker {
+    private static final Pattern VERSION_NUMBER = Pattern.compile("\\d+");
+    private static final Pattern RELEASE_TAG = Pattern.compile("\\\"tag_name\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
+    private static final Pattern TAG_NAME = Pattern.compile("\\\"name\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
 
     private final UHC_DBasic plugin;
     private final String currentVersion;
@@ -51,6 +57,10 @@ public class UpdateChecker {
      * Comprueba la versión contra el repositorio de GitHub.
      */
     public void checkForUpdates() {
+        latestVersionFound = null;
+        currentVersionChecked = null;
+        checkDone = false;
+
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
                 String latest = fetchLatestFromReleases();
@@ -81,51 +91,57 @@ public class UpdateChecker {
     private String fetchLatestFromReleases() throws IOException {
         String body = httpGet(RELEASES_URL);
         if (body == null) return null;
-        // Parseo simple de JSON para encontrar el tag_name
-        String marker = "\"tag_name\":\"";
-        int start = body.indexOf(marker);
-        if (start == -1) return null;
-        String after = body.substring(start + marker.length());
-        return after.substring(0, after.indexOf('"'));
+        return parseReleaseTag(body);
     }
 
     private String fetchHighestFromTags() throws IOException {
         String body = httpGet(TAGS_URL);
         if (body == null) return null;
+        return parseHighestTag(body);
+    }
+
+    static String parseReleaseTag(String body) {
+        if (body == null) return null;
+        Matcher matcher = RELEASE_TAG.matcher(body);
+        return matcher.find() ? matcher.group(1) : null;
+    }
+
+    static String parseHighestTag(String body) {
+        if (body == null) return null;
         String highest = null;
-        // Parseo simple: cada \"name\":\"<tag>\"
-        String marker = "\"name\":\"";
-        int idx = 0;
-        while ((idx = body.indexOf(marker, idx)) != -1) {
-            String after = body.substring(idx + marker.length());
-            String tag = after.substring(0, after.indexOf('"'));
+        Matcher matcher = TAG_NAME.matcher(body);
+        while (matcher.find()) {
+            String tag = matcher.group(1);
             if (highest == null || compareVersions(tag, highest) > 0) {
                 highest = tag;
             }
-            idx = idx + marker.length();
         }
         return highest;
     }
 
     private String httpGet(String url) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) URI.create(url).toURL().openConnection();
-        connection.setRequestMethod("GET");
-        connection.setRequestProperty("Accept", "application/vnd.github.v3+json");
-        connection.setRequestProperty("User-Agent", "UHC-Plugin-UpdateChecker");
-        connection.setConnectTimeout(3000);
-        connection.setReadTimeout(3000);
+        try {
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("Accept", "application/vnd.github.v3+json");
+            connection.setRequestProperty("User-Agent", "UHC-Plugin-UpdateChecker");
+            connection.setConnectTimeout(3000);
+            connection.setReadTimeout(3000);
 
-        if (connection.getResponseCode() != 200) return null;
+            if (connection.getResponseCode() != 200) return null;
 
-        StringBuilder response;
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-            response = new StringBuilder();
-            String line;
-            while ((line = in.readLine()) != null) {
-                response.append(line);
+            StringBuilder response;
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                response = new StringBuilder();
+                String line;
+                while ((line = in.readLine()) != null) {
+                    response.append(line);
+                }
             }
+            return response.toString();
+        } finally {
+            connection.disconnect();
         }
-        return response.toString();
     }
 
     /**
@@ -149,28 +165,28 @@ public class UpdateChecker {
         if (v.startsWith("v") || v.startsWith("V")) v = v.substring(1);
         int dash = v.indexOf('-');
         if (dash >= 0) v = v.substring(0, dash);
-        String[] parts = v.split("[^0-9]+");
-        int[] result = new int[parts.length];
-        for (int i = 0; i < parts.length; i++) {
-            if (!parts[i].isEmpty()) {
-                try {
-                    result[i] = Integer.parseInt(parts[i]);
-                } catch (NumberFormatException e) {
-                    result[i] = 0;
-                }
+        List<Integer> parts = new ArrayList<>();
+        Matcher matcher = VERSION_NUMBER.matcher(v);
+        while (matcher.find()) {
+            try {
+                parts.add(Integer.parseInt(matcher.group()));
+            } catch (NumberFormatException e) {
+                parts.add(0);
             }
         }
-        return result;
+        return parts.stream().mapToInt(Integer::intValue).toArray();
     }
 
     private void notifyUpdatedVersion(String latest) {
-        Bukkit.getConsoleSender().sendMessage(legacySection().deserialize(" "));
-        Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§6--------------------------------------------------"));
-        Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§e [UHC UPDATE] A new version is available!"));
-        Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§f Your version: §c" + currentVersion));
-        Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§f Latest version: §a" + latest));
-        Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§f Download it at: §bhttps://github.com/Dalibex/UHC_Plugin/releases"));
-        Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§6--------------------------------------------------"));
-        Bukkit.getConsoleSender().sendMessage(legacySection().deserialize(" "));
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            Bukkit.getConsoleSender().sendMessage(legacySection().deserialize(" "));
+            Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§6--------------------------------------------------"));
+            Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§e [UHC UPDATE] A new version is available!"));
+            Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§f Your version: §c" + currentVersion));
+            Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§f Latest version: §a" + latest));
+            Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§f Download it at: §bhttps://github.com/Dalibex/UHC_Plugin/releases"));
+            Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§6--------------------------------------------------"));
+            Bukkit.getConsoleSender().sendMessage(legacySection().deserialize(" "));
+        });
     }
 }

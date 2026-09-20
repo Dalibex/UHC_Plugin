@@ -4,6 +4,7 @@ import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.managers.AdminPanelManager;
 import me.dalibex.UHC_DBasic.managers.AdminSlots;
 import me.dalibex.UHC_DBasic.managers.GameManager;
+import me.dalibex.UHC_DBasic.managers.GamePhase;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import me.dalibex.UHC_DBasic.managers.TeamManager;
 import org.bukkit.Bukkit;
@@ -16,6 +17,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
@@ -42,59 +44,83 @@ public class AdminPanelListener implements Listener {
         String title = legacySection().serialize(event.getView().title());
         LanguageManager lang = plugin.getLang();
         AdminPanelManager admin = plugin.getAdminPanel();
-        ItemStack item = event.getCurrentItem();
+        boolean teamSelector = title.equals(lang.get("menus.team-selector.title", p));
+        boolean adminMenu = isAdminMenu(title, p, lang);
 
+        if (teamSelector || adminMenu) event.setCancelled(true);
+        if (!teamSelector && !adminMenu) {
+            handleOffhandInventoryRestrictions(event, p, title, lang);
+            return;
+        }
+        if (event.getRawSlot() < 0 || event.getRawSlot() >= event.getView().getTopInventory().getSize()) return;
+
+        ItemStack item = event.getCurrentItem();
         if (item == null || item.getType() == Material.AIR) return;
 
-        // 1. Delegación según el título del menú
-        if (title.equals(lang.get("menus.main-admin.title", p))) {
-            event.setCancelled(true);
-            handleMainAdminClick(p, event.getSlot(), event.isLeftClick(), event.isRightClick(), admin, lang);
-        } else if (title.equals(lang.get("menus.team-selector.title", p))) {
-            event.setCancelled(true);
-            handleTeamSelectorClick(p, event.getSlot(), event.isRightClick());
-        } else if (title.equals(lang.get("menus.generalrules.title", p))) {
-            event.setCancelled(true);
-            handleGeneralRulesClick(p, event.getSlot(), admin);
-        } else if (title.equals(lang.get("menus.shulkers.title", p))) {
-            event.setCancelled(true);
-            handleShulkersClick(p, event.getSlot(), admin);
-        } else if (title.equals(lang.get("menus.teamsepisode.title", p))) {
-            event.setCancelled(true);
-            handleTeamsEpisodeClick(p, event.getSlot(), admin);
-        } else if (title.equals(lang.get("menus.gamerules.title", p))) {
-            event.setCancelled(true);
-            handleGameRulesClick(p, item.getType(), admin);
-        } else if (title.equals(lang.get("menus.gamemode.title", p))) {
-            event.setCancelled(true);
-            handleGamemodeClick(p, event.getSlot(), admin, lang);
-        } else if (title.equals(lang.get("menus.barrier.title", p))) {
-            event.setCancelled(true);
-            handleBarrierClick(p, event.getSlot(), item.getType(), admin, lang);
-        } else if (title.equals(lang.get("menus.time.title", p))) {
-            event.setCancelled(true);
-            handleTimeClick(p, event.getSlot(), item, admin, lang);
+        if (teamSelector) {
+            if (plugin.getGameManager().getPhase() == me.dalibex.UHC_DBasic.managers.GamePhase.LOBBY
+                    && plugin.getTeamManager().isCustomTeamsEnabled()) {
+                handleTeamSelectorClick(p, event.getRawSlot(), event.isRightClick());
+            }
+            return;
         }
-        
-        if (event.isCancelled()) {
-            // Sonido base silencioso para evitar el doble clic molesto del cliente
+        if (!plugin.isAdmin(p)) {
+            p.sendMessage(lang.get("general.no-permission", p));
+            return;
         }
 
-        // 2. Bloqueo de mano secundaria si está habilitado
-        handleOffhandInventoryRestrictions(event, p, title, lang);
+        if (title.equals(lang.get("menus.main-admin.title", p))) {
+            handleMainAdminClick(p, event.getSlot(), event.isLeftClick(), event.isRightClick(), admin, lang);
+        } else if (title.equals(lang.get("menus.generalrules.title", p))) {
+            handleGeneralRulesClick(p, event.getSlot(), admin);
+        } else if (title.equals(lang.get("menus.shulkers.title", p))) {
+            handleShulkersClick(p, event.getSlot(), admin);
+        } else if (title.equals(lang.get("menus.teamsepisode.title", p))) {
+            handleTeamsEpisodeClick(p, event.getSlot(), admin);
+        } else if (title.equals(lang.get("menus.gamerules.title", p))) {
+            handleGameRulesClick(p, item.getType(), admin);
+        } else if (title.equals(lang.get("menus.gamemode.title", p))) {
+            handleGamemodeClick(p, event.getSlot(), admin, lang);
+        } else if (title.equals(lang.get("menus.barrier.title", p))) {
+            handleBarrierClick(p, event.getSlot(), item.getType(), admin, lang);
+        } else if (title.equals(lang.get("menus.time.title", p))) {
+            handleTimeClick(p, event.getSlot(), item, admin, lang);
+        }
+    }
+
+    @EventHandler
+    public void onInventoryDrag(InventoryDragEvent event) {
+        if (!(event.getWhoClicked() instanceof Player p)) return;
+        String title = legacySection().serialize(event.getView().title());
+        LanguageManager lang = plugin.getLang();
+        if (!isAdminMenu(title, p, lang) && !title.equals(lang.get("menus.team-selector.title", p))) return;
+        int topSize = event.getView().getTopInventory().getSize();
+        if (event.getRawSlots().stream().anyMatch(slot -> slot < topSize)) event.setCancelled(true);
+    }
+
+    private boolean isAdminMenu(String title, Player p, LanguageManager lang) {
+        return title.equals(lang.get("menus.main-admin.title", p))
+                || title.equals(lang.get("menus.generalrules.title", p))
+                || title.equals(lang.get("menus.shulkers.title", p))
+                || title.equals(lang.get("menus.teamsepisode.title", p))
+                || title.equals(lang.get("menus.gamerules.title", p))
+                || title.equals(lang.get("menus.gamemode.title", p))
+                || title.equals(lang.get("menus.barrier.title", p))
+                || title.equals(lang.get("menus.time.title", p));
     }
 
     // --- MANEJO DE MENÚS (EXTRACTOS) ---
 
     private void handleMainAdminClick(Player p, int slot, boolean left, boolean right, AdminPanelManager admin, LanguageManager lang) {
         if (slot == AdminSlots.MAIN_COMBAT) {
+            if (plugin.getGameManager().getPhase() != GamePhase.LOBBY) return;
             if (left) admin.toggleCombate18(); else if (right) admin.toggleOffhandLock();
             p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1f, 1.2f);
             admin.openMainAdminPanel(p);
         } else if (slot == AdminSlots.MAIN_GENERAL_RULES) { p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, 1f, 1f); admin.openGeneralRulesPanel(p); }
         else if (slot == AdminSlots.MAIN_GAME_RULES) { p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_GOLD, 1f, 1f); admin.openGameRulesPanel(p); }
         else if (slot == AdminSlots.MAIN_GAMEMODE) {
-            if (plugin.getGameManager().getTotalSeconds() > 0) {
+            if (plugin.getGameManager().getPhase() != GamePhase.LOBBY) {
                 p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
                 return;
             }
@@ -109,7 +135,7 @@ public class AdminPanelListener implements Listener {
 
     private void handleCustomTeamsToggle(Player p, AdminPanelManager admin, LanguageManager lang) {
         TeamManager tm = plugin.getTeamManager();
-        if (plugin.getGameManager().getTotalSeconds() > 0) return;
+        if (plugin.getGameManager().getPhase() != GamePhase.LOBBY) return;
 
         boolean newState = !tm.isCustomTeamsEnabled();
         if (newState) {
@@ -130,7 +156,7 @@ public class AdminPanelListener implements Listener {
 
     private void handleTeamSizeChange(Player p, int slot, boolean left, boolean right, AdminPanelManager admin, LanguageManager lang) {
         TeamManager tm = plugin.getTeamManager();
-        if (plugin.getGameManager().getTotalSeconds() > 0) {
+        if (plugin.getGameManager().getPhase() != GamePhase.LOBBY) {
             p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
             return;
         }
@@ -195,6 +221,7 @@ public class AdminPanelListener implements Listener {
             admin.openGeneralRulesPanel(p);
             return;
         }
+        if (plugin.getGameManager().getPhase() != GamePhase.LOBBY) return;
         if (slot == AdminSlots.SHULKERS_TOGGLE_1) {
             admin.setShulkerOneEnabled(!admin.isShulkerOneEnabled());
             p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1f, 1f);
@@ -211,7 +238,7 @@ public class AdminPanelListener implements Listener {
             admin.openGeneralRulesPanel(p);
             return;
         }
-        if (plugin.getGameManager().getTotalSeconds() > 0) {
+        if (plugin.getGameManager().getPhase() != GamePhase.LOBBY) {
             p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
             return;
         }
@@ -225,6 +252,7 @@ public class AdminPanelListener implements Listener {
 
     private void handleGameRulesClick(Player p, Material mat, AdminPanelManager admin) {
         if (mat == Material.ARROW) { admin.openMainAdminPanel(p); p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, 1f, 1f); return; }
+        if (plugin.getGameManager().getPhase() != GamePhase.LOBBY) return;
         org.bukkit.GameRule<Boolean> rule = null;
         if (mat == Material.GOLDEN_APPLE) rule = NATURAL_HEALTH_REGENERATION;
         else if (mat == Material.PUFFERFISH) rule = ADVANCE_TIME;
@@ -247,6 +275,7 @@ public class AdminPanelListener implements Listener {
     private void handleGamemodeClick(Player p, int slot, AdminPanelManager admin, LanguageManager lang) {
         if (slot == AdminSlots.GAMEMODE_BACK) { admin.openMainAdminPanel(p); p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, 1f, 1f); return; }
         GameManager gm = plugin.getGameManager();
+        if (gm.getPhase() != GamePhase.LOBBY) return;
         if (slot == 1) { // Information Slot
             p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_CELEBRATE, 1f, 1f);
             return;
@@ -266,7 +295,7 @@ public class AdminPanelListener implements Listener {
         if (mat == Material.ARROW) { admin.openMainAdminPanel(p); p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, 1f, 1f); return; }
         
         GameManager gm = plugin.getGameManager();
-        if (gm.getTotalSeconds() <= 0) {
+        if (!gm.isMatchActive()) {
             p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
             return;
         }
@@ -300,12 +329,13 @@ public class AdminPanelListener implements Listener {
         GameManager gm = plugin.getGameManager();
         if (item.getType() == Material.ARROW) { admin.openMainAdminPanel(p); p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, 1f, 1f); return; }
         if (item.getType().toString().contains("DYE")) { 
+            if (!gm.isMatchActive()) return;
             gm.setPaused(!gm.isPaused()); 
             p.playSound(p.getLocation(), gm.isPaused() ? Sound.BLOCK_NOTE_BLOCK_BASS : Sound.BLOCK_NOTE_BLOCK_PLING, 1f, 1f);
         }
         else {
             // Los botones de cambio se muestran como LOCKED mientras la partida está en curso
-            if (gm.getTotalSeconds() > 0) {
+            if (gm.getPhase() != GamePhase.LOBBY) {
                 p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
                 admin.openTimePanel(p);
                 return;

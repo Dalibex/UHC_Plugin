@@ -2,6 +2,7 @@ package me.dalibex.UHC_DBasic.listeners;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -11,6 +12,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.gamemodes.UHCGameMode;
 import me.dalibex.UHC_DBasic.managers.GameManager;
+import me.dalibex.UHC_DBasic.managers.GamePhase;
 
 import me.dalibex.UHC_DBasic.utils.TimeUtil;
 import me.dalibex.UHC_DBasic.utils.UpdateChecker;
@@ -60,6 +62,15 @@ public class PlayerConnectionListener implements Listener {
      * Maneja el ingreso al juego cuando hay una partida activa.
      */
     private void handleInGameJoin(Player p, GameManager gm) {
+        GamePhase phase = gm.getPhase();
+        if (phase == GamePhase.PREPARING || phase == GamePhase.COUNTDOWN) {
+            p.setGameMode(GameMode.SPECTATOR);
+            if (gm.isEligibleRosterMember(p.getUniqueId())) {
+                Location planned = gm.getPlannedScatterLocation(p.getUniqueId());
+                if (planned != null) p.teleport(planned);
+            }
+            return;
+        }
         boolean eraParticipante = gm.getInitialParticipants().contains(p.getName());
         boolean estaEliminado = gm.getEliminatedPlayers().contains(p.getName());
 
@@ -122,7 +133,7 @@ public class PlayerConnectionListener implements Listener {
     private void updateAllScoreboards(GameManager gm, UHCGameMode modo) {
         int crono = gm.getTotalSeconds();
         String timeStr = TimeUtil.formatClock(crono);
-        boolean active = crono > 0;
+        boolean active = gm.isMatchActive();
 
         for (Player online : Bukkit.getOnlinePlayers()) {
             modo.updateScoreboard(online, "...", timeStr, active);

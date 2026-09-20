@@ -7,13 +7,16 @@ import java.util.UUID;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scoreboard.Team;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
@@ -27,15 +30,19 @@ import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializ
 public class ItemsListener implements Listener {
 
     private final UHC_DBasic plugin;
+    private final NamespacedKey trackingCompassKey;
 
     /**
      * Clave del último objetivo de brújula por jugador (world:x:y:z) para
      * no reenviar paquetes duplicados cada segundo en updateTrackingCompasses.
      */
-    private final Map<UUID, String> lastCompassTarget = new HashMap<>();
+    private final Map<UUID, CompassTargetKey> lastCompassTarget = new HashMap<>();
+
+    private record CompassTargetKey(UUID worldId, int x, int y, int z) { }
 
     public ItemsListener(UHC_DBasic plugin) {
         this.plugin = plugin;
+        this.trackingCompassKey = new NamespacedKey(plugin, "tracking_compass");
     }
 
     @EventHandler
@@ -46,15 +53,9 @@ public class ItemsListener implements Listener {
         ItemStack item = p.getInventory().getItemInMainHand();
         if (item.getType() == Material.AIR) return;
 
-        LanguageManager lang = plugin.getLang();
-
-        if (item.getType() == Material.NETHER_STAR) {
-            String selectorName = lang.get("items.team-selector.name", p);
-            ItemMeta meta = item.getItemMeta();
-            if (meta != null && selectorName.equals(legacySection().serialize(meta.displayName()))) {
-                event.setCancelled(true);
-                plugin.getTeamManager().openTeamSelectorGUI(p);
-            }
+        if (plugin.getTeamManager().isTeamSelector(item)) {
+            event.setCancelled(true);
+            plugin.getTeamManager().openTeamSelectorGUI(p);
         }
     }
 
@@ -67,51 +68,57 @@ public class ItemsListener implements Listener {
         
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (plugin.getGameManager().getEliminatedPlayers().contains(p.getName())) continue;
+            if (!hasTrackingCompass(p)) {
+                lastCompassTarget.remove(p.getUniqueId());
+                continue;
+            }
 
-            Team team = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
-            if (team == null || team.getEntries().size() <= 1) {
-                // Si no tiene equipo, apuntar al centro
-                updateCompassTarget(p, "world:0:100:0", new Location(p.getWorld(), 0, 100, 0));
+            Location playerLocation = p.getLocation();
+
+            Team team = plugin.getTeamManager().getPlayerTeam(p.getName());
+            if (team == null || plugin.getTeamManager().getMemberCount(team) <= 1) {
+                updateCompassTarget(p, p.getWorld().getSpawnLocation());
                 continue;
             }
 
             Player cercano = null;
+            Location ubicacionCercana = null;
             double distMin = Double.MAX_VALUE;
 
-            for (String entry : team.getEntries()) {
-                if (entry.equals(p.getName())) continue;
+            for (String entry : plugin.getTeamManager().getMemberNames(team)) {
+                if (entry.equalsIgnoreCase(p.getName())) continue;
                 Player comp = Bukkit.getPlayer(entry);
 
                 if (comp != null && comp.isOnline() && 
                     !plugin.getGameManager().getEliminatedPlayers().contains(entry) && 
                     comp.getWorld().equals(p.getWorld())) {
                     
-                    double d = p.getLocation().distance(comp.getLocation());
+                    Location teammateLocation = comp.getLocation();
+                    double d = playerLocation.distanceSquared(teammateLocation);
                     if (d < distMin) {
                         distMin = d;
                         cercano = comp;
+                        ubicacionCercana = teammateLocation;
                     }
                 }
             }
 
             if (cercano != null) {
-                Location loc = cercano.getLocation();
-                String key = loc.getWorld().getName() + ":" + (int)loc.getX() + ":" + (int)loc.getY() + ":" + (int)loc.getZ();
-                boolean changed = updateCompassTarget(p, key, loc);
-                
-                // Mostrar ActionBar solo si el objetivo cambió
-                if (changed) {
-                    ItemStack hand = p.getInventory().getItemInMainHand();
-                    ItemMeta hMeta = hand.getItemMeta();
-                    if (hand.getType() == Material.COMPASS && hMeta != null && 
-                        lang.get("tracking-compass.name", p).equals(legacySection().serialize(hMeta.displayName()))) {
+                updateCompassTarget(p, ubicacionCercana);
 
-                        p.sendActionBar(legacySection().deserialize(
-                            lang.get("compass.tracking-actionbar", p)
-                                .replace("%player%", cercano.getName())
-                                .replace("%dist%", String.valueOf((int)distMin))));
-                    }
+                // Mostrar ActionBar cada segundo (el bucle corre a 1 Hz) siempre
+                // que el jugador sostenga la brújula en mano u off-hand, para que
+                // la distancia se vea de forma continua sobre la barra de vida.
+                if (isTrackingCompass(p.getInventory().getItemInMainHand())
+                        || isTrackingCompass(p.getInventory().getItemInOffHand())) {
+
+                    p.sendActionBar(legacySection().deserialize(
+                        lang.get("compass.tracking-actionbar", p)
+                            .replace("%player%", cercano.getName())
+                            .replace("%dist%", String.valueOf((int) Math.sqrt(distMin)))));
                 }
+            } else {
+                updateCompassTarget(p, p.getWorld().getSpawnLocation());
             }
         }
     }
@@ -122,11 +129,38 @@ public class ItemsListener implements Listener {
      *
      * @return true si el objetivo cambió (o es la primera vez).
      */
-    private boolean updateCompassTarget(Player p, String key, Location target) {
-        String prev = lastCompassTarget.get(p.getUniqueId());
+    private boolean updateCompassTarget(Player p, Location target) {
+        CompassTargetKey key = new CompassTargetKey(target.getWorld().getUID(), target.getBlockX(), target.getBlockY(), target.getBlockZ());
+        CompassTargetKey prev = lastCompassTarget.get(p.getUniqueId());
         if (key.equals(prev)) return false;
         p.setCompassTarget(target);
         lastCompassTarget.put(p.getUniqueId(), key);
         return true;
+    }
+
+    private boolean hasTrackingCompass(Player player) {
+        for (ItemStack item : player.getInventory().getContents()) {
+            if (isTrackingCompass(item)) return true;
+        }
+        return false;
+    }
+
+    private boolean isTrackingCompass(ItemStack item) {
+        if (item == null || item.getType() != Material.COMPASS || !item.hasItemMeta()) return false;
+        return item.getItemMeta().getPersistentDataContainer().has(trackingCompassKey, PersistentDataType.BYTE);
+    }
+
+    public void clearCompassTargetCache() {
+        lastCompassTarget.clear();
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        lastCompassTarget.remove(event.getPlayer().getUniqueId());
+    }
+
+    @EventHandler
+    public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
+        lastCompassTarget.remove(event.getPlayer().getUniqueId());
     }
 }

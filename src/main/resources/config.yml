@@ -1,2 +1,11 @@
 # Language settings: 'es' for Spanish, 'en' for English
 language: en
+
+# TAB config ownership: off (never write), once (write once), or force (write every startup)
+tab:
+  setup-mode: once
+  setup-completed: false
+
+# Internal one-time data migrations. Do not reset these markers.
+migrations:
+  legacy-bare-teams: false

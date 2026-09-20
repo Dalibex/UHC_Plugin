@@ -2,7 +2,6 @@ package me.dalibex.UHC_DBasic.gamemodes;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -10,7 +9,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
 import static org.bukkit.GameRules.PVP;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -62,7 +60,7 @@ public class Classic extends AbstractUHCGameMode {
         }
 
         // Rotación de Skins (Capítulos 2 al 10)
-        if (nuevoCap <= 10) {
+        if (me.dalibex.UHC_DBasic.managers.SkinsManager.isRotationEpisode(nuevoCap)) {
             runSkinRotation();
         }
 
@@ -95,7 +93,6 @@ public class Classic extends AbstractUHCGameMode {
         }
 
         Objective obj = getOrCreateSidebar(board, player, lang);
-        clearStaleSidebarKeys(obj, player);
         List<String> keys = new ArrayList<>();
 
         Objective objVida = board.getObjective(ScoreboardHelper.HEALTH_OBJECTIVE);
@@ -119,47 +116,28 @@ public class Classic extends AbstractUHCGameMode {
             ScoreboardHelper.addTimers(obj, next, keys, tiempo, tiempoTotal, player, lang, gm);
         }
 
-        storeSidebarKeys(player, keys);
+        reconcileSidebarKeys(obj, player, keys);
     }
 
     @Override
     public void checkVictory() {
-        if (!gm.isGameStarted() || gm.getTotalSeconds() <= 5) return;
+        if (!gm.isMatchActive() || gm.getTotalSeconds() <= 5) return;
 
-        Set<String> eliminados = gm.getEliminatedPlayers();
-
-        List<Player> jugadoresVivos = Bukkit.getOnlinePlayers().stream()
-                .filter(p -> p.getGameMode() == GameMode.SURVIVAL)
-                .filter(p -> !eliminados.contains(p.getName()))
-                .collect(Collectors.toList());
-
-        if (jugadoresVivos.isEmpty()) {
-            // Un jugador que salió y sigue vivo mantiene la partida abierta;
-            // solo se finaliza cuando no queda nadie vivo (online u offline).
-            boolean offlineVivo = gm.getInitialParticipants().stream()
-                    .anyMatch(nombre -> !eliminados.contains(nombre) && Bukkit.getPlayer(nombre) == null);
-            if (!offlineVivo) {
-                finishGame(null);
-            }
+Map<String, String> teams = new java.util.HashMap<>();
+        for (String name : gm.getInitialParticipants()) {
+            Team team = plugin.getTeamManager().getPlayerTeam(name);
+            if (team != null) teams.put(name, team.getName());
+        }
+        GameOutcomeEvaluator.Outcome outcome = GameOutcomeEvaluator.evaluate(
+                gm.getInitialParticipants(), gm.getEliminatedPlayers(), teams);
+        if (outcome.status() == GameOutcomeEvaluator.Status.NO_SURVIVORS) {
+            finishGame(null);
             return;
         }
-
-        // Lógica de detección: Un solo equipo/jugador restante
-        Map<String, Team> equiposVivos = new HashMap<>();
-        for (Player p : jugadoresVivos) {
-            Team equipo = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
-            if (equipo != null) equiposVivos.put(equipo.getName(), equipo);
-            else equiposVivos.put("SOLO_" + p.getName(), null);
-        }
-
-        if (equiposVivos.size() == 1) {
-            String key = equiposVivos.keySet().iterator().next();
-            Team equipoGanador = equiposVivos.get(key);
-            
-            if (equipoGanador == null) {
-                // Caso jugador individual sin equipo (Solos temprano o bug)
-                equipoGanador = createTempWinnerTeam(key.replace("SOLO_", ""));
-            }
+        if (outcome.status() == GameOutcomeEvaluator.Status.WINNER) {
+            Team equipoGanador = outcome.teamWinner()
+                    ? Bukkit.getScoreboardManager().getMainScoreboard().getTeam(outcome.winnerKey())
+                    : createTempWinnerTeam(outcome.winnerKey());
             finishGame(equipoGanador);
         }
     }
@@ -177,8 +155,7 @@ public class Classic extends AbstractUHCGameMode {
 
     private void finishGame(Team ganador) {
         LanguageManager lang = plugin.getLang();
-        gm.stopGameTask();
-        gm.setGameStarted(false);
+        finishGameSession();
 
         for (Player online : Bukkit.getOnlinePlayers()) {
             plugin.getSkinsManager().revealIdentity(online);
@@ -188,7 +165,7 @@ public class Classic extends AbstractUHCGameMode {
         if (ganador != null) {
             broadcastVictory(ganador, lang);
             List<Player> winners = new ArrayList<>();
-            for (String entry : ganador.getEntries()) {
+            for (String entry : winningEntries(ganador)) {
                 Player p = Bukkit.getPlayer(entry);
                 if (p != null && !gm.getEliminatedPlayers().contains(entry)) winners.add(p);
             }
@@ -198,11 +175,18 @@ public class Classic extends AbstractUHCGameMode {
         }
     }
 
+    private List<String> winningEntries(Team ganador) {
+        if (ganador != null && ganador.getName().startsWith(ScoreboardHelper.TEAM_PREFIX)) {
+            return plugin.getTeamManager().getMemberNames(ganador);
+        }
+        return ganador == null ? List.of() : new ArrayList<>(ganador.getEntries());
+    }
+
     private void broadcastVictory(Team ganador, LanguageManager lang) {
         String color = TextUtil.legacyColor(ganador.color());
         String nombreEquipo = legacySection().serialize(ganador.displayName());
         
-        List<String> formattedNames = ganador.getEntries().stream()
+        List<String> formattedNames = winningEntries(ganador).stream()
                 .map(entry -> gm.getEliminatedPlayers().contains(entry) ? "§7§m" + entry + "§r" : "§f" + entry)
                 .collect(Collectors.toList());
         String membersList = String.join("§7, ", formattedNames);

@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Random;
 
 import org.junit.jupiter.api.Test;
 
@@ -43,9 +44,8 @@ class SkinRotationTest {
         ultima.put("creeper", "P2");
         ultima.put("p2", "Steve");
 
-        // El barajado es aleatorio: repetimos para cubrir varios resultados.
-        for (int r = 0; r < 50; r++) {
-            Map<String, String> asignacion = SkinsManager.assignNewSkins(vivos, ultima);
+        for (int r = 0; r < 10; r++) {
+            Map<String, String> asignacion = SkinsManager.assignNewSkins(vivos, ultima, new Random(r));
 
             assertEquals(new HashSet<>(vivos), new HashSet<>(asignacion.values()),
                     "La asignación debe usar todos (y solo) los nombres de vivos");
@@ -59,6 +59,46 @@ class SkinRotationTest {
                         "Nadie debe llevar su propia skin (" + v + ")");
             }
         }
+    }
+
+    @Test
+    void assign_sameSeedProducesSameAssignment() {
+        List<String> players = List.of("A", "B", "C", "D", "E");
+        assertEquals(SkinsManager.assignNewSkins(players, Map.of(), new Random(42)),
+                SkinsManager.assignNewSkins(players, Map.of(), new Random(42)));
+    }
+
+    @Test
+    void repair_twoSelfAssignmentsSwapsThem() {
+        List<String> assigned = new ArrayList<>(List.of("A", "B"));
+        SkinsManager.repairSelfAssignments(assigned, List.of("A", "B"));
+        assertEquals(List.of("B", "A"), assigned);
+    }
+
+    @Test
+    void repair_allSelfAssignmentsProducesDerangement() {
+        List<String> players = List.of("A", "B", "C", "D");
+        List<String> assigned = new ArrayList<>(players);
+        SkinsManager.repairSelfAssignments(assigned, players);
+        assertEquals(new HashSet<>(players), new HashSet<>(assigned));
+        for (int i = 0; i < players.size(); i++) assertFalse(players.get(i).equals(assigned.get(i)));
+    }
+
+    @Test
+    void repair_oddSelfAssignmentsUsesNonSelfPartner() {
+        List<String> players = List.of("A", "B", "C", "D", "E");
+        List<String> assigned = new ArrayList<>(List.of("A", "B", "C", "E", "D"));
+        SkinsManager.repairSelfAssignments(assigned, players);
+        assertEquals(new HashSet<>(players), new HashSet<>(assigned));
+        for (int i = 0; i < players.size(); i++) assertFalse(players.get(i).equals(assigned.get(i)));
+    }
+
+    @Test
+    void rotationEpisodesAreTwoThroughTen() {
+        assertFalse(SkinsManager.isRotationEpisode(1));
+        assertTrue(SkinsManager.isRotationEpisode(2));
+        assertTrue(SkinsManager.isRotationEpisode(10));
+        assertFalse(SkinsManager.isRotationEpisode(11));
     }
 
     // ------------------------------------------------------------ paso de cola

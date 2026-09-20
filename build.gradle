@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'jacoco'
     id("xyz.jpenilla.run-paper") version "3.0.2"
 }
 
@@ -22,17 +23,18 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:26.2.build.+")
+    compileOnly("io.papermc.paper:paper-api:26.2.build.126-stable")
     compileOnly 'net.skinsrestorer:skinsrestorer-api:15.12.4'
     compileOnly 'com.github.NEZNAMY:TAB-API:6.0.0'
 
     // Tests unitarios (JUnit 5). paper-api y las APIs de terceros (SkinsRestorer
     // y TAB) como testImplementation para que el runtime de tests pueda cargar
     // SkinsManager/TABManager sin estar dentro del servidor.
-    testImplementation("io.papermc.paper:paper-api:26.2.build.+")
+    testImplementation("io.papermc.paper:paper-api:26.2.build.126-stable")
     testImplementation 'net.skinsrestorer:skinsrestorer-api:15.12.4'
     testImplementation 'com.github.NEZNAMY:TAB-API:6.0.0'
     testImplementation("org.junit.jupiter:junit-jupiter:5.12.2")
+    testImplementation("org.yaml:snakeyaml:2.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -42,6 +44,18 @@ tasks.withType(Test).configureEach {
         events "passed", "skipped", "failed"
         exceptionFormat "full"
     }
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+test {
+    finalizedBy jacocoTestReport
 }
 
 tasks {
