@@ -105,6 +105,7 @@ build/
 
 # Archivo de trabajo privado de la IA (no subir a GitHub)
 README_AI.md
+AGENTS.md
 
 # Ignore Gradle GUI config
 gradle-app.setting
