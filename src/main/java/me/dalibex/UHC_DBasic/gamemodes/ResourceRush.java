@@ -120,8 +120,8 @@ public class ResourceRush extends AbstractUHCGameMode {
         // Formación de Equipos (episodio configurable)
         maybeFormTeams(nuevoCap, this::syncResourceRushTeams);
 
-        // Activación de PVP (Episodio 4)
-        if (nuevoCap == 4) {
+        // Activación de PVP (episodio configurable)
+        if (nuevoCap == gm.getPvpEnabledEpisode()) {
             for (World w : Bukkit.getWorlds()) w.setGameRule(PVP, true);
             for (Player p : Bukkit.getOnlinePlayers()) {
                 for (String s : lang.getList("game-events.pvp-enabled", p)) p.sendMessage(s);

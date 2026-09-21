@@ -19,6 +19,10 @@ This version polishes the administration experience and makes the identity rotat
   - Choose the episode (1–10) in which teams are formed and the compasses are given out.
   - Configurable from the Admin Panel (*General Rules → Team Formation Episode*) or with the `/setteamepisode <1-10>` command.
 
+* ⚔️ **PVP Episode:**
+  - Choose the episode (1–10) in which the gentleman's pact ends and PVP is enabled.
+  - Configurable from the Admin Panel (*General Rules → PVP Episode*) or with the `/setpvpepisode <1-10>` command.
+
 * ⌨️ **Tab Completion in Commands:**
   - Autocomplete across all commands: border sizes in `/start`, languages in `/lang`, episodes in, and online players in `/assignteam` and `/abandon`.
 
@@ -48,7 +52,7 @@ This version polishes the administration experience and makes the identity rotat
   - Rejoins during the start sequence get their planned position and re-enter the game.
 
 * 🧪 **Unit Tests and CI:**
-  - JUnit 5 suite (**47 green tests**) covering pure policy logic (skin rotation, version comparison, sidebars, victory evaluation, command parsing, resource integrity).
+  - JUnit 5 suite (**53 green tests**) covering pure policy logic (skin rotation, version comparison, sidebars, victory evaluation, command parsing, resource integrity).
   - GitHub Actions CI on Java 25 (`test`, `jar`, JaCoCo report, artifacts).
 
 * 📋 **Resource Rush Hardening:**
@@ -82,6 +86,7 @@ This version polishes the administration experience and makes the identity rotat
 | `/asignarequipo <P> <C>` | ...DEPRECATED - use `/assignteam`.                 | `admin`    |
 | `/assignteam <P> <C>`    | Assigns a player to a specific team.               | `admin`    |
 | `/setteamepisode <1-10>` | Sets the team formation episode.                   | `admin`    |
+| `/setpvpepisode <1-10>`  | Sets the episode where PVP becomes active.         | `admin`    |
 | `/abandon [player]`      | Leaves the game or marks a player as eliminated.   | `user`     |
 | `/lang <language>`       | Changes your personal language (`es` / `en`).      | `user`     |
 | `/nequipo <name>`        | ...DEPRECATED - use `/team`.                       | `user`     |

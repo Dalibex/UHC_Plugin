@@ -39,7 +39,7 @@ class ResourceIntegrityTest {
         assertTrue(source.get("depend") instanceof List<?>);
         assertEquals(Set.of("TAB", "SkinsRestorer"), new LinkedHashSet<>((List<?>) source.get("depend")));
         assertEquals(Set.of("uhcadmin", "uhccommands", "test", "start", "confirmstart", "cancelstart",
-                        "reset", "team", "settime", "lang", "assignteam", "abandon", "setteamepisode"),
+                        "reset", "team", "settime", "lang", "assignteam", "abandon", "setteamepisode", "setpvpepisode"),
                 ((Map<?, ?>) source.get("commands")).keySet());
 
         try (InputStream stream = getClass().getClassLoader().getResourceAsStream("plugin.yml")) {

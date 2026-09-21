@@ -87,34 +87,27 @@ public class ChatManager implements Listener {
 
     private void sendGlobalMessage(Player p, Team team, String msg, LanguageManager lang, boolean partidaActiva) {
         String tagGlobal = lang.get("chat.global-tag", null);
-        String modoActual = plugin.getGameManager().getCurrentMode().getName();
 
-        String textoAMostrar;
-
-        if (partidaActiva) {
-            // Solo el bloque entre §k y §r queda ofuscado; el §r final evita que
-            // el texto del usuario (a continuación) herede la decoración.
-            if (modoActual.equalsIgnoreCase("Resource Rush")) {
-                String clave = (team != null) ? legacySection().serialize(team.displayName()) : "SOLO";
-                textoAMostrar = "§k" + clave + "§r";
-            } else {
-                textoAMostrar = "§kUHCELOUD§r";
-            }
-        } else {
-            textoAMostrar = p.getName();
-        }
-
-        // La línea se arma por componentes: el nombre puede llevar §k (obfuscado)
-        // para ocultar la identidad en partida, pero el mensaje propio NO debe
-        // heredar esa decoración, así que se añade con OBFUSCATED off.
-        Component nombre = TextUtil.deserialize("&6" + textoAMostrar);
         Component formatoFinal = Component.empty()
                 .color(NamedTextColor.DARK_GRAY)
-                .append(TextUtil.deserialize("&8[&c" + tagGlobal + "&8] "))
-                .append(nombre)
-                .append(Component.text(": ", NamedTextColor.GRAY))
-                .append(Component.text(msg, NamedTextColor.GRAY)
+                .decoration(TextDecoration.OBFUSCATED, false)
+                .append(TextUtil.deserialize("&8[&c" + tagGlobal + "&8] ")
                         .decoration(TextDecoration.OBFUSCATED, false));
+
+        if (partidaActiva) {
+            formatoFinal = formatoFinal
+                    .append(Component.text(msg, NamedTextColor.GRAY)
+                            .decoration(TextDecoration.OBFUSCATED, false));
+        } else {
+            Component nombre = Component.text(p.getName(), NamedTextColor.GOLD)
+                    .decoration(TextDecoration.OBFUSCATED, false);
+            formatoFinal = formatoFinal
+                    .append(nombre)
+                    .append(Component.text(": ", NamedTextColor.GRAY)
+                            .decoration(TextDecoration.OBFUSCATED, false))
+                    .append(Component.text(msg, NamedTextColor.GRAY)
+                            .decoration(TextDecoration.OBFUSCATED, false));
+        }
 
         for (Player receptor : Bukkit.getOnlinePlayers()) {
             receptor.sendMessage(formatoFinal);

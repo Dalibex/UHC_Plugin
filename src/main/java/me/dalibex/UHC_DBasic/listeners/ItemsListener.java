@@ -76,8 +76,11 @@ public class ItemsListener implements Listener {
             Location playerLocation = p.getLocation();
 
             Team team = plugin.getTeamManager().getPlayerTeam(p.getName());
+            boolean compassHeld = isTrackingCompass(p.getInventory().getItemInMainHand())
+                    || isTrackingCompass(p.getInventory().getItemInOffHand());
+
             if (team == null || plugin.getTeamManager().getMemberCount(team) <= 1) {
-                updateCompassTarget(p, p.getWorld().getSpawnLocation());
+                updateCompassTarget(p, p.getWorld().getSpawnLocation(), false);
                 continue;
             }
 
@@ -104,13 +107,12 @@ public class ItemsListener implements Listener {
             }
 
             if (cercano != null) {
-                updateCompassTarget(p, ubicacionCercana);
+                updateCompassTarget(p, ubicacionCercana, compassHeld);
 
                 // Mostrar ActionBar cada segundo (el bucle corre a 1 Hz) siempre
                 // que el jugador sostenga la brújula en mano u off-hand, para que
                 // la distancia se vea de forma continua sobre la barra de vida.
-                if (isTrackingCompass(p.getInventory().getItemInMainHand())
-                        || isTrackingCompass(p.getInventory().getItemInOffHand())) {
+                if (compassHeld) {
 
                     p.sendActionBar(legacySection().deserialize(
                         lang.get("compass.tracking-actionbar", p)
@@ -118,7 +120,7 @@ public class ItemsListener implements Listener {
                             .replace("%dist%", String.valueOf((int) Math.sqrt(distMin)))));
                 }
             } else {
-                updateCompassTarget(p, p.getWorld().getSpawnLocation());
+                updateCompassTarget(p, p.getWorld().getSpawnLocation(), false);
             }
         }
     }
@@ -129,10 +131,10 @@ public class ItemsListener implements Listener {
      *
      * @return true si el objetivo cambió (o es la primera vez).
      */
-    private boolean updateCompassTarget(Player p, Location target) {
+    private boolean updateCompassTarget(Player p, Location target, boolean force) {
         CompassTargetKey key = new CompassTargetKey(target.getWorld().getUID(), target.getBlockX(), target.getBlockY(), target.getBlockZ());
         CompassTargetKey prev = lastCompassTarget.get(p.getUniqueId());
-        if (key.equals(prev)) return false;
+        if (!force && key.equals(prev)) return false;
         p.setCompassTarget(target);
         lastCompassTarget.put(p.getUniqueId(), key);
         return true;
@@ -152,6 +154,10 @@ public class ItemsListener implements Listener {
 
     public void clearCompassTargetCache() {
         lastCompassTarget.clear();
+    }
+
+    public void clearCompassTarget(Player player) {
+        if (player != null) lastCompassTarget.remove(player.getUniqueId());
     }
 
     @EventHandler

@@ -6,6 +6,7 @@ Note: This is a SNAPSHOT version. It is recommended to perform tests on developm
 
 New Features
 - Team Formation Episode: You can now choose the episode (1-10) in which teams are formed (when the compasses are given). Set it from the Admin Panel (General Rules -> Team Formation Episode) or directly with the new command /setteamepisode <1-10>.
+- PVP Episode: You can now choose the episode (1-10) in which the gentleman's pact ends and PVP becomes active. Set it from the Admin Panel (General Rules -> PVP Episode) or directly with /setpvpepisode <1-10>.
 - Tab Completion: All commands now include autocomplete suggestions (/start with border sizes, /lang with languages, /setteamepisode with episodes 1-10, /assignteam and /abandon with online players, /settime, /team...).
 
 Adjustments and Improvements
@@ -38,14 +39,16 @@ User Feedback Fixes
 - Clean color input in /assignteam: the color is now read as the visible color ("red", "RED") or with the internal prefix ("h_red") interchangeably; the h_ prefix is internal and is no longer shown in tab-complete, which suggests plain colors instead.
 - Foreign teams untouched by /assignteam: the command only removes the target from a team if it belongs to this plugin, never from other plugins' teams.
 - Compass actionbar fixed: the ally compass now shows name + distance every second over the health bar while held in the main hand OR off-hand (previously it only flashed when the target changed and only in the main hand).
-- Global chat no longer obfuscates your own message: the identity name keeps its hidden/obfuscated look during a match, but the message you send is explicitly forced to plain grey, so it no longer "vibrates".
+- Global chat simplified during matches: global messages are now anonymous (`[GLOBAL] message`) to avoid Minecraft's obfuscated-text width jitter making the readable message vibrate.
 - Compass no longer points to 0,0 after a skin change: team membership is tracked in an internal cache instead of reading the main scoreboard, because TAB manages the scoreboard teams (scoreboard-teams/sorting) and can move a player away from their h_* team when refreshing their nametag/prefix; the compass and team logic now read from the plugin's own authoritative membership, immune to TAB reassignments.
+- Compass target is re-sent after visual skin/TAB refreshes, so the needle keeps pointing to the teammate even if the client resets its compass target.
 - /reset keeps the teams you had selected: the selected team memberships are snapshotted before the reset and restored right after the h_* teams are recreated, so the Nether Star selector lists the same members again instead of empty teams.
 
 === ESPAÑOL ===
 
 Nuevas Funciones
 - Episodio de Formación de Equipos: Ahora puedes elegir el episodio (1-10) en el que se forman los equipos (cuando se reparten las brújulas). Selecciónalo desde el Panel de Admin (Reglas Generales -> Episodio de Formación de Equipos) o directamente con el nuevo comando /setteamepisode <1-10>.
+- Episodio de PVP: Ahora puedes elegir el episodio (1-10) en el que termina el pacto de caballeros y se activa el PVP. Selecciónalo desde el Panel de Admin (Reglas Generales -> Episodio de PVP) o directamente con /setpvpepisode <1-10>.
 - Autocompletado (Tab-Completion): Todos los comandos incluyen ahora sugerencias de autocompletado (/start con tamaños de borde, /lang con idiomas, /setteamepisode con episodios 1-10, /assignteam y /abandon con jugadores online, /settime, /team...).
 
 Ajustes y Mejoras
@@ -78,8 +81,9 @@ Correcciones por Feedback de Usuario
 - Entrada de color limpia en /assignteam: el color se lee de forma intercambiable como color visible ("red", "RED") o con el prefijo interno ("h_red"); el prefijo h_ es interno y ya no aparece en el autocompletado, que sugiere colores limpios.
 - /assignteam no toca equipos ajenos: el comando solo retira al objetivo de un equipo si pertenece a este plugin, nunca de equipos de otros plugins.
 - Actionbar de brújula corregida: la brújula de aliado muestra ahora nombre + distancia cada segundo sobre la barra de vida mientras se sostiene en mano principal U off-hand (antes solo parpadeaba al cambiar el objetivo y solo en la mano principal).
-- El chat global ya no obfuscate tu propio mensaje: el nombre mantiene su aspecto oculto/obfuscado durante la partida, pero el mensaje que envías se fuerza a gris plano explícitamente, así que ya no "vibra".
+- Chat global simplificado durante partida: los mensajes globales ahora son anónimos (`[GLOBAL] mensaje`) para evitar que la animación del texto ofuscado de Minecraft haga vibrar el mensaje legible.
 - La brújula ya no apunta a 0,0 tras un cambio de skin: la pertenencia a equipos se registra en una caché interna en lugar de leer el scoreboard principal, porque TAB gestiona los teams del scoreboard (scoreboard-teams/sorting) y puede mover al jugador fuera de su equipo h_* al refrescar su nametag/prefix; la brújula y la lógica de equipos ahora leen de la membresía autoritativa del plugin, inmune a las reasignaciones de TAB.
+- La brújula reenvía su objetivo tras refrescos visuales de skin/TAB, de modo que la aguja sigue apuntando al compañero aunque el cliente reinicie el target.
 - /reset conserva los equipos seleccionados: las membresías elegidas se capturan antes del reset y se restauran justo después de recrear los equipos h_*, de modo que la estrella de Nether vuelve a listar los mismos miembros en lugar de equipos vacíos.
 
 Version compatible with:

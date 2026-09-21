@@ -77,6 +77,8 @@ public class AdminPanelListener implements Listener {
             handleShulkersClick(p, event.getSlot(), admin);
         } else if (title.equals(lang.get("menus.teamsepisode.title", p))) {
             handleTeamsEpisodeClick(p, event.getSlot(), admin);
+        } else if (title.equals(lang.get("menus.pvpsepisode.title", p))) {
+            handlePvpEpisodeClick(p, event.getSlot(), admin);
         } else if (title.equals(lang.get("menus.gamerules.title", p))) {
             handleGameRulesClick(p, item.getType(), admin);
         } else if (title.equals(lang.get("menus.gamemode.title", p))) {
@@ -103,6 +105,7 @@ public class AdminPanelListener implements Listener {
                 || title.equals(lang.get("menus.generalrules.title", p))
                 || title.equals(lang.get("menus.shulkers.title", p))
                 || title.equals(lang.get("menus.teamsepisode.title", p))
+                || title.equals(lang.get("menus.pvpsepisode.title", p))
                 || title.equals(lang.get("menus.gamerules.title", p))
                 || title.equals(lang.get("menus.gamemode.title", p))
                 || title.equals(lang.get("menus.barrier.title", p))
@@ -206,6 +209,9 @@ public class AdminPanelListener implements Listener {
         if (slot == AdminSlots.GENERAL_SHULKERS_MENU) {
             p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_DIAMOND, 1f, 1f);
             admin.openShulkersPanel(p);
+        } else if (slot == AdminSlots.GENERAL_PVP_EPISODE_MENU) {
+            p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1f, 1f);
+            admin.openPvpEpisodePanel(p);
         } else if (slot == AdminSlots.GENERAL_TEAMS_EPISODE_MENU) {
             p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1f, 1f);
             admin.openTeamsEpisodePanel(p);
@@ -248,6 +254,24 @@ public class AdminPanelListener implements Listener {
             p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1f, 1.2f);
         }
         admin.openTeamsEpisodePanel(p);
+    }
+
+    private void handlePvpEpisodeClick(Player p, int slot, AdminPanelManager admin) {
+        if (slot == AdminSlots.PVP_EPISODE_BACK) {
+            p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, 1f, 1f);
+            admin.openGeneralRulesPanel(p);
+            return;
+        }
+        if (plugin.getGameManager().getPhase() != GamePhase.LOBBY) {
+            p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
+            return;
+        }
+        int episode = AdminSlots.episodeForSlot(slot);
+        if (episode != -1) {
+            plugin.getGameManager().setPvpEnabledEpisode(episode);
+            p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1f, 1.2f);
+        }
+        admin.openPvpEpisodePanel(p);
     }
 
     private void handleGameRulesClick(Player p, Material mat, AdminPanelManager admin) {

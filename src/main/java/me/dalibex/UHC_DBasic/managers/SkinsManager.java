@@ -474,6 +474,10 @@ public class SkinsManager {
         // propio al refrescar su nametag/prefix; se re-incorpora al equipo h_*
         // para que el scoreboard refleje de nuevo la pertenencia real.
         plugin.getTeamManager().resyncPlayerEntry(p.getName());
+        // El refresh de skin/TAB puede hacer que el cliente vuelva a apuntar la
+        // brújula al spawn aunque la distancia calculada siga siendo correcta.
+        // Invalidar la caché fuerza a reenviar el target real en el siguiente tick.
+        plugin.getItemsListener().clearCompassTarget(p);
 
         GamePhase phase = gm.getPhase();
         if (phase != GamePhase.LOBBY && phase != GamePhase.ENDING) {

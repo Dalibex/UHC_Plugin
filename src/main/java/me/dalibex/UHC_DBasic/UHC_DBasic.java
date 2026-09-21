@@ -14,6 +14,7 @@ import me.dalibex.UHC_DBasic.commands.GCommandsCommand;
 import me.dalibex.UHC_DBasic.commands.LangCommand;
 import me.dalibex.UHC_DBasic.commands.PrepareWorldCommand;
 import me.dalibex.UHC_DBasic.commands.SetTeamEpisodeCommand;
+import me.dalibex.UHC_DBasic.commands.SetPvpEpisodeCommand;
 import me.dalibex.UHC_DBasic.commands.SetTimeCommand;
 import me.dalibex.UHC_DBasic.commands.StartCommand;
 import me.dalibex.UHC_DBasic.commands.TeamCommand;
@@ -153,6 +154,10 @@ public final class UHC_DBasic extends JavaPlugin {
         SetTeamEpisodeCommand setTeamEpisodeCmd = new SetTeamEpisodeCommand(this);
         getCommand("setteamepisode").setExecutor(setTeamEpisodeCmd);
         getCommand("setteamepisode").setTabCompleter(setTeamEpisodeCmd);
+
+        SetPvpEpisodeCommand setPvpEpisodeCmd = new SetPvpEpisodeCommand(this);
+        getCommand("setpvpepisode").setExecutor(setPvpEpisodeCmd);
+        getCommand("setpvpepisode").setTabCompleter(setPvpEpisodeCmd);
 
         getCommand("test").setExecutor((sender, command, s, strings) -> {
             if (!isAdmin(sender)) {

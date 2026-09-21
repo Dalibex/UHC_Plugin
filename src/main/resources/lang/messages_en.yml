@@ -63,6 +63,8 @@ help:
     - ""
     - "&e/setteamepisode <episode> &7- &fSets the part in which teams are formed."
     - ""
+    - "&e/setpvpepisode <episode> &7- &fSets the part in which PVP is enabled."
+    - ""
     - "&e/assignteam <player> <team> &7- &fAssign players to teams."
     - ""
     - "&e/abandon &7- &fMarks yourself as eliminated from the running game (or another player as admin)."
@@ -96,6 +98,12 @@ teams:
     usage: "%error-prefix%§fCorrect usage: /setteamepisode <episode 1-10>"
     range: "%error-prefix%§fEpisode must be between 1 and 10."
     success: "%prefix%&fTeams will be formed on &aPart %episode%"
+
+pvp:
+  episode:
+    usage: "%error-prefix%§fCorrect usage: /setpvpepisode <episode 1-10>"
+    range: "%error-prefix%§fEpisode must be between 1 and 10."
+    success: "%prefix%&fThe gentleman's pact will end on &aPart %episode%"
 
 
 # /reset usage
@@ -263,6 +271,13 @@ menus:
           - "&7on episodes 1 and 8."
           - ""
           - "&eClick to open"
+      pvp-episode-menu:
+        name: "&cPVP Episode"
+        lore:
+          - "&7Set the part in which"
+          - "&7the gentleman's pact ends."
+          - ""
+          - "&eClick to open"
       teams-episode-menu:
         name: "&bTeam Formation Episode"
         lore:
@@ -292,6 +307,27 @@ menus:
       name: "&6Part %episode%"
       lore:
         - "&7Teams will be formed on"
+        - "&7part %episode%."
+        - ""
+        - "&eClick to select"
+
+  pvpsepisode:
+    title: "&8⚙ PVP Activation"
+    selected-status: "&a● &lSelected"
+    info:
+      name: "&cPVP Episode"
+      lore:
+        - "&fCurrent PVP: &ePart %episode%"
+        - ""
+        - "&7Choose the part in which the"
+        - "&7gentleman's pact ends and PVP starts."
+        - ""
+        - "&7You can use &f/setpvpepisode <episode>"
+        - "&7to change this setting."
+    button:
+      name: "&6Part %episode%"
+      lore:
+        - "&7PVP will be enabled on"
         - "&7part %episode%."
         - ""
         - "&eClick to select"

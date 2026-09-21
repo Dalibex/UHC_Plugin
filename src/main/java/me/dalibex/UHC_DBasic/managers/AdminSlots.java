@@ -28,6 +28,7 @@ public final class AdminSlots {
 
     // ---- Panel de reglas generales (hub, 27 slots) ----
     public static final int GENERAL_SHULKERS_MENU = 11;
+    public static final int GENERAL_PVP_EPISODE_MENU = 13;
     public static final int GENERAL_TEAMS_EPISODE_MENU = 15;
     public static final int GENERAL_BACK = 18;
 
@@ -40,6 +41,11 @@ public final class AdminSlots {
     public static final int TEAMS_EPISODE_INFO = 13;
     public static final int TEAMS_EPISODE_BACK = 40;
     public static final int[] TEAMS_EPISODE_BUTTONS = {20, 21, 22, 23, 24, 29, 30, 31, 32, 33};
+
+    // ---- Sub-panel de episodio de activación de PVP (45 slots) ----
+    public static final int PVP_EPISODE_INFO = 13;
+    public static final int PVP_EPISODE_BACK = 40;
+    public static final int[] PVP_EPISODE_BUTTONS = TEAMS_EPISODE_BUTTONS;
 
     /**
      * Devuelve el episodio (1-10) asociado a un slot del sub-panel, o -1 si

@@ -63,6 +63,8 @@ help:
     - ""
     - "&e/setteamepisode <episodio> &7- &fDefine la parte en la que se forman los equipos."
     - ""
+    - "&e/setpvpepisode <episodio> &7- &fDefine la parte en la que termina el pacto de caballeros."
+    - ""
     - "&e/assignteam <player> <team> &7- &fAsigna jugadores a equipos."
     - ""
     - "&e/abandon &7- &fTe marcas como eliminado de la partida en curso (o como admin a otro jugador)."
@@ -96,6 +98,12 @@ teams:
     usage: "%error-prefix%§fUso correcto: /setteamepisode <episodio 1-10>"
     range: "%error-prefix%§fEl episodio debe estar entre 1 y 10."
     success: "%prefix%&fLos equipos se formarán en la &aParte %episode%"
+
+pvp:
+  episode:
+    usage: "%error-prefix%§fUso correcto: /setpvpepisode <episodio 1-10>"
+    range: "%error-prefix%§fEl episodio debe estar entre 1 y 10."
+    success: "%prefix%&fEl pacto de caballeros terminará en la &aParte %episode%"
 
 
 # Uso de /reset
@@ -263,6 +271,13 @@ menus:
           - "&7entregan en el episodio 1 y 8."
           - ""
           - "&eClick para abrir"
+      pvp-episode-menu:
+        name: "&cEpisodio de PVP"
+        lore:
+          - "&7Define en qué parte termina"
+          - "&7el pacto de caballeros."
+          - ""
+          - "&eClick para abrir"
       teams-episode-menu:
         name: "&bEpisodio de Formación de Equipos"
         lore:
@@ -292,6 +307,27 @@ menus:
       name: "&6Parte %episode%"
       lore:
         - "&7Los equipos se formarán en la"
+        - "&7parte %episode%."
+        - ""
+        - "&eClick para seleccionar"
+
+  pvpsepisode:
+    title: "&8⚙ Activación de PVP"
+    selected-status: "&a● &lSeleccionado"
+    info:
+      name: "&cEpisodio de PVP"
+      lore:
+        - "&fPVP actual: &eParte %episode%"
+        - ""
+        - "&7Elige en qué parte termina el"
+        - "&7pacto de caballeros y se activa PVP."
+        - ""
+        - "&7Puedes usar &f/setpvpepisode <episodio>"
+        - "&7para cambiar este ajuste."
+    button:
+      name: "&6Parte %episode%"
+      lore:
+        - "&7El PVP se activará en la"
         - "&7parte %episode%."
         - ""
         - "&eClick para seleccionar"

@@ -46,6 +46,10 @@ commands:
     description: Sets the episode in which teams are formed (compasses are given)
     usage: /setteamepisode <episode 1-10>
     permission: uhc.admin
+  setpvpepisode:
+    description: Sets the episode in which PVP is enabled
+    usage: /setpvpepisode <episode 1-10>
+    permission: uhc.admin
 
 permissions:
   uhc.admin:

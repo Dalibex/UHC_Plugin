@@ -37,6 +37,7 @@ public class GameManager {
     private int tiempoTotalSegundos = 0;
     private int capitulo = 1;
     private int segundosPorCapitulo = 20 * 60;
+    private int pvpEnabledEpisode = 4;
 
     private BukkitTask partidaTask;
     private GamePhase phase = GamePhase.INITIALIZING;
@@ -318,6 +319,11 @@ Scoreboard managerBoard = Bukkit.getScoreboardManager().getMainScoreboard();
     public int getSecondsPerChapter() { return segundosPorCapitulo; }
 
     public void setSecondsPerChapter(int s) { this.segundosPorCapitulo = s; }
+
+    /** Episodio (parte) en el que termina el pacto de caballeros y se activa PVP. */
+    public int getPvpEnabledEpisode() { return pvpEnabledEpisode; }
+
+    public void setPvpEnabledEpisode(int episode) { this.pvpEnabledEpisode = episode; }
 
     public GamePhase getPhase() { return phase; }
 

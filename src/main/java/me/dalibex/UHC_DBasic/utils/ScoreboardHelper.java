@@ -49,7 +49,9 @@ public class ScoreboardHelper {
      */
     public static void addPhaseInfo(Objective obj, AtomicInteger next, List<String> keys, Player player, LanguageManager lang, GameManager gm) {
         int capitulo = gm.getChapter();
-        String pvpStatus = (capitulo < 4) ? lang.get("scoreboard.pvp-pact", player) : lang.get("scoreboard.pvp-active", player);
+        String pvpStatus = (capitulo < gm.getPvpEnabledEpisode())
+                ? lang.get("scoreboard.pvp-pact", player)
+                : lang.get("scoreboard.pvp-active", player);
 
         score(obj, "§1 ", next.getAndDecrement(), keys);
         if (capitulo < 10) {

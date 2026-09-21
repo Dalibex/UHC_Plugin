@@ -163,12 +163,19 @@ public class AdminPanelManager {
         LanguageManager lang = plugin.getLang();
         Inventory inv = Bukkit.createInventory(null, 27, lang.getComponent("menus.generalrules.title", player));
 
-        ItemStack shulkersBtn = new ItemStack(Material.ORANGE_SHULKER_BOX);
+        ItemStack shulkersBtn = new ItemStack(Material.PURPLE_SHULKER_BOX);
         ItemMeta sMeta = shulkersBtn.getItemMeta();
         sMeta.displayName(lang.getComponent("menus.generalrules.settings.shulkers-menu.name", player));
         sMeta.lore(lang.getComponentList("menus.generalrules.settings.shulkers-menu.lore", player));
         shulkersBtn.setItemMeta(sMeta);
         inv.setItem(AdminSlots.GENERAL_SHULKERS_MENU, shulkersBtn);
+
+        ItemStack pvpEpBtn = new ItemStack(Material.NETHERITE_SWORD);
+        ItemMeta pMeta = pvpEpBtn.getItemMeta();
+        pMeta.displayName(lang.getComponent("menus.generalrules.settings.pvp-episode-menu.name", player));
+        pMeta.lore(lang.getComponentList("menus.generalrules.settings.pvp-episode-menu.lore", player));
+        pvpEpBtn.setItemMeta(pMeta);
+        inv.setItem(AdminSlots.GENERAL_PVP_EPISODE_MENU, pvpEpBtn);
 
         ItemStack teamsEpBtn = new ItemStack(Material.BLUE_BANNER);
         ItemMeta tMeta = teamsEpBtn.getItemMeta();
@@ -204,7 +211,7 @@ public class AdminPanelManager {
 
         Inventory inv = Bukkit.createInventory(null, 45, lang.getComponent("menus.teamsepisode.title", player));
 
-        ItemStack info = new ItemStack(Material.CLOCK);
+        ItemStack info = new ItemStack(Material.BLUE_BANNER);
         ItemMeta iMeta = info.getItemMeta();
         iMeta.displayName(lang.getComponent("menus.teamsepisode.info.name", player));
         List<Component> infoLore = new ArrayList<>();
@@ -216,11 +223,40 @@ public class AdminPanelManager {
         inv.setItem(AdminSlots.TEAMS_EPISODE_INFO, info);
 
         for (int i = 0; i < AdminSlots.TEAMS_EPISODE_BUTTONS.length; i++) {
-            inv.setItem(AdminSlots.TEAMS_EPISODE_BUTTONS[i], createEpisodeButton(i + 1, selected, partidaEnCurso, player, lang));
+            inv.setItem(AdminSlots.TEAMS_EPISODE_BUTTONS[i], createEpisodeButton(i + 1, selected, partidaEnCurso, player, lang, "menus.teamsepisode"));
         }
 
         ItemStack back = createBackButton(player);
         inv.setItem(AdminSlots.TEAMS_EPISODE_BACK, back);
+
+        player.openInventory(inv);
+    }
+
+    public void openPvpEpisodePanel(Player player) {
+        LanguageManager lang = plugin.getLang();
+        GameManager gm = plugin.getGameManager();
+        boolean partidaEnCurso = gm.getPhase() != GamePhase.LOBBY;
+        int selected = gm.getPvpEnabledEpisode();
+
+        Inventory inv = Bukkit.createInventory(null, 45, lang.getComponent("menus.pvpsepisode.title", player));
+
+        ItemStack info = new ItemStack(Material.NETHERITE_SWORD);
+        ItemMeta iMeta = info.getItemMeta();
+        iMeta.displayName(lang.getComponent("menus.pvpsepisode.info.name", player));
+        List<Component> infoLore = new ArrayList<>();
+        for (String line : lang.getList("menus.pvpsepisode.info.lore", player)) {
+            infoLore.add(txt(line.replace("%episode%", String.valueOf(selected))));
+        }
+        iMeta.lore(infoLore);
+        info.setItemMeta(iMeta);
+        inv.setItem(AdminSlots.PVP_EPISODE_INFO, info);
+
+        for (int i = 0; i < AdminSlots.PVP_EPISODE_BUTTONS.length; i++) {
+            inv.setItem(AdminSlots.PVP_EPISODE_BUTTONS[i], createEpisodeButton(i + 1, selected, partidaEnCurso, player, lang, "menus.pvpsepisode"));
+        }
+
+        ItemStack back = createBackButton(player);
+        inv.setItem(AdminSlots.PVP_EPISODE_BACK, back);
 
         player.openInventory(inv);
     }
@@ -430,19 +466,19 @@ public class AdminPanelManager {
         return item;
     }
 
-    private ItemStack createEpisodeButton(int episode, int selected, boolean locked, Player player, LanguageManager lang) {
+    private ItemStack createEpisodeButton(int episode, int selected, boolean locked, Player player, LanguageManager lang, String menuKey) {
         boolean isSelected = episode == selected;
         ItemStack item = new ItemStack(isSelected ? Material.LIME_DYE : Material.GRAY_DYE);
         ItemMeta meta = item.getItemMeta();
-        String name = (isSelected ? "§6§l" : "§f") + lang.get("menus.teamsepisode.button.name", player).replace("%episode%", String.valueOf(episode));
+        String name = (isSelected ? "§6§l" : "§f") + lang.get(menuKey + ".button.name", player).replace("%episode%", String.valueOf(episode));
         meta.displayName(txt(name));
         List<Component> lore = new ArrayList<>();
-        for (String line : lang.getList("menus.teamsepisode.button.lore", player)) {
+        for (String line : lang.getList(menuKey + ".button.lore", player)) {
             lore.add(txt(line.replace("%episode%", String.valueOf(episode))));
         }
         if (isSelected) {
             lore.add(Component.empty());
-            lore.add(lang.getComponent("menus.teamsepisode.selected-status", player));
+            lore.add(lang.getComponent(menuKey + ".selected-status", player));
             meta.addEnchant(org.bukkit.enchantments.Enchantment.LUCK_OF_THE_SEA, 1, true);
             meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
         } else if (locked) {
