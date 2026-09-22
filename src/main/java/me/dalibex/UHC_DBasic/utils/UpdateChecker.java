@@ -145,7 +145,7 @@ public class UpdateChecker {
     }
 
     /**
-     * Compara dos versiones numéricamente (sin prefijo v ni sufijo -SNAPSHOT).
+     * Compara dos versiones numéricamente (sin prefijo v ni sufijos pre-release).
      * Devuelve >0 si a > b, 0 si iguales, <0 si a < b.
      */
     public static int compareVersions(String a, String b) {

@@ -11,7 +11,7 @@ class UpdateCheckerTest {
     }
 
     @Test void ignoresSuffix() {
-        assertEquals(0, UpdateChecker.compareVersions("1.5.3-SNAPSHOT", "1.5.3"));
+        assertEquals(0, UpdateChecker.compareVersions("1.5.3-beta", "1.5.3"));
     }
 
     @Test void comparesDifferentLengthsWithImplicitZeros() {

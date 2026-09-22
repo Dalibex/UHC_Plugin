@@ -1,6 +1,6 @@
-Changelog - UHC ELOUD 1.5.3-SNAPSHOT
+Changelog - UHC ELOUD 1.5.3
 
-Note: This is a SNAPSHOT version. It is recommended to perform tests on development servers. I have conducted intensive testing (including simulations with bots), but I do not guarantee that minor errors will not exist in specific environments.
+Note: It is recommended to perform tests on development servers before using this build in a live event. I have conducted intensive testing (including simulations with bots), but I do not guarantee that minor errors will not exist in specific environments.
 
 === ENGLISH ===
 

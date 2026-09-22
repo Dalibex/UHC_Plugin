@@ -1,6 +1,6 @@
 # ⚔️ UHC ELOUD
 
-![Plugin Version](https://img.shields.io/badge/Plugin_Version-1.5.3--SNAPSHOT-orange)
+![Plugin Version](https://img.shields.io/badge/Plugin_Version-1.5.3-orange)
 ![Minecraft Version](https://img.shields.io/badge/Minecraft_Version-26.2-gold)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Platform](https://img.shields.io/badge/Platform-Spigot%20%7C%20Paper-blue)
@@ -11,7 +11,7 @@ Based on **UHC ESPAÑA** created by **ElRichMC**.
 
 ---
 
-## 🚀 What's New in Version 1.5.3-SNAPSHOT (Current)
+## 🚀 What's New in Version 1.5.3 (Current)
 
 This version polishes the administration experience and makes the identity rotation much more stable on real servers.
 
