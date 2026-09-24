@@ -36,21 +36,18 @@ public class SetTimeCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        int totalSegundos = validate(sender, args, player);
-        if (totalSegundos == -1) return true;
+        int totalSeconds = validate(sender, args, player);
+        if (totalSeconds == -1) return true;
 
         GameManager rpm = plugin.getGameManager();
-        rpm.setSecondsPerChapter(totalSegundos);
+        rpm.setSecondsPerChapter(totalSeconds);
 
-        sendFeedback(sender, args, player, totalSegundos);
+        sendFeedback(sender, player, totalSeconds);
 
         return true;
     }
 
-    /**
-     * Valida argumentos, formato, límites y estado de la partida.
-     * @return total de segundos si es válido, -1 si falla.
-     */
+    /** Validates args, numeric format, bounds, and game state. */
     private int validate(CommandSender sender, String[] args, Player player) {
         LanguageManager lang = plugin.getLang();
 
@@ -95,14 +92,14 @@ public class SetTimeCommand implements CommandExecutor, TabCompleter {
         }
     }
 
-    private void sendFeedback(CommandSender sender, String[] args, Player player, int total) {
+    private void sendFeedback(CommandSender sender, Player player, int total) {
         LanguageManager lang = plugin.getLang();
 
-        String tiempoFormateado = TimeUtil.formatHms(total);
+        String formattedTime = TimeUtil.formatHms(total);
 
         String successMsg = lang.get("timer.success", player)
                 .replace("%prefix%", lang.get("general.prefix", player))
-                .replace("%time%", tiempoFormateado);
+                .replace("%time%", formattedTime);
 
         sender.sendMessage(successMsg);
 

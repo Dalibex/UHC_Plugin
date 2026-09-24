@@ -25,95 +25,90 @@ public class ChatManager implements Listener {
 
     @EventHandler
     public void onChat(AsyncChatEvent event) {
-        String mensaje = PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
-        if (mensaje.isEmpty()) {
+        String message = PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
+        if (message.isEmpty()) {
             event.setCancelled(true);
             return;
         }
 
         event.setCancelled(true);
 
-        Player jugador = event.getPlayer();
-        // AsyncChatEvent se dispara en el hilo Netty: todo lo que toque scoreboard o
-        // estado del plugin debe ejecutarse en el hilo principal.
-        Bukkit.getScheduler().runTask(plugin, () -> processMessage(jugador, mensaje));
+        Player player = event.getPlayer();
+        // AsyncChatEvent runs on Netty threads; plugin state must be touched on the main thread.
+        Bukkit.getScheduler().runTask(plugin, () -> processMessage(player, message));
     }
 
-    private void processMessage(Player p, String mensaje) {
+    private void processMessage(Player p, String message) {
         LanguageManager lang = plugin.getLang();
         Team team = plugin.getTeamManager().getPlayerTeam(p.getName());
         boolean partidaActiva = plugin.getGameManager().isMatchActive();
 
-        // 1. CHAT GLOBAL (Empieza con "!")
-        if (mensaje.startsWith("!")) {
-            String mensajeLimpio = mensaje.substring(1).trim();
+        if (message.startsWith("!")) {
+            String cleanMessage = message.substring(1).trim();
 
-            if (mensajeLimpio.isEmpty()) {
+            if (cleanMessage.isEmpty()) {
                 p.sendMessage(lang.get("chat.empty-global-error", p));
                 return;
             }
 
-            sendGlobalMessage(p, team, mensajeLimpio, lang, partidaActiva);
+            sendGlobalMessage(p, team, cleanMessage, lang, partidaActiva);
             return;
         }
 
-        // --- PARA CHAT DE EQUIPO Y PRIVADO ---
-        String nombreBlanco = "§f" + p.getName() + "§r";
+        String whiteName = "§f" + p.getName() + "§r";
 
-        // 2. LOGICA DE CHAT DE EQUIPO
         if (team != null && plugin.getTeamManager().getMemberCount(team) > 1) {
             for (String entry : plugin.getTeamManager().getMemberNames(team)) {
                 Player member = Bukkit.getPlayer(entry);
                 if (member != null && member.isOnline()) {
-                    String formatoTeam = lang.get("chat.format-team", member)
+                    String teamFormat = lang.get("chat.format-team", member)
                             .replace("%team%", legacySection().serialize(team.displayName()))
-                            .replace("%player%", nombreBlanco)
-                            .replace("%msg%", mensaje);
-                    member.sendMessage(TextUtil.deserialize(formatoTeam));
+                            .replace("%player%", whiteName)
+                            .replace("%msg%", message);
+                    member.sendMessage(TextUtil.deserialize(teamFormat));
                 }
             }
-            Bukkit.getConsoleSender().sendMessage("[TeamChat] " + team.getName() + " - " + p.getName() + ": " + mensaje);
+            Bukkit.getConsoleSender().sendMessage("[TeamChat] " + team.getName() + " - " + p.getName() + ": " + message);
 
         } else {
-            // CHAT PRIVADO SIN EQUIPO
-            String formatoPrivado = lang.get("chat.format-private", p)
+            String privateFormat = lang.get("chat.format-private", p)
                     .replace("%tag%", lang.get("chat.private-tag", p))
-                    .replace("%player%", nombreBlanco)
-                    .replace("%msg%", mensaje);
+                    .replace("%player%", whiteName)
+                    .replace("%msg%", message);
 
-            p.sendMessage(TextUtil.deserialize(formatoPrivado));
+            p.sendMessage(TextUtil.deserialize(privateFormat));
         }
     }
 
     private void sendGlobalMessage(Player p, Team team, String msg, LanguageManager lang, boolean partidaActiva) {
-        String tagGlobal = lang.get("chat.global-tag", null);
+        String globalTag = lang.get("chat.global-tag", null);
 
-        Component formatoFinal = Component.empty()
+        Component finalFormat = Component.empty()
                 .color(NamedTextColor.DARK_GRAY)
                 .decoration(TextDecoration.OBFUSCATED, false)
-                .append(TextUtil.deserialize("&8[&c" + tagGlobal + "&8] ")
+                .append(TextUtil.deserialize("&8[&c" + globalTag + "&8] ")
                         .decoration(TextDecoration.OBFUSCATED, false));
 
         if (partidaActiva) {
-            formatoFinal = formatoFinal
+            finalFormat = finalFormat
                     .append(Component.text(msg, NamedTextColor.GRAY)
                             .decoration(TextDecoration.OBFUSCATED, false));
         } else {
-            Component nombre = Component.text(p.getName(), NamedTextColor.GOLD)
+            Component name = Component.text(p.getName(), NamedTextColor.GOLD)
                     .decoration(TextDecoration.OBFUSCATED, false);
-            formatoFinal = formatoFinal
-                    .append(nombre)
+            finalFormat = finalFormat
+                    .append(name)
                     .append(Component.text(": ", NamedTextColor.GRAY)
                             .decoration(TextDecoration.OBFUSCATED, false))
                     .append(Component.text(msg, NamedTextColor.GRAY)
                             .decoration(TextDecoration.OBFUSCATED, false));
         }
 
-        for (Player receptor : Bukkit.getOnlinePlayers()) {
-            receptor.sendMessage(formatoFinal);
+        for (Player receiver : Bukkit.getOnlinePlayers()) {
+            receiver.sendMessage(finalFormat);
         }
 
-        String consola = "&7[GlobalChat] [&f" + p.getName() + "&7]: &f" + msg;
-        Bukkit.getConsoleSender().sendMessage(TextUtil.deserialize(consola));
+        String consoleMessage = "&7[GlobalChat] [&f" + p.getName() + "&7]: &f" + msg;
+        Bukkit.getConsoleSender().sendMessage(TextUtil.deserialize(consoleMessage));
     }
 }

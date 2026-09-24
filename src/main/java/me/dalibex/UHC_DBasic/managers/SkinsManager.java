@@ -43,49 +43,31 @@ import net.skinsrestorer.api.storage.SkinStorage;
 import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
 /**
- * Responsable de la identidad visual de los jugadores: rotación de skins
- * (escalonada, respetando combate), revelación de identidad, re-sincronización
- * al reconectar y la cabeza de muerte con la skin REAL del fallecido.
- *
- * <p>La identidad se indexa internamente por NOMBRE del jugador en minúsculas
- * (clave canónica del plugin, igual que participantes/eliminados de
- * {@link GameManager}): {@link #jugadoresRevelados}, {@link #ultimaSkinAsignada}
- * y {@link #combatTags} usan names en minúsculas.
+ * Owns visual identity: skin rotation, identity reveal, reconnect resync, and real-skin death heads.
+ * Identity state is keyed by lower-case player name, matching participants and eliminated players.
  */
 public class SkinsManager {
 
-    /** Ventana de combate durante la cual no se cambia la skin a un jugador. */
     private static final long COMBAT_WINDOW_MS = 30_000L;
-    /** Intervalo entre jugador y jugador en la rotación (5 segundos). */
     private static final long ROTATION_INTERVAL_TICKS = 100L;
-    /** Retardo inicial de la rotación tras empezar (10 segundos). */
     private static final long ROTATION_START_TICKS = 200L;
-    /** Reintentos máximos de un jugador en combate antes de saltarlo en la rotación. */
-    private static final int COMBATE_REINTENTOS_MAX = 6;
-    /** Intentos máximos de barajado cumpliendo todas las reglas anti-repetición. */
-    private static final int SHUFFLE_INTENTOS = 30;
-    /** Intentos máximos del fallback solo no-propia. */
-    private static final int SHUFFLE_FALLBACK_INTENTOS = 100;
+    private static final int MAX_COMBAT_RETRIES = 6;
+    private static final int SHUFFLE_ATTEMPTS = 30;
+    private static final int SHUFFLE_FALLBACK_ATTEMPTS = 100;
 
     private final UHC_DBasic plugin;
     private final GameManager gm;
     private final SkinsRestorer skinsApi;
 
-    /** Jugadores revelados (su identidad real ya se mostró), por nombre en minúsculas. */
     private final Set<String> jugadoresRevelados = new HashSet<>();
-    /** Skin falsa asignada por jugador (nombre en minúsculas → nombre de la skin). */
     private final Map<String, String> ultimaSkinAsignada = new HashMap<>();
-    /** Timestamp del último golpe por jugador (nombre en minúsculas → ms). */
     private final Map<String, Long> combatTags = new HashMap<>();
 
-    /** Caché de la skin REAL de cada jugador por nombre (minúsculas). Se
-     *  alimenta al resolver skins durante la rotación y es la fuente fiable
-     *  para restaurar la skin propia en el reset. Persiste entre partidas. */
+    /** Real skin cache by lower-case name, populated during rotation and kept across matches. */
     private final Map<String, SkinProperty> skinRealPorNombre = new HashMap<>();
 
-    /** Tarea de rotación activa (una por partida/fase); se cancela al resetear o al rotar de nuevo. */
     private BukkitTask rotacionTask;
-    /** Generación de identidad: invalida aplicaciones asíncronas pendientes de partidas/rotaciones previas. */
+    /** Identity generation used to invalidate async work from previous rotations. */
     private volatile long generacion = 0;
 
     public SkinsManager(UHC_DBasic plugin) {
@@ -95,29 +77,22 @@ public class SkinsManager {
     }
 
     // ------------------------------------------------------------------
-    // Lógica pura (testeable sin servidor)
+    // Pure logic, testable without a server.
     // ------------------------------------------------------------------
 
-    /** Clave normalizada de un nombre de jugador. */
+    /** Normalized key for a player name. */
     static String key(String name) {
         return name == null ? "" : name.toLowerCase(Locale.ROOT);
     }
 
-    /**
-     * Comprueba si el último golpe del jugador está dentro de la ventana de combate.
-     * Pura: no usa Bukkit.
-     */
+    /** Pure combat-window check. */
     static boolean isCombatActive(Long since, long now, long windowMs) {
         return since != null && now - since < windowMs;
     }
 
     /**
-     * Baraja las identidades de la partida y devuelve la asginación
-     * (nombre minúsculas → nombre de skin, con la capitalización original).
-     *
-     * <p>Pura (sin Bukkit). Reglas anti-repetición: ni la propia skin ni la que el
-     * jugador llevaba en la rotación anterior (en {@code ultimaPorNombre}). Con
-     * menos de 2 vivos devuelve un mapa vacío.
+     * Returns the current match skin assignment: lower-case player name -> skin name.
+     * Pure: avoids own skin and previous assigned skin when possible.
      */
     static Map<String, String> assignNewSkins(List<String> vivos, Map<String, String> ultimaPorNombre) {
         return assignNewSkins(vivos, ultimaPorNombre, new Random());
@@ -131,7 +106,7 @@ public class SkinsManager {
         List<String> asignados = new ArrayList<>(vivos);
         boolean asignacionValida = false;
         int intentos = 0;
-        while (!asignacionValida && intentos < SHUFFLE_INTENTOS) {
+        while (!asignacionValida && intentos < SHUFFLE_ATTEMPTS) {
             Collections.shuffle(asignados, random);
             asignacionValida = true;
             for (int i = 0; i < vivos.size(); i++) {
@@ -145,9 +120,9 @@ public class SkinsManager {
             intentos++;
         }
 
-        // Esfuerzo final: aunque cumpla las reglas, al menos evitar la propia skin.
+        // Final effort: at least avoid assigning a player their own skin.
         if (!asignacionValida) {
-            for (int k = 0; k < SHUFFLE_FALLBACK_INTENTOS && !asignacionValida; k++) {
+            for (int k = 0; k < SHUFFLE_FALLBACK_ATTEMPTS && !asignacionValida; k++) {
                 Collections.shuffle(asignados, random);
                 asignacionValida = true;
                 for (int i = 0; i < vivos.size(); i++) {
@@ -159,8 +134,7 @@ public class SkinsManager {
             }
         }
 
-        // Garantía determinista: nadie acaba con su propia skin, sea cual sea el
-        // resultado de los barajados anteriores.
+        // Deterministic safety net: nobody keeps their own skin.
         repairSelfAssignments(asignados, vivos);
 
         for (int i = 0; i < vivos.size(); i++) {
@@ -169,10 +143,7 @@ public class SkinsManager {
         return asignacion;
     }
 
-    /**
-     * Repara una asignación (permutación de los vivos) para que ningún jugador
-     * acabe con su propia skin, intercambiando skins. Pura y determinista.
-     */
+    /** Repairs a live-player permutation so nobody keeps their own skin. */
     static void repairSelfAssignments(List<String> asignados, List<String> vivos) {
         List<Integer> conPropia = new ArrayList<>();
         for (int i = 0; i < vivos.size(); i++) {
@@ -180,13 +151,12 @@ public class SkinsManager {
         }
         if (conPropia.isEmpty()) return;
 
-        // Emparejar los que llevan su propia skin: intercambiar sus skins entre sí.
+        // Pair self-assigned players and swap their skins.
         for (int j = 0; j + 1 < conPropia.size(); j += 2) {
             Collections.swap(asignados, conPropia.get(j), conPropia.get(j + 1));
         }
 
-        // El último sin pareja lo intercambia con otro jugador que no le devuelva
-        // su propia skin (con n >= 2 siempre existe: esa skin solo la lleva él).
+        // The odd one swaps with someone who will not receive their own skin.
         if (conPropia.size() % 2 == 1) {
             int solo = conPropia.get(conPropia.size() - 1);
             for (int i = 0; i < vivos.size(); i++) {
@@ -203,26 +173,19 @@ public class SkinsManager {
     }
 
     /**
-     * Procesa un tick de rotación para el siguiente jugador de la cola y
-     * devuelve el nombre cuya skin hay que aplicar, o {@code null} si este tick
-     * no hay nada que aplicar.
-     *
-     * <p>Pura (sin Bukkit): las comprobaciones de conexión/combate entran como
-     * predicados. Muta {@code cola} y {@code reintentos}:
-     * desconectado → descartado; ya revelado → descartado; en combate →
-     * reintentado al final de la cola (máx. {@link #COMBATE_REINTENTOS_MAX}
-     * intentos, luego saltado).
+     * Processes one rotation queue tick and returns the player whose skin should be applied.
+     * Pure: online/combat checks come from predicates; queue and retries are mutated intentionally.
      */
     static String nextNameToSkin(ArrayDeque<String> cola, Map<String, Integer> reintentos,
             Set<String> revelados, Predicate<String> isOnline, Predicate<String> isInCombat) {
         String name = cola.poll();
         if (name == null) return null;
-        if (!isOnline.test(name)) return null;              // desconectado: se descarta
-        if (revelados.contains(key(name))) return null;     // ya revelado: no volver a camuflar
+        if (!isOnline.test(name)) return null;
+        if (revelados.contains(key(name))) return null;
         if (isInCombat.test(name)) {
             int intento = reintentos.merge(key(name), 1, Integer::sum);
-            if (intento < COMBATE_REINTENTOS_MAX) {
-                cola.addLast(name); // reintentar más tarde sin tocar su skin
+            if (intento < MAX_COMBAT_RETRIES) {
+                cola.addLast(name);
             }
             return null;
         }
@@ -231,13 +194,10 @@ public class SkinsManager {
     }
 
     // ------------------------------------------------------------------
-    // Rotación
+    // Rotation.
     // ------------------------------------------------------------------
 
-    /**
-     * Marca a un jugador como recién golpeado. Mientras esté dentro de la
-     * ventana {@link #COMBAT_WINDOW_MS}, la rotación respetará su skin actual.
-     */
+    /** Marks a player as recently hit so rotation can avoid changing them during combat. */
     public void markInCombat(Player p) {
         if (p == null) return;
         combatTags.put(key(p.getName()), System.currentTimeMillis());
@@ -247,21 +207,12 @@ public class SkinsManager {
         return isCombatActive(combatTags.get(key(name)), System.currentTimeMillis(), COMBAT_WINDOW_MS);
     }
 
-    /**
-     * Baraja las identidades de la partida actual y las aplica de forma
-     * escalonada: un jugador cada {@link #ROTATION_INTERVAL_TICKS}.
-     *
-     * <p>Un jugador en combate se reintenta (máx. 30 s, el mismo tamaño que la
-     * ventana de combate) y, si sigue ocupado, se salta para que la cola avance.
-     * Un jugador desconectado se descarta: al reconectar se re-sincroniza su
-     * skin (reapplyCurrentSkin / onPlayerJoin).
-     */
+    /** Shuffles current-match identities and applies them gradually. */
     public void rotateSkins() {
         cancelarRotacion();
         generacion++;
 
-        // Una revelación es global durante el episodio actual. Cada rotación
-        // empieza un episodio nuevo y vuelve a enmascarar todas las identidades.
+        // Each rotation starts a new episode-level identity mask.
         jugadoresRevelados.clear();
 
         List<String> vivosNombres = gm.getInitialParticipants().stream()
@@ -275,8 +226,7 @@ public class SkinsManager {
         ultimaSkinAsignada.clear();
         ultimaSkinAsignada.putAll(nuevaAsignacion);
 
-        // Aplicar escalonado: emite a los 10 segundos y luego 1 jugador cada
-        // 5 segundos (ver nextNameToSkin para el detalle de combate/offline).
+        // Apply gradually: initial delay, then one player per interval.
         ArrayDeque<String> cola = new ArrayDeque<>(vivosNombres);
         Map<String, Integer> reintentos = new HashMap<>();
         rotacionTask = new BukkitRunnable() {
@@ -286,8 +236,7 @@ public class SkinsManager {
                     cancel();
                     return;
                 }
-                // Si la partida terminó o se reseteó, la rotación ya no tiene
-                // sentido: se cancela en vez de seguir reapicando fakes.
+                // Stop when the match ended or reset; fake skins are no longer meaningful.
                 if (gm.getPhase() != GamePhase.RUNNING && gm.getPhase() != GamePhase.PAUSED) {
                     cancel();
                     return;
@@ -306,10 +255,7 @@ public class SkinsManager {
         }.runTaskTimer(plugin, ROTATION_START_TICKS, ROTATION_INTERVAL_TICKS);
     }
 
-    /**
-     * Aplica una skin por nombre a un jugador (búsqueda asíncrona, posible
-     * red). Actualiza el nombre visual y, si {@code notify}, avisa al jugador.
-     */
+    /** Applies a skin by name asynchronously, then refreshes visual identity and optionally notifies. */
     private void applySkinByNameAsync(Player p, String nombreSkin, boolean notify) {
         UUID playerId = p.getUniqueId();
         String playerName = p.getName();
@@ -324,33 +270,28 @@ public class SkinsManager {
                     if (generacionSolicitada != generacion) return;
                     Player current = Bukkit.getPlayer(playerId);
                     if (current == null || !current.isOnline() || !current.getName().equals(playerName)) return;
-                    // Nunca recamuflejar a un jugador ya revelado con una skin ajena.
+                    // Never remask a revealed player with someone else's skin.
                     if (!esPropia && jugadoresRevelados.contains(key(playerName))) return;
-                    // Tanto la caché local como el ID persistente se mutan solo
-                    // en main y únicamente para la generación que los solicitó.
+                    // Local cache and persistent skin id mutate only on main for the active generation.
                     skinRealPorNombre.put(key(nombreSkin), result.get().getProperty());
                     PlayerStorage playerStorage = skinsApi.getPlayerStorage();
                     playerStorage.setSkinIdOfPlayer(playerId, result.get().getIdentifier());
                     try {
                         skinsApi.getSkinApplier(Player.class).applySkin(current);
                     } catch (DataRequestException e) {
-                        plugin.getLogger().warning(() -> "Error aplicando skin: " + e.getMessage());
+                        plugin.getLogger().warning(() -> "Error applying skin: " + e.getMessage());
                     }
                     updateVisualIdentity(current);
                     if (notify) notifyIdentityChanged(current);
                 });
             } catch (DataRequestException | MineSkinException e) {
                 Bukkit.getScheduler().runTask(plugin, () -> plugin.getLogger()
-                        .warning(() -> "Error al aplicar skin a " + playerName + ": " + e.getMessage()));
+                        .warning(() -> "Error applying skin to " + playerName + ": " + e.getMessage()));
             }
         });
     }
 
-    /**
-     * Re-aplica la skin correcta a un jugador que reconecta: la falsa asignada
-     * si aún no fue revelado, o su propia skin si ya lo fue. Sin mensaje: debe
-     * ser transparente.
-     */
+    /** Reapplies the correct reconnect skin without notifying the player. */
     public void reapplyCurrentSkin(Player p) {
         if (p == null) return;
         if (jugadoresRevelados.contains(key(p.getName()))) {
@@ -360,10 +301,7 @@ public class SkinsManager {
         }
     }
 
-    /**
-     * Revela la identidad real de un jugador (muerte por combate o fin de
-     * partida): nombre real + su propia skin.
-     */
+    /** Reveals a player's real identity: real name and own skin. */
     public void revealIdentity(Player p) {
         if (p == null || jugadoresRevelados.contains(key(p.getName()))) return;
 
@@ -372,22 +310,13 @@ public class SkinsManager {
         restaurarSkinPropia(p);
     }
 
-    /**
-     * Restaura la identidad propia sin marcar al jugador como revelado. Se usa
-     * fuera de una partida (lobby/reset), donde no existe revelación de episodio.
-     */
+    /** Restores own identity without marking the player as revealed. */
     public void restoreOwnIdentity(Player p) {
         if (p == null) return;
         restaurarSkinPropia(p);
     }
 
-    /**
-     * Restaura la skin REAL del jugador de forma fiable y sin red. Prioriza la
-     * caché propia (alimentada durante la rotación, donde la skin de cada
-     * jugador se resuelve por nombre) y aplica directamente la SkinProperty;
-     * si no está en caché cae a la caché de SkinsRestorer y solo como último
-     * recurso a la búsqueda asíncrona.
-     */
+    /** Restores the player's real skin from the local cache, falling back to async lookup. */
     private void restaurarSkinPropia(Player p) {
         SkinProperty propia = skinRealPorNombre.get(key(p.getName()));
         if (propia == null) {
@@ -396,10 +325,9 @@ public class SkinsManager {
         }
 
         skinRealPorNombre.put(key(p.getName()), propia);
-        // Reapuntar el almacén persistente a su propia skin para que
-        // futuros rejoin/respawn mantengan la skin real.
+        // Point persistent storage back to their own skin for future rejoin/respawn.
         skinsApi.getPlayerStorage().setSkinIdOfPlayer(p.getUniqueId(), SkinIdentifier.ofPlayer(p.getUniqueId()));
-        // Aplicar la SkinProperty ya resuelta: sin Mojang ni resolución.
+        // Apply the already-resolved SkinProperty: no Mojang/network lookup.
         skinsApi.getSkinApplier(Player.class).applySkin(p, propia);
         updateVisualIdentity(p);
     }
@@ -411,14 +339,7 @@ public class SkinsManager {
         p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1f, 1f);
     }
 
-    /**
-     * Aplica a la cabeza de jugador la skin REAL del fallecido (la suya), no
-     * la falsa que llevaba puesta mientras andaba camuflado.
-     *
-     * <p>Como todas las skins falsas son las reales de otros participantes, la
-     * de la víctima ya suele estar en la caché de SkinsRestorer y se aplica
-     * en el mismo tick por su nombre. Si no, se resuelve en segundo plano.
-     */
+    /** Applies the victim's real skin to their death head, never the fake skin they were wearing. */
     public void applyOwnHead(Skull skull, Player victim) {
         String victimName = victim.getName();
         UUID victimId = victim.getUniqueId();
@@ -445,7 +366,7 @@ public class SkinsManager {
                 }
             } catch (DataRequestException | MineSkinException e) {
                 Bukkit.getScheduler().runTask(plugin, () -> plugin.getLogger()
-                        .warning(() -> "Cabeza de " + victimName + " no resuelta: " + e.getMessage()));
+                        .warning(() -> "Could not resolve head for " + victimName + ": " + e.getMessage()));
             }
         });
     }
@@ -457,12 +378,12 @@ public class SkinsManager {
             Location loc = new Location(Bukkit.getWorld(worldId), x, y, z);
             if (!(loc.getBlock().getState() instanceof Skull skull)) return;
             if (loc.getBlock().getType() != Material.PLAYER_HEAD) return;
-            PlayerProfile perfil = Bukkit.createProfile(victimId, victimName);
-            perfil.setProperty(new ProfileProperty("textures", property.getValue(), property.getSignature()));
-            skull.setProfile(ResolvableProfile.resolvableProfile(perfil));
+            PlayerProfile profile = Bukkit.createProfile(victimId, victimName);
+            profile.setProperty(new ProfileProperty("textures", property.getValue(), property.getSignature()));
+            skull.setProfile(ResolvableProfile.resolvableProfile(profile));
             skull.update();
         } catch (IllegalArgumentException e) {
-            plugin.getLogger().warning(() -> "Perfil de cabeza inválido para " + victimName);
+            plugin.getLogger().warning(() -> "Invalid head profile for " + victimName);
         }
     }
 
@@ -470,13 +391,9 @@ public class SkinsManager {
         if (p == null) return;
 
         plugin.getTABManager().updateTabIdentity(p);
-        // TAB (scoreboard-teams) puede reasignar la entry del jugador a un equipo
-        // propio al refrescar su nametag/prefix; se re-incorpora al equipo h_*
-        // para que el scoreboard refleje de nuevo la pertenencia real.
+        // TAB may move the entry to its own scoreboard team; restore h_* membership after refresh.
         plugin.getTeamManager().resyncPlayerEntry(p.getName());
-        // El refresh de skin/TAB puede hacer que el cliente vuelva a apuntar la
-        // brújula al spawn aunque la distancia calculada siga siendo correcta.
-        // Invalidar la caché fuerza a reenviar el target real en el siguiente tick.
+        // Skin/TAB refresh may reset client compass target to spawn; force the next real target update.
         plugin.getItemsListener().clearCompassTarget(p);
 
         GamePhase phase = gm.getPhase();
@@ -492,16 +409,12 @@ public class SkinsManager {
         }
     }
 
-    /**
-     * Jugadores cuya identidad real ya fue revelada (nombres en minúsculas).
-     */
+    /** Returns lower-case names whose real identity has been revealed. */
     public Set<String> getRevealedPlayers() {
         return Set.copyOf(jugadoresRevelados);
     }
 
-    /**
-     * Mapa de skin falsa asignada por jugador (nombre minúsculas → nombre de skin).
-     */
+    /** Returns fake skin assignment by lower-case player name. */
     public Map<String, String> getLastAssignedSkin() {
         return Map.copyOf(ultimaSkinAsignada);
     }
@@ -521,10 +434,7 @@ public class SkinsManager {
         }
     }
 
-    /**
-     * Limpia el estado de identidad entre partidas: revelados por combate,
-     * historial de skins y marcas de combate.
-     */
+    /** Clears per-match identity state. */
     public void reset() {
         cancelarRotacion();
         generacion++;

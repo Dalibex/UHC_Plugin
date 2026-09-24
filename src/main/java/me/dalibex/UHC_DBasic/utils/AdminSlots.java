@@ -1,17 +1,15 @@
-package me.dalibex.UHC_DBasic.managers;
+package me.dalibex.UHC_DBasic.utils;
 
 /**
- * Única fuente de verdad para los slots de los inventarios del panel de admin.
- * Tanto AdminPanelManager (construcción de los menús) como AdminPanelListener
- * (manejo de clics) deben referenciar estas constantes en lugar de números
- * mágicos, para evitar la deriva entre lo que se dibuja y lo que se interpreta
+ * Single source of truth for admin panel inventory slots.
+ * Builders and click handlers must use these constants to avoid drift.
  */
 public final class AdminSlots {
 
     private AdminSlots() {
     }
 
-    // ---- Panel principal (9 slots) ----
+    // ---- Main panel (9 slots) ----
     public static final int MAIN_COMBAT = 0;
     public static final int MAIN_GENERAL_RULES = 1;
     public static final int MAIN_GAME_RULES = 2;
@@ -21,51 +19,52 @@ public final class AdminSlots {
     public static final int MAIN_CUSTOM_TEAMS = 7;
     public static final int MAIN_TEAMS_SIZE = 8;
 
-    // ---- Panel de modos de juego (9 slots) ----
+    // ---- Gamemode panel (9 slots) ----
     public static final int GAMEMODE_BACK = 0;
     public static final int GAMEMODE_CLASSIC = 2;
     public static final int GAMEMODE_RESOURCE_RUSH = 4;
 
-    // ---- Panel de reglas generales (hub, 27 slots) ----
+    // ---- General rules hub (27 slots) ----
     public static final int GENERAL_SHULKERS_MENU = 11;
     public static final int GENERAL_PVP_EPISODE_MENU = 13;
     public static final int GENERAL_TEAMS_EPISODE_MENU = 15;
     public static final int GENERAL_BACK = 18;
 
-    // ---- Sub-panel de shulkers de episodio (27 slots) ----
+    // ---- Episode shulkers panel (27 slots) ----
     public static final int SHULKERS_TOGGLE_1 = 10;
     public static final int SHULKERS_EPISODE_1 = 12;
     public static final int SHULKERS_EPISODE_2 = 14;
     public static final int SHULKERS_TOGGLE_2 = 16;
     public static final int SHULKERS_BACK = 18;
 
-    // ---- Sub-panel de episodio de shulkers (45 slots) ----
+    public static final int[] EPISODE_BUTTONS = {20, 21, 22, 23, 24, 29, 30, 31, 32, 33};
+
+    // ---- Shulker episode selector (45 slots) ----
     public static final int SHULKER_EPISODE_INFO = 13;
     public static final int SHULKER_EPISODE_BACK = 40;
-    public static final int[] SHULKER_EPISODE_BUTTONS = {20, 21, 22, 23, 24, 29, 30, 31, 32, 33};
+    public static final int[] SHULKER_EPISODE_BUTTONS = EPISODE_BUTTONS;
 
-    // ---- Sub-panel de episodio de formación de equipos (45 slots) ----
+    // ---- Team formation episode selector (45 slots) ----
     public static final int TEAMS_EPISODE_INFO = 13;
     public static final int TEAMS_EPISODE_BACK = 40;
-    public static final int[] TEAMS_EPISODE_BUTTONS = {20, 21, 22, 23, 24, 29, 30, 31, 32, 33};
+    public static final int[] TEAMS_EPISODE_BUTTONS = EPISODE_BUTTONS;
 
-    // ---- Sub-panel de episodio de activación de PVP (45 slots) ----
+    // ---- PVP episode selector (45 slots) ----
     public static final int PVP_EPISODE_INFO = 13;
     public static final int PVP_EPISODE_BACK = 40;
     public static final int[] PVP_EPISODE_BUTTONS = TEAMS_EPISODE_BUTTONS;
 
     /**
-     * Devuelve el episodio (1-10) asociado a un slot del sub-panel, o -1 si
-     * el slot no es un botón de episodio.
+     * Returns the episode (1-10) mapped to a selector slot, or -1 otherwise.
      */
     public static int episodeForSlot(int slot) {
-        for (int i = 0; i < TEAMS_EPISODE_BUTTONS.length; i++) {
-            if (TEAMS_EPISODE_BUTTONS[i] == slot) return i + 1;
+        for (int i = 0; i < EPISODE_BUTTONS.length; i++) {
+            if (EPISODE_BUTTONS[i] == slot) return i + 1;
         }
         return -1;
     }
 
-    // ---- Panel de gamerules (36 slots) ----
+    // ---- Gamerules panel (36 slots) ----
     public static final int RULES_NATURAL_REGENERATION = 10;
     public static final int RULES_PVP = 11;
     public static final int RULES_DAY_NIGHT = 12;
@@ -75,7 +74,7 @@ public final class AdminSlots {
     public static final int RULES_LOCATOR = 16;
     public static final int RULES_BACK = 27;
 
-    // ---- Panel del borde (36 slots) ----
+    // ---- Border panel (36 slots) ----
     public static final int BORDER_INFO = 13;
     public static final int BORDER_MINUS_10 = 10;
     public static final int BORDER_MINUS_100 = 11;
@@ -87,7 +86,21 @@ public final class AdminSlots {
     public static final int BORDER_PLUS_1000 = 25;
     public static final int BORDER_BACK = 31;
 
-    // ---- Panel de tiempo (27 slots) ----
+    public static int borderDeltaForSlot(int slot) {
+        return switch (slot) {
+            case BORDER_MINUS_10 -> -10;
+            case BORDER_MINUS_100 -> -100;
+            case BORDER_MINUS_500 -> -500;
+            case BORDER_MINUS_1000 -> -1000;
+            case BORDER_PLUS_10 -> 10;
+            case BORDER_PLUS_100 -> 100;
+            case BORDER_PLUS_500 -> 500;
+            case BORDER_PLUS_1000 -> 1000;
+            default -> 0;
+        };
+    }
+
+    // ---- Time panel (27 slots) ----
     public static final int TIME_INFO = 13;
     public static final int TIME_MINUS_1 = 10;
     public static final int TIME_MINUS_5 = 11;
@@ -97,4 +110,16 @@ public final class AdminSlots {
     public static final int TIME_PLUS_10 = 16;
     public static final int TIME_PAUSE = 21;
     public static final int TIME_BACK = 18;
+
+    public static int timeDeltaMinutesForSlot(int slot) {
+        return switch (slot) {
+            case TIME_MINUS_1 -> -1;
+            case TIME_MINUS_5 -> -5;
+            case TIME_MINUS_10 -> -10;
+            case TIME_PLUS_1 -> 1;
+            case TIME_PLUS_5 -> 5;
+            case TIME_PLUS_10 -> 10;
+            default -> 0;
+        };
+    }
 }

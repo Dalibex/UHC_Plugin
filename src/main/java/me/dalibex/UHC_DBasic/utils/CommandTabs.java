@@ -11,18 +11,13 @@ import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Utilidades compartidas para el autocompletado (TAB) de comandos del plugin.
- */
+/** Shared command tab-completion helpers. */
 public final class CommandTabs {
 
     private CommandTabs() {
     }
 
-    /**
-     * TabCompleter vacío: el servidor no sugerirá nada (evita el autocompletado
-     * por defecto con nombres de jugadores en comandos sin argumentos).
-     */
+    /** Empty TabCompleter, preventing default player-name suggestions. */
     public static final TabCompleter NO_SUGGESTIONS = new TabCompleter() {
         @Override
         public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
@@ -30,10 +25,7 @@ public final class CommandTabs {
         }
     };
 
-    /**
-     * Filtra una lista de opciones según el prefijo tecleado (sin importar
-     * mayúsculas). Con token vacío devuelve todas las opciones.
-     */
+    /** Filters options by case-insensitive prefix, returning all options for an empty token. */
     public static List<String> prefixFilter(List<String> options, String token) {
         String t = token.toLowerCase(Locale.ROOT);
         Predicate<String> match = o -> o.toLowerCase(Locale.ROOT).startsWith(t);

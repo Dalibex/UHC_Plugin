@@ -18,11 +18,15 @@ import me.dalibex.UHC_DBasic.utils.TimeUtil;
 import me.dalibex.UHC_DBasic.utils.UpdateChecker;
 import net.kyori.adventure.text.Component;
 
-/**
- * Listener especializado en el manejo de conexiones y desconexiones de jugadores.
- * Gestiona el spawn inicial, reconexiones a partidas en curso y sincronización de scoreboards.
- */
+/** Handles joins, active-match reconnects, and scoreboard synchronization. */
 public class PlayerConnectionListener implements Listener {
+
+    private static final double ATTACK_SPEED_1_8 = 1024.0;
+    private static final double DEFAULT_ATTACK_SPEED = 4.0;
+    private static final long FIRST_SKIN_SYNC_DELAY_TICKS = 1L;
+    private static final long SECOND_SKIN_SYNC_DELAY_TICKS = 20L;
+    private static final long UPDATE_NOTICE_RETRY_DELAY_TICKS = 80L;
+    private static final String RELEASES_URL = "https://github.com/Dalibex/UHC_Plugin/releases";
 
     private final UHC_DBasic plugin;
 
@@ -35,15 +39,14 @@ public class PlayerConnectionListener implements Listener {
         Player p = event.getPlayer();
         GameManager gm = plugin.getGameManager();
         UHCGameMode modo = gm.getCurrentMode();
-        // 1. Manejo de estados de juego (Partida iniciada vs Lobby)
+
         if (gm.isGameStarted()) {
             handleInGameJoin(p, gm);
         } else {
             handleLobbyJoin(p);
         }
 
-        // 2. Aplicar mecánicas globales (Velocidad de ataque)
-        double attackSpeedValue = plugin.getAdminPanel().isCombate18() ? 1024.0 : 4.0;
+        double attackSpeedValue = plugin.getAdminPanel().isCombate18() ? ATTACK_SPEED_1_8 : DEFAULT_ATTACK_SPEED;
         if (p.getAttribute(Attribute.ATTACK_SPEED) != null) {
             var attackSpeed = p.getAttribute(Attribute.ATTACK_SPEED);
             if (attackSpeed != null) {
@@ -51,16 +54,11 @@ public class PlayerConnectionListener implements Listener {
             }
         }
 
-        // 3. Sincronización de Scoreboard
         updateAllScoreboards(gm, modo);
-
-        // 4. Notificación de actualizaciones para todos los jugadores
         handleUpdateNotice(p);
     }
 
-    /**
-     * Maneja el ingreso al juego cuando hay una partida activa.
-     */
+    /** Handles joins while the game has already started. */
     private void handleInGameJoin(Player p, GameManager gm) {
         GamePhase phase = gm.getPhase();
         if (phase == GamePhase.PREPARING || phase == GamePhase.COUNTDOWN) {
@@ -78,24 +76,18 @@ public class PlayerConnectionListener implements Listener {
             p.setGameMode(GameMode.SPECTATOR);
         } else {
             p.setGameMode(GameMode.SURVIVAL);
-            // Synch identidad: re-aplica la skin correcta (falsa si aún no fue
-            // revelado, la propia si ya lo fue). Durante PlayerJoinEvent TAB
-            // aún no ha cargado al jugador y lanzaría IllegalStateException;
-            // se difiere la actualización visual a los 1 y 20 ticks.
+            // TAB may not be ready during PlayerJoinEvent, so visual identity is synced twice.
             plugin.getSkinsManager().reapplyCurrentSkin(p);
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 if (p.isOnline()) plugin.getSkinsManager().updateVisualIdentity(p);
-            }, 1L);
+            }, FIRST_SKIN_SYNC_DELAY_TICKS);
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 if (p.isOnline()) plugin.getSkinsManager().updateVisualIdentity(p);
-            }, 20L);
+            }, SECOND_SKIN_SYNC_DELAY_TICKS);
         }
     }
 
-    /**
-     * Avisa en el chat si hay una versión más reciente del plugin.
-     * Si el check asíncrono aún no ha terminado, reintenta una vez en breve.
-     */
+    /** Sends an update notice, retrying once if the async check is still running. */
     private void handleUpdateNotice(Player p) {
         if (UpdateChecker.isCheckDone()) {
             if (UpdateChecker.isUpdateAvailable()) {
@@ -107,29 +99,24 @@ public class PlayerConnectionListener implements Listener {
             if (p.isOnline() && UpdateChecker.isUpdateAvailable()) {
                 sendUpdateNotice(p);
             }
-        }, 80L);
+        }, UPDATE_NOTICE_RETRY_DELAY_TICKS);
     }
 
     private void sendUpdateNotice(Player p) {
         String latest = UpdateChecker.getLatestVersionFound();
         String actual = plugin.getPluginMeta().getVersion();
-        String url = "https://github.com/Dalibex/UHC_Plugin/releases";
         p.sendMessage(Component.empty());
         p.sendMessage(plugin.getLang().get("general.update-available", p).replace("%latest%", latest).replace("%current%", actual));
-        p.sendMessage(plugin.getLang().get("general.update-download", p).replace("%url%", url));
+        p.sendMessage(plugin.getLang().get("general.update-download", p).replace("%url%", RELEASES_URL));
         p.sendMessage(Component.empty());
     }
 
-    /**
-     * Gestiona el ingreso del jugador en el lobby previo a la partida.
-     */
+    /** Handles lobby joins before the match starts. */
     private void handleLobbyJoin(Player p) {
         plugin.getGameManager().applyLobbySettings(p);
     }
 
-    /**
-     * Fuerza la actualización del scoreboard para todos los jugadores online.
-     */
+    /** Forces scoreboard refresh for every online player. */
     private void updateAllScoreboards(GameManager gm, UHCGameMode modo) {
         int crono = gm.getTotalSeconds();
         String timeStr = TimeUtil.formatClock(crono);

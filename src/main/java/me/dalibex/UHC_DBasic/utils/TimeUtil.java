@@ -1,17 +1,12 @@
 package me.dalibex.UHC_DBasic.utils;
 
-/**
- * Utilidad para el formateo de duraciones.
- * Centraliza los formatos de tiempo del plugin para evitar duplicarlos.
- */
+/** Centralized duration formatting helpers. */
 public final class TimeUtil {
 
     private TimeUtil() {
     }
 
-    /**
-     * Formatea segundos como reloj: "MM:SS" o "HH:MM:SS" cuando supera la hora.
-     */
+    /** Formats seconds as "MM:SS" or "HH:MM:SS" when at least one hour. */
     public static String formatClock(int totalSeconds) {
         int h = totalSeconds / 3600;
         int m = (totalSeconds % 3600) / 60;
@@ -19,9 +14,7 @@ public final class TimeUtil {
         return (h > 0) ? String.format("%02d:%02d:%02d", h, m, sec) : String.format("%02d:%02d", m, sec);
     }
 
-    /**
-     * Formatea segundos como "HHh MMm SSs" (siempre con dos dígitos por unidad).
-     */
+    /** Formats seconds as "HHh MMm SSs" with two digits per unit. */
     public static String formatHms(int totalSeconds) {
         int h = totalSeconds / 3600;
         int m = (totalSeconds % 3600) / 60;

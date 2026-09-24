@@ -1,15 +1,14 @@
 package me.dalibex.UHC_DBasic.managers;
 
 /**
- * Estado global de la partida. Sustituye al par de booleanos
- * (partidaIniciada / pausado) como ÚNICA fuente de verdad.
- * INITIALIZING -> Plugin cargando antes del reset automático.
- * LOBBY        -> Partida no iniciada (menú de admin, espera de jugadores).
- * PREPARING    -> Roster cerrado y jugadores siendo distribuidos.
- * COUNTDOWN    -> Cuenta atrás previa al inicio efectivo.
- * RUNNING      -> Partida en curso, tiempo avanzando.
- * PAUSED       -> Partida en curso pero con el cronómetro pausado (DYE del panel).
- * ENDING       -> Partida finalizándose.
+ * Global game phase and single source of truth for startup/running/pause state.
+ * INITIALIZING -> Plugin loading before the automatic reset.
+ * LOBBY        -> Match not started; admin menu and player waiting state.
+ * PREPARING    -> Roster locked and players being scattered.
+ * COUNTDOWN    -> Countdown before gameplay starts.
+ * RUNNING      -> Active match with time advancing.
+ * PAUSED       -> Active match with the timer paused.
+ * ENDING       -> Match finishing.
  */
 public enum GamePhase {
     INITIALIZING,

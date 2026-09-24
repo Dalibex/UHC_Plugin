@@ -15,10 +15,7 @@ import org.jetbrains.annotations.Nullable;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.utils.CommandTabs;
 
-/**
- * Permite al admin elegir en qué episodio (parte) se forman los equipos:
- * cuándo se entregan las brújulas y se anuncia la formación.
- */
+/** Lets admins choose which episode forms teams and delivers compasses. */
 public class SetTeamEpisodeCommand implements CommandExecutor, TabCompleter {
 
     public static final int MIN_EPISODE = 1;

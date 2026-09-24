@@ -4,29 +4,18 @@ import org.bukkit.entity.Player;
 
 public interface UHCGameMode {
 
-    /**
-     * Devuelve el nombre interno del modo.
-     */
+    /** Returns the internal mode name. */
     String getName();
 
-    /**
-     * Se ejecuta cada segundo. Aquí va la lógica de eventos de tiempo
-     * (entregar shulkers, activar pvp, sonidos de capítulos).
-     */
+    /** Runs every second for timed mode events. */
     void onTick(int cronometroSegundos, int tiempoTotalSegundos);
 
-    /**
-     * Define cómo se ve el Scoreboard para este modo específico.
-     */
+    /** Updates the mode-specific scoreboard. */
     void updateScoreboard(Player player, String chapterTime, String totalTime, boolean partidaActiva);
 
-    /**
-     * Lógica de detección de ganadores (puede variar según el modo).
-     */
+    /** Checks mode-specific victory conditions. */
     void checkVictory();
 
-    /**
-     * Se ejecuta cuando el plugin se resetea (lobby).
-     */
+    /** Runs when the plugin resets to lobby. */
     void onReset();
 }

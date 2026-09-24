@@ -4,7 +4,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,9 +47,11 @@ public class ResourceRush extends AbstractUHCGameMode {
 
     private final Map<Integer, List<Material>> poolsPorCapitulo = new HashMap<>();
     private final List<Material> objetivosActivos = new ArrayList<>();
+    private final Set<Material> objetivosActivosSet = new LinkedHashSet<>();
 
-    private final Map<String, List<Material>> progresoGlobal = new HashMap<>();
+    private final Map<String, LinkedHashSet<Material>> progresoGlobal = new HashMap<>();
     private final List<String> podioFinal = new ArrayList<>();
+    private final Set<String> podioFinalSet = new LinkedHashSet<>();
     private final List<BukkitTask> delayedTasks = new ArrayList<>();
     private int sessionGeneration = 0;
     private boolean terminando = false;
@@ -60,9 +64,10 @@ public class ResourceRush extends AbstractUHCGameMode {
     private void initializePool() {
         poolsPorCapitulo.clear();
         objetivosActivos.clear();
+        objetivosActivosSet.clear();
         progresoGlobal.clear();
 
-        // Configuración de pools de objetos por capítulo
+        // Item pools by chapter.
         poolsPorCapitulo.put(1, Arrays.asList(Material.DIAMOND_BLOCK, Material.GOLDEN_APPLE, Material.TNT, Material.SPYGLASS, Material.LAVA_BUCKET, Material.SADDLE, Material.ENDER_PEARL, Material.DIAMOND_HOE));
         poolsPorCapitulo.put(2, Arrays.asList(Material.BLAZE_ROD, Material.GHAST_TEAR, Material.BREWING_STAND, Material.JUKEBOX, Material.GLOW_ITEM_FRAME, Material.MUSIC_DISC_TEARS, Material.GOLDEN_CARROT, Material.TARGET));
         poolsPorCapitulo.put(3, Arrays.asList(Material.ANVIL, Material.ENCHANTING_TABLE, Material.PLAYER_HEAD, Material.PAINTING, Material.YELLOW_STAINED_GLASS, Material.MAGMA_CREAM, Material.LEAD, Material.COAST_ARMOR_TRIM_SMITHING_TEMPLATE));
@@ -83,11 +88,11 @@ public class ResourceRush extends AbstractUHCGameMode {
     }
 
     @Override
-    public void onTick(int cronometroSegundos, int tiempoTotalSegundos) {
-        super.onTick(cronometroSegundos, tiempoTotalSegundos);
+    public void onTick(int chapterSeconds, int totalSeconds) {
+        super.onTick(chapterSeconds, totalSeconds);
 
-        // Activación de primeros objetivos con delay inicial
-        if (cronometroSegundos == 1) {
+        // Delay initial objectives until the match state is fully initialized.
+        if (chapterSeconds == 1) {
             scheduleForCurrentSession(() -> {
                 if (gm.getTotalSeconds() > 0) updateActiveObjectives(1);
             }, 100L); 
@@ -98,7 +103,6 @@ public class ResourceRush extends AbstractUHCGameMode {
     protected void onChapterChange(int nuevoCap) {
         LanguageManager lang = plugin.getLang();
 
-        // Notificación de nuevo capítulo y actualización de objetivos
         scheduleForCurrentSession(() -> updateActiveObjectives(nuevoCap), 100L);
 
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -112,10 +116,8 @@ public class ResourceRush extends AbstractUHCGameMode {
             runSkinRotation();
         }
 
-        // Formación de Equipos (episodio configurable)
         maybeFormTeams(nuevoCap, this::syncResourceRushTeams);
 
-        // Activación de PVP (episodio configurable)
         if (nuevoCap == gm.getPvpEnabledEpisode()) {
             for (World w : Bukkit.getWorlds()) w.setGameRule(PVP, true);
             for (Player p : Bukkit.getOnlinePlayers()) {
@@ -144,18 +146,18 @@ public class ResourceRush extends AbstractUHCGameMode {
     private void updateActiveObjectives(int capitulo) {
         if (gm.getTotalSeconds() <= 0) return;
 
-        int aAñadir = (capitulo <= 3) ? 2 : (capitulo <= 9) ? 1 : 0;
-        if (aAñadir == 0) return;
+        int objectivesToAdd = (capitulo <= 3) ? 2 : (capitulo <= 9) ? 1 : 0;
+        if (objectivesToAdd == 0) return;
 
         List<Material> poolDelCap = poolsPorCapitulo.getOrDefault(capitulo, poolsPorCapitulo.get(8));
         if (poolDelCap == null) return;
 
-        int añadidos = 0;
+        int added = 0;
         for (Material mat : poolDelCap) {
-            if (añadidos >= aAñadir) break;
-            if (!objetivosActivos.contains(mat)) {
+            if (added >= objectivesToAdd) break;
+            if (objetivosActivosSet.add(mat)) {
                 objetivosActivos.add(mat);
-                añadidos++;
+                added++;
                 announceObjective(mat);
             }
         }
@@ -185,7 +187,7 @@ public class ResourceRush extends AbstractUHCGameMode {
     }
 
     @Override
-    public void updateScoreboard(Player player, String tiempo, String tiempoTotal, boolean partidaActiva) {
+    public void updateScoreboard(Player player, String chapterTime, String totalTime, boolean matchActive) {
         LanguageManager lang = plugin.getLang();
         Scoreboard board = player.getScoreboard();
 
@@ -196,28 +198,29 @@ public class ResourceRush extends AbstractUHCGameMode {
 
         Objective obj = getOrCreateSidebar(board, player, lang);
         List<String> keys = new ArrayList<>();
-        ScoreboardHelper.syncTabHealthObjective(board, player, lang, partidaActiva);
+        ScoreboardHelper.syncTabHealthObjective(board, player, lang, matchActive);
 
-        if (!partidaActiva) {
+        if (!matchActive) {
             ScoreboardHelper.addLobbyScores(obj, keys, getName(), player, lang);
         } else {
             AtomicInteger next = new AtomicInteger(35);
             ScoreboardHelper.addPhaseInfo(obj, next, keys, player, lang, gm);
             ScoreboardHelper.addTeamInfo(obj, next, keys, player, lang, plugin.getTeamManager(), gm);
 
-// Sección específica de logros de Resource Rush
+            // Resource Rush achievement section.
             keys.add("§8 ");
             obj.getScore("§8 ").setScore(next.getAndDecrement());
             Team team = plugin.getTeamManager().getPlayerTeam(player.getName());
             String clave = (team != null) ? team.getName() : player.getName();
-            int realizados = progresoGlobal.getOrDefault(clave, new ArrayList<>()).size();
+            Set<Material> achievements = progresoGlobal.get(clave);
+            int realizados = achievements == null ? 0 : achievements.size();
             String counter = lang.get("scoreboard-rr.rr-counter", player)
                     .replace("%done%", String.valueOf(realizados))
                     .replace("%total%", String.valueOf(objetivosActivos.size()));
             keys.add(counter);
             obj.getScore(counter).setScore(next.getAndDecrement());
 
-            ScoreboardHelper.addTimers(obj, next, keys, tiempo, tiempoTotal, player, lang, gm);
+            ScoreboardHelper.addTimers(obj, next, keys, chapterTime, totalTime, player, lang, gm);
         }
 
         reconcileSidebarKeys(obj, player, keys);
@@ -239,26 +242,20 @@ public class ResourceRush extends AbstractUHCGameMode {
                     return (t != null) ? t.getName() : p.getName();
                 }).collect(Collectors.toSet());
 
-        // Un participante que se desconectó y sigue vivo (sin haber terminado)
-        // mantiene la partida abierta hasta que vuelva o sea marcado como
-        // abandonado por un administrador.
+        // Disconnected live participants keep the match open until they return or are marked eliminated.
         for (String nombre : gm.getInitialParticipants()) {
             if (eliminados.contains(nombre)) continue;
             if (Bukkit.getPlayer(nombre) != null) continue;
             Team t = plugin.getTeamManager().getPlayerTeam(nombre);
             String clave = (t != null) ? t.getName() : nombre;
-            if (!podioFinal.contains(clave)) entidadesVivas.add(clave);
+            if (!podioFinalSet.contains(clave)) entidadesVivas.add(clave);
         }
 
-        long equiposSinTerminar = entidadesVivas.stream()
-                .filter(clave -> !podioFinal.contains(clave))
+        long unfinishedTeams = entidadesVivas.stream()
+                .filter(clave -> !podioFinalSet.contains(clave))
                 .count();
 
-        if (entidadesVivas.isEmpty()) {
-            finishWithPodium(); // Nadie vivo
-        } else if (equiposSinTerminar == 0) {
-            finishWithPodium(); // Todos los vivos han terminado
-        }
+        if (entidadesVivas.isEmpty() || unfinishedTeams == 0) finishWithPodium();
     }
 
     private void finishWithPodium() {
@@ -295,17 +292,16 @@ public class ResourceRush extends AbstractUHCGameMode {
     }
 
     public void completeObjective(Player p, Material mat) {
-        if (!objetivosActivos.contains(mat)) return;
-        
+        if (!isActiveObjective(mat)) return;
+
         Team team = plugin.getTeamManager().getPlayerTeam(p.getName());
         String clave = (team != null) ? team.getName() : p.getName();
-        List<Material> logros = progresoGlobal.computeIfAbsent(clave, k -> new ArrayList<>());
+        LinkedHashSet<Material> logros = progresoGlobal.computeIfAbsent(clave, k -> new LinkedHashSet<>());
 
-        if (!logros.contains(mat)) {
-            logros.add(mat);
+        if (logros.add(mat)) {
             announceAchievement(p, team, mat, logros.size());
 
-            if (logros.size() >= 12 && !podioFinal.contains(clave)) {
+            if (logros.size() >= 12 && podioFinalSet.add(clave)) {
                 podioFinal.add(clave);
                 handleTeamFinish(p, team);
             }
@@ -338,24 +334,36 @@ public class ResourceRush extends AbstractUHCGameMode {
         Bukkit.broadcast(legacySection().deserialize(lang.get("resource-rush.team-finished", null)
                 .replace("%color%", color).replace("%team%", nombre)));
 
-String alert = lang.get("resource-rush.finish-alert", p);
-        if (team != null) teamMembers(team).forEach(e -> { Player m = Bukkit.getPlayer(e); if (m != null) m.sendMessage(alert); });
-        else p.sendMessage(alert);
+        String alert = lang.get("resource-rush.finish-alert", p);
+        if (team != null) {
+            teamMembers(team).forEach(e -> {
+                Player m = Bukkit.getPlayer(e);
+                if (m != null) m.sendMessage(alert);
+            });
+        } else {
+            p.sendMessage(alert);
+        }
 
         scheduleForCurrentSession(() -> {
-                String specMsg = lang.get("resource-rush.spectator-message", null);
-                if (team != null) {
-                    teamMembers(team).forEach(e -> {
-                        Player m = Bukkit.getPlayer(e); 
-                        if (m != null && m.isOnline()) { m.setGameMode(GameMode.SPECTATOR); m.sendMessage(legacySection().deserialize(specMsg)); }
-                    });
-                } else if (p.isOnline()) { p.setGameMode(GameMode.SPECTATOR); p.sendMessage(legacySection().deserialize(specMsg)); }
+            String specMsg = lang.get("resource-rush.spectator-message", null);
+            if (team != null) {
+                teamMembers(team).forEach(e -> {
+                    Player m = Bukkit.getPlayer(e);
+                    if (m != null && m.isOnline()) {
+                        m.setGameMode(GameMode.SPECTATOR);
+                        m.sendMessage(legacySection().deserialize(specMsg));
+                    }
+                });
+            } else if (p.isOnline()) {
+                p.setGameMode(GameMode.SPECTATOR);
+                p.sendMessage(legacySection().deserialize(specMsg));
+            }
         }, 200L);
 
         checkVictory();
     }
 
-private void applyFinalEffects(String winnerKey, Team ganador) {
+    private void applyFinalEffects(String winnerKey, Team ganador) {
         LanguageManager lang = plugin.getLang();
         List<Player> winners = new ArrayList<>();
         Set<String> entries = (ganador != null) ? teamMembers(ganador) : Collections.singleton(winnerKey);
@@ -366,10 +374,10 @@ private void applyFinalEffects(String winnerKey, Team ganador) {
                 p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 600, 255));
             }
         }
-        
+
         String color = (ganador != null) ? TextUtil.legacyColor(ganador.color()) : "§f";
         String teamName = (ganador != null) ? legacySection().serialize(ganador.displayName()) : winnerKey;
-        
+
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.sendMessage(legacySection().deserialize(""));
             p.sendMessage(legacySection().deserialize(lang.get("victory.broadcast-header", p).replace("%color%", color).replace("%team%", teamName)));
@@ -382,22 +390,22 @@ private void applyFinalEffects(String winnerKey, Team ganador) {
         applyVictoryEffects(winners);
     }
 
-/** Entradas de un equipo del plugin mediante la caché autoritativa. */
+    /** Returns plugin team entries using the authoritative team cache. */
     private Set<String> teamMembers(Team team) {
         if (team == null) return Collections.emptySet();
         if (team.getName().startsWith(ScoreboardHelper.TEAM_PREFIX)) {
-            return new java.util.HashSet<>(plugin.getTeamManager().getMemberNames(team));
+            return new HashSet<>(plugin.getTeamManager().getMemberNames(team));
         }
-        return new java.util.HashSet<>(team.getEntries());
+        return new HashSet<>(team.getEntries());
     }
 
     private void syncResourceRushTeams() {
         for (String participant : gm.getInitialParticipants()) {
             Team t = plugin.getTeamManager().getPlayerTeam(participant);
             if (t != null && progresoGlobal.containsKey(participant)) {
-                List<Material> ind = progresoGlobal.get(participant);
-                List<Material> eq = progresoGlobal.computeIfAbsent(t.getName(), k -> new ArrayList<>());
-                ind.forEach(m -> { if (!eq.contains(m)) eq.add(m); });
+                LinkedHashSet<Material> ind = progresoGlobal.get(participant);
+                LinkedHashSet<Material> eq = progresoGlobal.computeIfAbsent(t.getName(), k -> new LinkedHashSet<>());
+                eq.addAll(ind);
                 progresoGlobal.remove(participant);
             }
         }
@@ -411,16 +419,25 @@ private void applyFinalEffects(String winnerKey, Team ganador) {
         super.onReset();
         this.progresoGlobal.clear();
         this.podioFinal.clear();
+        this.podioFinalSet.clear();
         this.objetivosActivos.clear();
+        this.objetivosActivosSet.clear();
         this.terminando = false;
         Bukkit.getOnlinePlayers().forEach(p -> p.playerListName(Component.text(p.getName())));
         initializePool();
     }
 
-public List<Material> getPlayerAchievements(Player p) {
+    public List<Material> getPlayerAchievements(Player p) {
         Team team = plugin.getTeamManager().getPlayerTeam(p.getName());
-        return List.copyOf(progresoGlobal.getOrDefault((team != null) ? team.getName() : p.getName(), Collections.emptyList()));
+        Set<Material> achievements = progresoGlobal.get((team != null) ? team.getName() : p.getName());
+        return achievements == null ? List.of() : List.copyOf(achievements);
     }
 
-    public List<Material> getActiveObjectives() { return List.copyOf(objetivosActivos); }
+    public List<Material> getActiveObjectives() {
+        return List.copyOf(objetivosActivos);
+    }
+
+    public boolean isActiveObjective(Material material) {
+        return objetivosActivosSet.contains(material);
+    }
 }

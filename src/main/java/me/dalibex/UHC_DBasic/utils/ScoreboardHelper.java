@@ -19,25 +19,21 @@ import net.kyori.adventure.text.Component;
 import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
 /**
- * Clase de utilidad para centralizar la construcción de líneas del Scoreboard.
- * Evita la duplicación de lógica visual entre diferentes modos de juego.
- * Cada método registra además las claves generadas en {@code keys} para que
- * el modo pueda limpiar solo las líneas obsoletas entre ticks.
+ * Centralizes sidebar line building across game modes.
+ * Each method also tracks generated keys so modes can remove stale lines between ticks.
  */
 public class ScoreboardHelper {
 
-    /** Nombre del objetivo de sidebar "uhc" registrado por jugador. */
     public static final String SIDEBAR_OBJECTIVE = "uhc";
-
-    /** Nombre del objetivo de vida del tab ("vida_tab"). */
     public static final String HEALTH_OBJECTIVE = "vida_tab";
-
-    /** Prefijo de los equipos internos del mundo ("h_"). */
     public static final String TEAM_PREFIX = "h_";
 
-    /**
-     * Sincroniza el objetivo de vida que Minecraft renderiza en el TAB.
-     */
+    private static final int FINAL_CHAPTER = 10;
+    private static final double HIGH_HEALTH_THRESHOLD = 15.0;
+    private static final double MEDIUM_HEALTH_THRESHOLD = 10.0;
+    private static final double LOW_HEALTH_THRESHOLD = 5.0;
+
+    /** Synchronizes the health objective rendered in the TAB player list. */
     public static void syncTabHealthObjective(Scoreboard board, Player player, LanguageManager lang, boolean active) {
         Objective objVida = board.getObjective(HEALTH_OBJECTIVE);
         if (active) {
@@ -51,9 +47,7 @@ public class ScoreboardHelper {
         }
     }
 
-    /**
-     * Añade las líneas del sidebar del lobby: modo, esperando y jugadores online.
-     */
+    /** Adds lobby sidebar lines: mode, waiting status, and online players. */
     public static void addLobbyScores(Objective obj, List<String> keys, String modeName, Player player, LanguageManager lang) {
         score(obj, "§1 ", 7, keys);
         score(obj, lang.get("scoreboard.mode-label", player).replace("%mode%", modeName), 6, keys);
@@ -64,9 +58,7 @@ public class ScoreboardHelper {
         score(obj, "§4 ", 1, keys);
     }
 
-    /**
-     * Añade las líneas de información de fase y PVP al scoreboard.
-     */
+    /** Adds phase and PVP status lines. */
     public static void addPhaseInfo(Objective obj, AtomicInteger next, List<String> keys, Player player, LanguageManager lang, GameManager gm) {
         int capitulo = gm.getChapter();
         String pvpStatus = (capitulo < gm.getPvpEnabledEpisode())
@@ -74,7 +66,7 @@ public class ScoreboardHelper {
                 : lang.get("scoreboard.pvp-active", player);
 
         score(obj, "§1 ", next.getAndDecrement(), keys);
-        if (capitulo < 10) {
+        if (capitulo < FINAL_CHAPTER) {
             score(obj, lang.get("scoreboard.phase", player).replace("%chapter%", String.valueOf(capitulo)), next.getAndDecrement(), keys);
         } else {
             score(obj, lang.get("scoreboard.finalized", player), next.getAndDecrement(), keys);
@@ -87,9 +79,7 @@ public class ScoreboardHelper {
         score(obj, "§3 ", next.getAndDecrement(), keys);
     }
 
-    /**
-     * Añade la información del equipo y compañeros vivos/muertos.
-     */
+    /** Adds team and teammate status lines. */
     public static void addTeamInfo(Objective obj, AtomicInteger next, List<String> keys, Player player, LanguageManager lang, TeamManager tm, GameManager gm) {
         Team team = tm.getPlayerTeam(player.getName());
         int teamSize = tm.getTeamSize();
@@ -136,8 +126,10 @@ public class ScoreboardHelper {
                 nombreParaMostrar = m.getName();
                 colorPrefix = "§f";
                 double h = m.getHealth();
-                String c = (h > 15) ? "§a" : (h > 10) ? "§2" : (h > 5) ? "§e" : "§c";
-                healthText = " " + c + (int)h + "§4❤";
+                String c = (h > HIGH_HEALTH_THRESHOLD) ? "§a"
+                        : (h > MEDIUM_HEALTH_THRESHOLD) ? "§2"
+                        : (h > LOW_HEALTH_THRESHOLD) ? "§e" : "§c";
+                healthText = " " + c + (int) h + "§4❤";
             } else {
                 healthText = lang.get("scoreboard.mate-offline", viewer);
             }
@@ -145,16 +137,14 @@ public class ScoreboardHelper {
         score(obj, "§6> " + colorPrefix + nombreParaMostrar + healthText, next.getAndDecrement(), keys);
     }
 
-    /**
-     * Añade los cronómetros de tiempo total y tiempo hasta el siguiente capítulo.
-     */
+    /** Adds total time and next-chapter timers. */
     public static void addTimers(Objective obj, AtomicInteger next, List<String> keys, String tiempo, String tiempoTotal, Player player, LanguageManager lang, GameManager gm) {
         score(obj, "§6 ", next.getAndDecrement(), keys);
         score(obj, lang.get("scoreboard.time-total-label", player), next.getAndDecrement(), keys);
         score(obj, "§6> §f" + tiempoTotal, next.getAndDecrement(), keys);
         score(obj, "§7 ", next.getAndDecrement(), keys);
         
-        if (gm.getChapter() < 10) {
+        if (gm.getChapter() < FINAL_CHAPTER) {
             score(obj, lang.get("scoreboard.time-next-label", player), next.getAndDecrement(), keys);
             score(obj, "§6> §f" + tiempo, next.getAndDecrement(), keys);
         }

@@ -13,7 +13,10 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scoreboard.Objective;
@@ -29,6 +32,13 @@ import me.dalibex.UHC_DBasic.utils.TimeUtil;
 import net.kyori.adventure.text.Component;
 
 public class GameManager {
+
+    private static final double TAB_HEALTH_REFRESH_DAMAGE = 0.01;
+    private static final double DEFAULT_MAX_HEALTH = 20.0;
+    private static final long STARTUP_HEAL_DELAY_TICKS = 1L;
+    private static final long GAME_TICK_PERIOD_TICKS = 20L;
+    private static final int LOBBY_EFFECT_AMPLIFIER = 255;
+    private static final int LOBBY_REGEN_DURATION_TICKS = 200;
 
     private final UHC_DBasic plugin;
     private UHCGameMode modoActual;
@@ -60,7 +70,7 @@ public class GameManager {
     public void startGame() {
         if (partidaTask != null || phase != GamePhase.COUNTDOWN) return;
 
-        // Limpiar ítems de selector de equipo personalizados
+        // Remove custom team selector items before the game starts.
         TeamManager tm = plugin.getTeamManager();
         tm.removeAllSelectorItems();
 
@@ -74,7 +84,7 @@ public class GameManager {
 
         registerParticipants(eligibleRoster);
 
-        // 1. Rotar identidades Sincrónicamente antes de empezar
+        // Rotate identities synchronously before gameplay starts.
         plugin.getSkinsManager().rotateSkins();
 
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -84,22 +94,22 @@ public class GameManager {
             }
             p.playerListName(Component.text(p.getName()));
             modoActual.updateScoreboard(p, "00:00", "00:00", true);
-            p.damage(0.01);
+            p.damage(TAB_HEALTH_REFRESH_DAMAGE);
             plugin.getSkinsManager().updateVisualIdentity(p);
 
             new BukkitRunnable() {
                 @Override
                 public void run() {
                     if (p.isOnline()) {
-                        double maxHealth = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH) != null
-                                ? p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue()
-                                : 20.0;
-                        p.setHealth(Math.min(20.0, maxHealth));
+                        double maxHealth = p.getAttribute(Attribute.MAX_HEALTH) != null
+                                ? p.getAttribute(Attribute.MAX_HEALTH).getValue()
+                                : DEFAULT_MAX_HEALTH;
+                        p.setHealth(Math.min(DEFAULT_MAX_HEALTH, maxHealth));
                         p.setFoodLevel(20);
                         p.setSaturation(20f);
                     }
                 }
-            }.runTaskLater(plugin, 1L);
+            }.runTaskLater(plugin, STARTUP_HEAL_DELAY_TICKS);
         }
 
         partidaTask = new BukkitRunnable() {
@@ -110,25 +120,21 @@ public class GameManager {
                 cronometroSegundos++;
                 tiempoTotalSegundos++;
 
-                // DELEGACIÓN EVENTOS
                 modoActual.onTick(cronometroSegundos, tiempoTotalSegundos);
 
                 int restante = segundosPorCapitulo - (cronometroSegundos % segundosPorCapitulo);
                 String fRestante = TimeUtil.formatClock(restante);
                 String fTotal = TimeUtil.formatClock(tiempoTotalSegundos);
 
-                // DELEGACIÓN SCOREBOARDS
                 for (Player p : Bukkit.getOnlinePlayers()) {
                     modoActual.updateScoreboard(p, fRestante, fTotal, true);
                 }
 
-                // DELEGACIÓN VICTORIA
                 modoActual.checkVictory();
 
-                // Funcionamiento Brújula
                 plugin.getItemsListener().updateTrackingCompasses();
             }
-        }.runTaskTimer(plugin, 0L, 20L);
+        }.runTaskTimer(plugin, 0L, GAME_TICK_PERIOD_TICKS);
     }
 
     public void fullReset() {
@@ -142,32 +148,26 @@ public class GameManager {
         this.jugadoresEliminados.clear();
         this.participantesIniciales.clear();
 
-        // 1. Resetear Mundos
         plugin.getWorldManager().resetWorlds();
 
-        // 2. Resetear estado de identidad ANTES de reiniciar jugadores: si se hace
-        // al revés, revealIdentity (llamado desde applyLobbySettings) haría early-return
-        // por los revelados de la partida anterior y no se re-aplicaría la skin real.
+        // Reset identity state before players, otherwise revealIdentity would skip restoring real skins.
         plugin.getSkinsManager().reset();
 
-        // 3. Resetear Jugadores
         for (Player p : Bukkit.getOnlinePlayers()) {
             applyLobbySettings(p);
         }
 
-// 4. Resetear Managers
+        // Reset managers after player state is back to lobby defaults.
         TeamManager tm = plugin.getTeamManager();
         tm.migrateLegacyTeamsOnce();
-        // Conservar las membresías seleccionadas ANTES del reset para restaurarlas
-        // justo después de recrear los equipos (los equipos custom los elige el
-        // jugador y no deberían perderse con un /reset).
+        // Preserve custom team choices across /reset.
         Map<String, String> equiposPrevios = tm.isCustomTeamsEnabled() ? tm.snapshotTeamMembers() : Map.of();
         tm.deleteAllTeams();
         if (tm.isCustomTeamsEnabled()) {
             tm.initializeCustomTeams();
             tm.restoreTeamMembers(equiposPrevios);
         }
-Scoreboard managerBoard = Bukkit.getScoreboardManager().getMainScoreboard();
+        Scoreboard managerBoard = Bukkit.getScoreboardManager().getMainScoreboard();
         Objective uhcObjective = managerBoard.getObjective(ScoreboardHelper.SIDEBAR_OBJECTIVE);
         if (uhcObjective != null) uhcObjective.unregister();
         Objective vidaTabObjective = managerBoard.getObjective(ScoreboardHelper.HEALTH_OBJECTIVE);
@@ -180,25 +180,21 @@ Scoreboard managerBoard = Bukkit.getScoreboardManager().getMainScoreboard();
         p.clearActivePotionEffects();
         if (!p.getInventory().isEmpty()) p.getInventory().clear();
         
-        // Forzar modo aventura para todos (incluyendo ex-espectadores)
         p.setGameMode(GameMode.ADVENTURE);
-        
-        double maxHealth = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH) != null
-                ? p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue()
-                : 20.0;
-        p.setHealth(Math.min(20.0, maxHealth));
+
+        double maxHealth = p.getAttribute(Attribute.MAX_HEALTH) != null
+                ? p.getAttribute(Attribute.MAX_HEALTH).getValue()
+                : DEFAULT_MAX_HEALTH;
+        p.setHealth(Math.min(DEFAULT_MAX_HEALTH, maxHealth));
         p.setFoodLevel(20);
         p.setExp(0);
         p.setLevel(0);
         p.playerListName(Component.text(p.getName()));
 
-        // Efectos de Lobby
-        p.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SATURATION, Integer.MAX_VALUE, 255, false, false, false));
-        p.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.RESISTANCE, Integer.MAX_VALUE, 255, false, false, false));
-        p.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.REGENERATION, 200, 255, false, false, false));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.SATURATION, Integer.MAX_VALUE, LOBBY_EFFECT_AMPLIFIER, false, false, false));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, Integer.MAX_VALUE, LOBBY_EFFECT_AMPLIFIER, false, false, false));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, LOBBY_REGEN_DURATION_TICKS, LOBBY_EFFECT_AMPLIFIER, false, false, false));
 
-        // Teletransporte al centro del spawn del mundo principal (overworld),
-        // incluso si el jugador está en otra dimensión (nether/end)
         plugin.getWorldManager().teleportToSpawn(p);
 
         plugin.getSkinsManager().restoreOwnIdentity(p);
@@ -206,7 +202,6 @@ Scoreboard managerBoard = Bukkit.getScoreboardManager().getMainScoreboard();
             modoActual.updateScoreboard(p, "00:00", "00:00", false);
         }
 
-        // Entrega de selector de equipo si está habilitado
         TeamManager tm = plugin.getTeamManager();
         if (tm.isCustomTeamsEnabled() && tm.getTeamSize() > 1) {
             tm.giveTeamSelectorItem(p);
@@ -303,14 +298,12 @@ Scoreboard managerBoard = Bukkit.getScoreboardManager().getMainScoreboard();
         phase = GamePhase.ENDING;
     }
 
-    /**
-     * Único punto de mutación externa de la lista de eliminados.
-     */
+    /** Single external mutation point for eliminated players. */
     public void eliminatePlayer(String nombre) {
         jugadoresEliminados.add(nombre);
     }
 
-    // --- GETTERS Y SETTERS ---
+    // --- Getters and setters ---
     public int getChapter() { return capitulo; }
 
     public void setChapter(int capitulo) { this.capitulo = capitulo; }
@@ -321,7 +314,7 @@ Scoreboard managerBoard = Bukkit.getScoreboardManager().getMainScoreboard();
 
     public void setSecondsPerChapter(int s) { this.segundosPorCapitulo = s; }
 
-    /** Episodio (parte) en el que termina el pacto de caballeros y se activa PVP. */
+    /** Episode where the grace period ends and PVP is enabled. */
     public int getPvpEnabledEpisode() { return pvpEnabledEpisode; }
 
     public void setPvpEnabledEpisode(int episode) { this.pvpEnabledEpisode = episode; }
@@ -347,7 +340,7 @@ Scoreboard managerBoard = Bukkit.getScoreboardManager().getMainScoreboard();
                 || phase == GamePhase.RUNNING || phase == GamePhase.PAUSED || phase == GamePhase.ENDING;
     }
 
-    /** Partida con gameplay activo; excluye preparación y cierre. */
+    /** Match with active gameplay; excludes preparation and ending. */
     public boolean isMatchActive() {
         return phase == GamePhase.RUNNING || phase == GamePhase.PAUSED;
     }
@@ -361,8 +354,7 @@ Scoreboard managerBoard = Bukkit.getScoreboardManager().getMainScoreboard();
     }
 
     public void changeMode(UHCGameMode nuevoModo) {
-        // Transferir la caché de claves de sidebar del modo anterior para que la
-        // nueva instancia pueda limpiar las líneas obsoletas del scoreboard.
+        // Transfer sidebar keys so the new mode can clean stale scoreboard lines.
         Map<UUID, Set<String>> transfer = null;
         if (modoActual instanceof AbstractUHCGameMode anterior) {
             transfer = anterior.takeSidebarKeys();

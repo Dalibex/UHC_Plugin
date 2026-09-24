@@ -21,6 +21,9 @@ import me.dalibex.UHC_DBasic.UHC_DBasic;
 public class WorldManager {
 
     private final UHC_DBasic plugin;
+    private static final int RESET_WORLD_BORDER_SIZE = 5999984;
+    private static final int MIN_SPAWN_Y = 60;
+    private static final double SPAWN_CENTER_OFFSET = 0.5;
 
     public WorldManager(UHC_DBasic plugin) {
         this.plugin = plugin;
@@ -42,7 +45,7 @@ public class WorldManager {
             world.setStorm(false);
             world.setGameRule(ADVANCE_WEATHER, false);
             world.getWorldBorder().setCenter(0, 0);
-            world.getWorldBorder().setSize(5999984);
+            world.getWorldBorder().setSize(RESET_WORLD_BORDER_SIZE);
 
             world.setGameRule(NATURAL_HEALTH_REGENERATION, true);
             world.setGameRule(SPAWN_MONSTERS, false);
@@ -61,7 +64,7 @@ public class WorldManager {
     public void teleportToSpawn(Player p) {
         World world = getMainWorld();
         int y = world.getHighestBlockYAt(0, 0);
-        Location spawnLoc = new Location(world, 0.5, Math.max(y, 60) + 1, 0.5);
+        Location spawnLoc = new Location(world, SPAWN_CENTER_OFFSET, Math.max(y, MIN_SPAWN_Y) + 1, SPAWN_CENTER_OFFSET);
         p.teleport(spawnLoc);
     }
 }

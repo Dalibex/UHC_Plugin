@@ -37,11 +37,7 @@ import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import me.dalibex.UHC_DBasic.managers.TeamManager;
 import me.dalibex.UHC_DBasic.utils.ScoreboardHelper;
 
-/**
- * Clase base abstracta para todos los modos de juego de UHC.
- * Centraliza la lógica común como la entrega de objetos especiales,
- * gestión de capítulos, efectos de victoria y rotación de identidades.
- */
+/** Base class for shared UHC mode behavior: chapters, special items, victory effects, and identity rotation. */
 public abstract class AbstractUHCGameMode implements UHCGameMode {
 
     protected final UHC_DBasic plugin;
@@ -50,11 +46,7 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
     protected boolean shulkerTwoDelivered = false;
     protected boolean teamsFormed = false;
 
-    /**
-     * Claves de las líneas del sidebar del objetivo "uhc" por jugador,
-     * para poder limpiar solo las líneas obsoletas sin re-registrar el
-     * objetivo en cada tick (ver getOrCreateSidebar/reconcileSidebarKeys).
-     */
+    /** Sidebar keys per player, used to clear stale lines without re-registering the objective each tick. */
     private final Map<UUID, Set<String>> sidebarKeys = new HashMap<>();
 
     public AbstractUHCGameMode(UHC_DBasic plugin, GameManager gm) {
@@ -62,37 +54,29 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
         this.gm = gm;
     }
 
-    /**
-     * Lógica base del tick ejecutada cada segundo.
-     * Maneja la entrega de shulkers y la detección de cambio de capítulo.
-     */
+    /** Runs shared per-second logic: configured shulkers and chapter changes. */
     @Override
-    public void onTick(int cronometroSegundos, int tiempoTotalSegundos) {
+    public void onTick(int chapterSeconds, int totalSeconds) {
         LanguageManager lang = plugin.getLang();
-        int segundosCap = gm.getSecondsPerChapter();
-        int capituloActual = gm.getChapter();
+        int secondsPerChapter = gm.getSecondsPerChapter();
+        int currentChapter = gm.getChapter();
 
-        deliverConfiguredShulkers(capituloActual, cronometroSegundos > 1);
+        deliverConfiguredShulkers(currentChapter, chapterSeconds > 1);
 
-        // Cálculo de cambio de capítulo
-        int capituloCalculado = (cronometroSegundos / segundosCap) + 1;
-        if (capituloCalculado > capituloActual) {
-            gm.setChapter(capituloCalculado);
-            onChapterChange(capituloCalculado);
-            deliverConfiguredShulkers(capituloCalculado, true);
+        int calculatedChapter = (chapterSeconds / secondsPerChapter) + 1;
+        if (calculatedChapter > currentChapter) {
+            gm.setChapter(calculatedChapter);
+            onChapterChange(calculatedChapter);
+            deliverConfiguredShulkers(calculatedChapter, true);
         }
 
-        // Lógica específica del primer segundo (Brújulas si es manual)
-        if (cronometroSegundos == 1) {
+        if (chapterSeconds == 1) {
             handleInitialSecond(lang);
         }
     }
 
-    /**
-     * Hook ejecutado cuando el capítulo del juego cambia.
-     * @param nuevoCap El número del nuevo capítulo.
-     */
-    protected abstract void onChapterChange(int nuevoCap);
+    /** Hook executed when the game chapter changes. */
+    protected abstract void onChapterChange(int newChapter);
 
     private void deliverConfiguredShulkers(int chapter, boolean allowDelivery) {
         AdminPanelManager admin = plugin.getAdminPanel();
@@ -108,9 +92,7 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
         }
     }
 
-    /**
-     * Maneja la lógica de inicialización en el segundo 1 de la partida.
-     */
+    /** Handles first-second match initialization. */
     protected void handleInitialSecond(LanguageManager lang) {
         TeamManager tm = plugin.getTeamManager();
         if (tm.getTeamSize() == 1) {
@@ -122,17 +104,11 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
         }
     }
 
-    /**
-     * Forma los equipos ("sorteo") en el capítulo configurado: baraja los
-     * nombres solo si los equipos NO son personalizados, entrega las brújulas
-     * y anuncia el evento a todos los jugadores.
-     *
-     * @param onFormed hook a ejecutar una vez formados los equipos (p.ej. re-sync del modo ResourceRush).
-     */
-    protected void maybeFormTeams(int nuevoCap, Runnable onFormed) {
+    /** Forms teams at the configured chapter and delivers tracking compasses. */
+    protected void maybeFormTeams(int newChapter, Runnable onFormed) {
         TeamManager tm = plugin.getTeamManager();
         if (teamsFormed || tm.getTeamSize() <= 1) return;
-        if (nuevoCap < tm.getTeamsFormedEpisode()) return;
+        if (newChapter < tm.getTeamsFormedEpisode()) return;
 
         if (!tm.isCustomTeamsEnabled()) {
             tm.shuffleTeams();
@@ -148,26 +124,22 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
         giveTrackingCompasses(lang);
     }
 
-    /**
-     * Entrega un objeto a todos los jugadores vivos.
-     */
-    protected void giveGlobalItem(String nombreKey, Material material) {
+    /** Gives an item to every alive player. */
+    protected void giveGlobalItem(String nameKey, Material material) {
         LanguageManager lang = plugin.getLang();
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (gm.getEliminatedPlayers().contains(p.getName())) continue;
             ItemStack item = new ItemStack(material);
             ItemMeta meta = item.getItemMeta();
             if (meta != null) {
-                meta.displayName(lang.getComponent(nombreKey, p));
+                meta.displayName(lang.getComponent(nameKey, p));
                 item.setItemMeta(meta);
             }
             giveOrDrop(p, item, "general.inv-full");
         }
     }
 
-    /**
-     * Entrega la brújula de seguimiento de aliados.
-     */
+    /** Gives allied tracking compasses. */
     protected void giveTrackingCompasses(LanguageManager lang) {
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (gm.getEliminatedPlayers().contains(p.getName())) continue;
@@ -194,17 +166,12 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
         player.sendMessage(plugin.getLang().get(fullInventoryMessageKey, player));
     }
 
-    /**
-     * Ejecuta la rotación de skins (escalonada por jugador). El mensaje de
-     * identidad se envía desde SkinsManager al aplicar cada skin.
-     */
+    /** Starts gradual skin rotation through SkinsManager. */
     protected void runSkinRotation() {
         plugin.getSkinsManager().rotateSkins();
     }
 
-    /**
-     * Lanza cohetes de celebración en una ubicación.
-     */
+    /** Launches a celebration firework at a location. */
     protected void launchFirework(Location loc) {
         Firework fw = loc.getWorld().spawn(loc, Firework.class);
         FireworkMeta fwm = fw.getFireworkMeta();
@@ -216,11 +183,9 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
         fw.setFireworkMeta(fwm);
     }
 
-    /**
-     * Efectos visuales y sonoros para los ganadores.
-     */
-    protected void applyVictoryEffects(List<Player> ganadores) {
-        for (Player p : ganadores) {
+    /** Applies visual and sound effects to winners. */
+    protected void applyVictoryEffects(List<Player> winners) {
+        for (Player p : winners) {
             p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 600, 255));
             new BukkitRunnable() {
                 int count = 0;
@@ -233,11 +198,7 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
         }
     }
 
-    /**
-     * Obtiene (o crea una única vez) el objetivo de sidebar "uhc" del
-     * scoreboard del jugador. Evita el unregister/register por tick que
-     * provocaba churn de paquetes y objetos con 60 jugadores online.
-     */
+    /** Gets or creates the per-player sidebar objective without per-tick re-registration. */
     protected Objective getOrCreateSidebar(Scoreboard board, Player player, LanguageManager lang) {
         Objective obj = board.getObjective(ScoreboardHelper.SIDEBAR_OBJECTIVE);
         if (obj == null) {
@@ -248,10 +209,7 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
         return obj;
     }
 
-    /**
-     * Limpia solo las claves del tick anterior que ya no se renderizan y
-     * conserva las líneas sin cambios.
-     */
+    /** Clears only previously rendered lines that are no longer present. */
     protected void reconcileSidebarKeys(Objective obj, Player player, List<String> currentKeys) {
         Set<String> stale = sidebarKeys.get(player.getUniqueId());
         if (stale == null) {
@@ -267,35 +225,24 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
         storeSidebarKeys(player, currentKeys);
     }
 
-    /**
-     * Registra las claves renderizadas en este tick para poder limpiarlas
-     * en el siguiente.
-     */
+    /** Stores rendered keys for next-tick cleanup. */
     protected void storeSidebarKeys(Player player, List<String> keys) {
         sidebarKeys.put(player.getUniqueId(), new HashSet<>(keys));
     }
 
-    /** Cambia la sesión a ENDING y cancela sus tareas principales. */
+    /** Moves the game session to ENDING and cancels main tasks. */
     protected void finishGameSession() {
         gm.enterEnding();
     }
 
-    /**
-     * Devuelve la caché de claves de sidebar y la vacía de esta instancia.
-     * Permite transferir las líneas pendientes de limpiar a una instancia
-     * nueva de gamemode (ver GameManager.changeMode).
-     */
+    /** Transfers sidebar key cache to a new game mode instance. */
     public Map<UUID, Set<String>> takeSidebarKeys() {
         Map<UUID, Set<String>> transfer = new HashMap<>(sidebarKeys);
         sidebarKeys.clear();
         return transfer;
     }
 
-    /**
-     * Adopta la caché de claves de sidebar de una instancia anterior de
-     * gamemode para que reconcileSidebarKeys pueda limpiar las líneas
-     * obsoletas tras un cambio de modo.
-     */
+    /** Adopts sidebar key cache from a previous game mode instance. */
     public void adoptSidebarKeys(Map<UUID, Set<String>> keys) {
         sidebarKeys.putAll(keys);
     }
@@ -307,7 +254,7 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
         this.teamsFormed = false;
         plugin.getItemsListener().clearCompassTargetCache();
 
-        // Limpiar las líneas obsoletas de los scoreboards de los jugadores online
+        // Clear stale lines from online player scoreboards.
         for (Player p : Bukkit.getOnlinePlayers()) {
             Set<String> stale = sidebarKeys.remove(p.getUniqueId());
             if (stale == null) continue;

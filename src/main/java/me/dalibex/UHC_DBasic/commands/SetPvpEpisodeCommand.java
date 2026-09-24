@@ -15,7 +15,7 @@ import org.jetbrains.annotations.Nullable;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.utils.CommandTabs;
 
-/** Permite al admin elegir en qué episodio termina el pacto de caballeros. */
+/** Lets admins choose which episode enables PVP. */
 public class SetPvpEpisodeCommand implements CommandExecutor, TabCompleter {
 
     public static final int MIN_EPISODE = 1;

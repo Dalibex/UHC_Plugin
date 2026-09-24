@@ -42,11 +42,8 @@ public class TeamManager {
     private int teamsFormedEpisode = 3;
 
     /**
-     * Caché de membresías del plugin (name canónico -> nombre del equipo h_*).
-     * Autoritativa para lectura de pertenencia: TAB gestiona los teams del
-     * scoreboard principal (scoreboard-teams) y puede reasignar o borrar
-     * entries, por lo que no se puede depender de {@code getEntryTeam} para
-     * la lógica de juego (brújula, chat, victoria, sidebar).
+     * Authoritative plugin membership cache (canonical player name -> h_* team name).
+     * TAB owns main scoreboard teams and may move entries, so gameplay must not rely on getEntryTeam.
      */
     private final Map<String, String> memberToTeam = new LinkedHashMap<>();
 
@@ -84,7 +81,7 @@ public class TeamManager {
     public void setTeamSize(int size) { this.teamSize = size; }
     public int getTeamSize() { return teamSize; }
 
-    /** Episodio (parte) en el que se forman los equipos y se entregan las brújulas. */
+    /** Episode where teams are formed and compasses are delivered. */
     public int getTeamsFormedEpisode() { return teamsFormedEpisode; }
     public void setTeamsFormedEpisode(int episode) { this.teamsFormedEpisode = episode; }
 
@@ -92,7 +89,7 @@ public class TeamManager {
         return name == null ? "" : name.toLowerCase(Locale.ROOT);
     }
 
-    /** Busca la clave canónica (con mayúsculas) de la caché para una entrada. */
+    /** Returns the cached canonical player name for an entry. */
     private String canonicalTrackedName(String playerName) {
         if (playerName == null) return null;
         for (String known : memberToTeam.keySet()) {
@@ -101,11 +98,7 @@ public class TeamManager {
         return playerName;
     }
 
-    /**
-     * Equipo del plugin al que pertenece el jugador según la caché
-     * autoritativa. Nunca devuelve teams ajenos (p. ej. los equipos
-     * individuales que TAB crea en el scoreboard principal).
-     */
+    /** Returns the plugin team from the authoritative cache, never TAB-owned teams. */
     public Team getPlayerTeam(String playerName) {
         if (playerName == null) return null;
         String canonical = canonicalTrackedName(playerName);
@@ -115,7 +108,7 @@ public class TeamManager {
         return isPluginTeam(entry) ? entry : null;
     }
 
-    /** Entradas de un equipo del plugin según la caché autoritativa. */
+    /** Returns plugin team entries from the authoritative cache. */
     public List<String> getMemberNames(Team team) {
         if (team == null || !isPluginTeam(team)) return List.of();
         List<String> members = new ArrayList<>();
@@ -125,7 +118,7 @@ public class TeamManager {
         return members;
     }
 
-    /** Número de miembros de un equipo del plugin según la caché. */
+    /** Returns the plugin team member count from the authoritative cache. */
     public int getMemberCount(Team team) {
         if (team == null || !isPluginTeam(team)) return 0;
         int count = 0;
@@ -165,10 +158,7 @@ public class TeamManager {
         }
     }
 
-    /**
-     * Registra y configura un equipo con su color, displayName y prefijo.
-     * Único punto de creación de equipos para evitar duplicados.
-     */
+    /** Registers and configures a team with its color, display name, and prefix. */
     private Team createTeam(int index) {
         LanguageManager lang = plugin.getLang();
         String colorKey = TEAM_COLOR_KEYS[index % TEAM_COLOR_KEYS.length];
@@ -192,7 +182,7 @@ public class TeamManager {
         team.prefix(TextUtil.deserialize(prefix));
     }
 
-public Team getTeamByColorSearch(String input) {
+    public Team getTeamByColorSearch(String input) {
         String normalized = normalizeColorInput(input);
         for (Team team : getPluginTeams()) {
             String colorKey = team.getName().substring(ScoreboardHelper.TEAM_PREFIX.length());
@@ -202,11 +192,7 @@ public Team getTeamByColorSearch(String input) {
         return null;
     }
 
-    /**
-     * Normaliza un input de color aceptando el formato visible (p. ej. "red"),
-     * el interno con prefijo (p. ej. "h_red") y el localizado sin importar
-     * mayúsculas. El prefijo {@code h_} es interno: no debe exigirse al usuario.
-     */
+    /** Normalizes visible, internal, and localized color inputs. */
     public static String normalizeColorInput(String input) {
         if (input == null) return "";
         String lower = input.toLowerCase(Locale.ROOT);
@@ -266,8 +252,10 @@ public Team getTeamByColorSearch(String input) {
             for (String entry : getMemberNames(team)) {
                 lore.add(TextUtil.item(lang.get("menus.team-selector.member-format", p).replace("%player%", entry)));
             }
-            int huecos = teamSize - current;
-            for (int h = 0; h < huecos; h++) lore.add(TextUtil.item(lang.get("menus.team-selector.empty-slot", p)));
+            int emptySlots = teamSize - current;
+            for (int h = 0; h < emptySlots; h++) {
+                lore.add(TextUtil.item(lang.get("menus.team-selector.empty-slot", p)));
+            }
 
             Team playerTeam = getPlayerTeam(p.getName());
             if (playerTeam != null && playerTeam.equals(team)) {
@@ -283,10 +271,7 @@ public Team getTeamByColorSearch(String input) {
         p.openInventory(gui);
     }
 
-/**
-     * Mueve a un jugador al equipo indicado liberándolo primero de su equipo
-     * actual. Compatible con la caché de membresías.
-     */
+    /** Moves a player to the target team after removing their previous cached membership. */
     public void movePlayerToTeam(Player p, Team target) {
         if (p == null || target == null) return;
         Team current = getPlayerTeam(p.getName());
@@ -404,11 +389,13 @@ public Team getTeamByColorSearch(String input) {
             listaEquipos.add(createTeam(i));
         }
 
-for (int i = 0; i < vivos.size(); i++) assignTeamByName(vivos.get(i), listaEquipos.get(i % numeroDeEquipos), lang);
+        for (int i = 0; i < vivos.size(); i++) {
+            assignTeamByName(vivos.get(i), listaEquipos.get(i % numeroDeEquipos), lang);
+        }
         if (!listaEquipos.isEmpty()) {
             for (String m : muertos) {
-                Team MasVacio = listaEquipos.stream().min(Comparator.comparingInt(this::getMemberCount)).get();
-                assignTeamByName(m, MasVacio, lang);
+                Team emptiest = listaEquipos.stream().min(Comparator.comparingInt(this::getMemberCount)).get();
+                assignTeamByName(m, emptiest, lang);
             }
         }
     }
@@ -470,24 +457,17 @@ for (int i = 0; i < vivos.size(); i++) assignTeamByName(vivos.get(i), listaEquip
         return name.startsWith("team_");
     }
 
-public void deleteAllTeams() {
+    public void deleteAllTeams() {
         for (Team team : getPluginTeams()) team.unregister();
         memberToTeam.clear();
     }
 
-    /**
-     * Instantánea de las membresías actuales (nombre de jugador -> nombre de
-     * equipo h_*) para restaurarlas después de un reset de equipos.
-     */
+    /** Returns the current membership snapshot for restoring after a team reset. */
     public Map<String, String> snapshotTeamMembers() {
         return new LinkedHashMap<>(memberToTeam);
     }
 
-    /**
-     * Restaura una instantánea de membresías tras recrear los equipos. Solo
-     * re-incorpora jugadores a equipos que existen; una entrada huérfana (por
-     * ejemplo, un equipo eliminado) se descarta.
-     */
+    /** Restores a membership snapshot, skipping entries whose teams no longer exist. */
     public void restoreTeamMembers(Map<String, String> snapshot) {
         if (snapshot == null) return;
         for (Map.Entry<String, String> e : snapshot.entrySet()) {
@@ -498,12 +478,7 @@ public void deleteAllTeams() {
         }
     }
 
-    /**
-     * Re-incorpora la entry de un jugador a su equipo h_* en el scoreboard
-     * principal. TAB (scoreboard-teams) puede haber movido la entry a sus
-     * propios equipos; la caché de pertenencia sigue intacta, solo se corrige
-     * la reflejo visual del scoreboard.
-     */
+    /** Restores a player's h_* scoreboard entry if TAB moved it while the cache stayed valid. */
     public void resyncPlayerEntry(String playerName) {
         if (playerName == null) return;
         String canonical = canonicalTrackedName(playerName);
@@ -527,11 +502,11 @@ public void deleteAllTeams() {
         return team != null && team.getName().startsWith(ScoreboardHelper.TEAM_PREFIX);
     }
 
-private List<Team> getPluginTeams() {
+    private List<Team> getPluginTeams() {
         return getTeams();
     }
 
-    /** Equipos del plugin (prefijo interno h_*), ordenados por índice de color. */
+    /** Returns plugin teams (internal h_* prefix), sorted by color index. */
     public List<Team> getTeams() {
         List<Team> teams = new ArrayList<>();
         for (Team team : board.getTeams()) {

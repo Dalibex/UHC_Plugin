@@ -28,11 +28,11 @@ import me.dalibex.UHC_DBasic.managers.GameManager;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
-/**
- * Listener especializado en la lógica visceral del juego.
- * Maneja muertes, combate (balanceo de hachas, 1.8), revelación de identidades y consumo de objetos.
- */
+/** Handles death, combat rules, identity reveal, and special consumables. */
 public class GameLogicListener implements Listener {
+
+    private static final long VICTORY_CHECK_DELAY_TICKS = 1L;
+    private static final double MIN_COMBAT_DAMAGE = 0.5;
 
     private final UHC_DBasic plugin;
 
@@ -42,22 +42,21 @@ public class GameLogicListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerDeath(PlayerDeathEvent event) {
-        Player muerto = event.getEntity();
+        Player dead = event.getEntity();
         GameManager gm = plugin.getGameManager();
-        if (!gm.isMatchActive() || !gm.getInitialParticipants().contains(muerto.getName())
-                || gm.getEliminatedPlayers().contains(muerto.getName())) return;
+        if (!gm.isMatchActive() || !gm.getInitialParticipants().contains(dead.getName())
+                || gm.getEliminatedPlayers().contains(dead.getName())) return;
 
-        muerto.setGameMode(GameMode.SPECTATOR);
-        gm.eliminatePlayer(muerto.getName());
-        muerto.getWorld().strikeLightningEffect(muerto.getLocation());
+        dead.setGameMode(GameMode.SPECTATOR);
+        gm.eliminatePlayer(dead.getName());
+        dead.getWorld().strikeLightningEffect(dead.getLocation());
 
-        spawnDeathHead(muerto);
+        spawnDeathHead(dead);
 
-        // Verificar victoria tras un breve delay para permitir el procesamiento del estado
         new BukkitRunnable() {
             @Override
             public void run() { gm.getCurrentMode().checkVictory(); }
-        }.runTaskLater(plugin, 1L);
+        }.runTaskLater(plugin, VICTORY_CHECK_DELAY_TICKS);
     }
 
     private void spawnDeathHead(Player p) {
@@ -71,7 +70,6 @@ public class GameLogicListener implements Listener {
         Block headBlock = base.getRelative(0, 1, 0);
         headBlock.setType(Material.PLAYER_HEAD, false);
         if (headBlock.getState() instanceof Skull skull) {
-            // La cabeza muestra la skin REAL del muerto (no la falsa que llevaba)
             plugin.getSkinsManager().applyOwnHead(skull, p);
         } else {
             dropDeathHeadFallback(p);
@@ -120,17 +118,14 @@ public class GameLogicListener implements Listener {
                 || gm.getEliminatedPlayers().contains(attacker.getName())
                 || gm.getEliminatedPlayers().contains(victim.getName())) return;
 
-        // 1. Mecánicas de combate 1.8 alternativo
         if (plugin.getAdminPanel().isCombate18()) {
             handleCombat18(event, attacker);
             if (event.isCancelled()) return;
         }
 
-        // 2. Marcar combate para el retardo del cambio de skin (30s)
         plugin.getSkinsManager().markInCombat(attacker);
         plugin.getSkinsManager().markInCombat(victim);
 
-        // 3. Revelación de identidades (Skins)
         handleIdentityRevelation(attacker, victim);
     }
 
@@ -141,23 +136,23 @@ public class GameLogicListener implements Listener {
     }
 
     private void handleCombat18(EntityDamageByEntityEvent event, Player attacker) {
-        // Cancelar ataques de barrido
         if (event.getCause() == EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) {
             event.setCancelled(true);
             return;
         }
 
-        // Ajuste de daño de hachas
         ItemStack hand = attacker.getInventory().getItemInMainHand();
-        String type = hand.getType().toString();
-        if (type.endsWith("_AXE")) {
-            double reduction = type.contains("WOODEN") || type.contains("GOLDEN") ? 4.0 :
-                               type.contains("STONE") ? 5.0 :
-                               type.contains("IRON") ? 4.0 :
-                               type.contains("DIAMOND") ? 3.0 :
-                               type.contains("NETHERITE") ? 4.0 : 0.0;
-            event.setDamage(Math.max(0.5, event.getDamage() - reduction));
-        }
+        double reduction = axeDamageReduction(hand.getType());
+        if (reduction > 0.0) event.setDamage(Math.max(MIN_COMBAT_DAMAGE, event.getDamage() - reduction));
+    }
+
+    private double axeDamageReduction(Material material) {
+        return switch (material) {
+            case WOODEN_AXE, GOLDEN_AXE, IRON_AXE, NETHERITE_AXE -> 4.0;
+            case STONE_AXE -> 5.0;
+            case DIAMOND_AXE -> 3.0;
+            default -> 0.0;
+        };
     }
 
     private void handleIdentityRevelation(Player attacker, Player victim) {

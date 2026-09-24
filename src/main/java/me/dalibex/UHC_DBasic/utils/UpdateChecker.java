@@ -15,20 +15,18 @@ import org.bukkit.Bukkit;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
-/**
- * Utilidad para verificar actualizaciones del plugin de forma asíncrona.
- * Consulta primero la última release de GitHub; si el repositorio no tiene
- * releases publicadas, hace fallback a la lista de tags y usa la más alta.
- */
+/** Checks plugin updates asynchronously using GitHub releases, with tags as fallback. */
 public class UpdateChecker {
     private static final Pattern VERSION_NUMBER = Pattern.compile("\\d+");
     private static final Pattern RELEASE_TAG = Pattern.compile("\\\"tag_name\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
     private static final Pattern TAG_NAME = Pattern.compile("\\\"name\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"");
+    private static final int HTTP_TIMEOUT_MS = 3000;
 
     private final UHC_DBasic plugin;
     private final String currentVersion;
     private static final String RELEASES_URL = "https://api.github.com/repos/Dalibex/UHC_Plugin/releases/latest";
     private static final String TAGS_URL = "https://api.github.com/repos/Dalibex/UHC_Plugin/tags?per_page=100";
+    private static final String RELEASES_PAGE_URL = "https://github.com/Dalibex/UHC_Plugin/releases";
 
     private static volatile String latestVersionFound = null;
     private static volatile String currentVersionChecked = null;
@@ -47,15 +45,13 @@ public class UpdateChecker {
         return checkDone;
     }
 
-    /** true si la comprobación terminó y existe una versión más reciente. */
+    /** Returns true when the check finished and a newer version exists. */
     public static boolean isUpdateAvailable() {
         return checkDone && latestVersionFound != null && currentVersionChecked != null
                 && compareVersions(latestVersionFound, currentVersionChecked) > 0;
     }
 
-    /**
-     * Comprueba la versión contra el repositorio de GitHub.
-     */
+    /** Checks the current plugin version against GitHub. */
     public void checkForUpdates() {
         latestVersionFound = null;
         currentVersionChecked = null;
@@ -125,8 +121,8 @@ public class UpdateChecker {
             connection.setRequestMethod("GET");
             connection.setRequestProperty("Accept", "application/vnd.github.v3+json");
             connection.setRequestProperty("User-Agent", "UHC-Plugin-UpdateChecker");
-            connection.setConnectTimeout(3000);
-            connection.setReadTimeout(3000);
+            connection.setConnectTimeout(HTTP_TIMEOUT_MS);
+            connection.setReadTimeout(HTTP_TIMEOUT_MS);
 
             if (connection.getResponseCode() != 200) return null;
 
@@ -144,10 +140,7 @@ public class UpdateChecker {
         }
     }
 
-    /**
-     * Compara dos versiones numéricamente (sin prefijo v ni sufijos pre-release).
-     * Devuelve >0 si a > b, 0 si iguales, <0 si a < b.
-     */
+    /** Compares numeric versions, ignoring a leading v and pre-release suffixes. */
     public static int compareVersions(String a, String b) {
         int[] pa = versionParts(a);
         int[] pb = versionParts(b);
@@ -184,7 +177,7 @@ public class UpdateChecker {
             Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§e [UHC UPDATE] A new version is available!"));
             Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§f Your version: §c" + currentVersion));
             Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§f Latest version: §a" + latest));
-            Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§f Download it at: §bhttps://github.com/Dalibex/UHC_Plugin/releases"));
+            Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§f Download it at: §b" + RELEASES_PAGE_URL));
             Bukkit.getConsoleSender().sendMessage(legacySection().deserialize("§6--------------------------------------------------"));
             Bukkit.getConsoleSender().sendMessage(legacySection().deserialize(" "));
         });

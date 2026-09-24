@@ -20,13 +20,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Comando de abandono de partida: marca a un jugador como eliminado
- * (quedándose fuera esté conectado o no). Un jugador puede abandonar por
- * sí mismo con /abandon o un administrador puede marcarlo con
- * /abandon <jugador> si se desconectó sin avisar.
- */
+/** Marks a participant as eliminated, either self-requested or by an admin for an offline player. */
 public class AbandonCommand implements CommandExecutor, TabCompleter {
+
+    private static final long VICTORY_CHECK_DELAY_TICKS = 1L;
 
     private final UHC_DBasic plugin;
 
@@ -50,9 +47,9 @@ public class AbandonCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        boolean porAdmin = args.length > 0;
+        boolean byAdmin = args.length > 0;
         String targetName;
-        if (porAdmin) {
+        if (byAdmin) {
             if (!plugin.isAdmin(executor)) {
                 executor.sendMessage(lang.get("general.no-permission", executor));
                 return true;
@@ -85,18 +82,17 @@ public class AbandonCommand implements CommandExecutor, TabCompleter {
 
         Bukkit.broadcast(legacySection().deserialize(lang.get("game.abandon-broadcast", null).replace("%player%", targetName)));
 
-        if (porAdmin) {
+        if (byAdmin) {
             executor.sendMessage(lang.get("game.abandon-admin-set", executor).replace("%player%", targetName));
             executor.playSound(executor.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
         }
 
-        // Verificar victoria tras procesar el abandono
         new BukkitRunnable() {
             @Override
             public void run() {
                 plugin.getGameManager().getCurrentMode().checkVictory();
             }
-        }.runTaskLater(plugin, 1L);
+        }.runTaskLater(plugin, VICTORY_CHECK_DELAY_TICKS);
 
         return true;
     }

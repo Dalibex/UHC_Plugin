@@ -38,6 +38,8 @@ import me.dalibex.UHC_DBasic.utils.UpdateChecker;
 
 public final class UHC_DBasic extends JavaPlugin {
 
+    private static final long INITIAL_RESET_DELAY_TICKS = 60L;
+
     private GameManager gameManager;
     private TeamManager teamManager;
     private SkinsManager skinsManager;
@@ -58,31 +60,26 @@ public final class UHC_DBasic extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
 
-        // 1. INICIALIZAR GESTOR DE DEPENDENCIAS
         dependencyManager = new DependencyManager(this);
         if (!dependencyManager.checkDependencies()) {
             Bukkit.getPluginManager().disablePlugin(this);
             return;
         }
 
-        // 2. LOGO Y VERSION CHECK
         logBanner();
         new UpdateChecker(this).checkForUpdates();
 
-        // INICIALIZAR MANAGERS
         teamManager = new TeamManager(this);
         gameManager = new GameManager(this);
         skinsManager = new SkinsManager(this);
         worldManager = new WorldManager(this);
         tabManager = new TABManager(this);
 
-        // CONFIGURACIÓN E IDIOMA
         languageManager = new LanguageManager(this);
 
-        // INICIALIZAR RESTO DE COMPONENTES
         adminPanelManager = new AdminPanelManager(this);
         chatManager = new ChatManager(this);
-        // INICIALIZAR LISTENERS ESPECIALIZADOS
+
         connectionListener = new PlayerConnectionListener(this);
         gameLogicListener = new GameLogicListener(this);
         adminPanelListener = new AdminPanelListener(this);
@@ -90,7 +87,6 @@ public final class UHC_DBasic extends JavaPlugin {
         specialCraftsManager = new SpecialCraftsManager(this);
         resourceRushListener = new ResourceRushListener(this);
 
-        // REGISTRAR EVENTOS
         getServer().getPluginManager().registerEvents(connectionListener, this);
         getServer().getPluginManager().registerEvents(gameLogicListener, this);
         getServer().getPluginManager().registerEvents(adminPanelListener, this);
@@ -98,19 +94,15 @@ public final class UHC_DBasic extends JavaPlugin {
         getServer().getPluginManager().registerEvents(resourceRushListener, this);
         getServer().getPluginManager().registerEvents(chatManager, this);
 
-        // REGISTRAR COMANDOS
         registerCommands();
 
         Bukkit.getScheduler().runTaskLater(this, () -> {
             tabManager.registerPlaceholders();
-            // Automatizar reset inicial tras cargar todo
             gameManager.fullReset();
-        }, 60L);
+        }, INITIAL_RESET_DELAY_TICKS);
 
         getLogger().info("§aUHC ELOUD Plugin Enabled.");
     }
-
-    // Eliminado el método antiguo en favor de DependencyManager
 
     private void registerCommands() {
         getCommand("uhcadmin").setExecutor(new AdminPanelCommand(this));
@@ -140,8 +132,9 @@ public final class UHC_DBasic extends JavaPlugin {
         getCommand("cancelstart").setExecutor(cancelCmd);
         getCommand("cancelstart").setTabCompleter(CommandTabs.NO_SUGGESTIONS);
 
-        getCommand("lang").setExecutor(new LangCommand(this));
-        getCommand("lang").setTabCompleter(new LangCommand(this));
+        LangCommand langCmd = new LangCommand(this);
+        getCommand("lang").setExecutor(langCmd);
+        getCommand("lang").setTabCompleter(langCmd);
 
         AssignTeamCommand assignCmd = new AssignTeamCommand(this);
         getCommand("assignteam").setExecutor(assignCmd);
@@ -187,7 +180,7 @@ public final class UHC_DBasic extends JavaPlugin {
         console.sendMessage(" ");
     }
 
-    // --- GETTERS ---
+    // --- Getters ---
     public GameManager getGameManager() { return gameManager; }
     public TeamManager getTeamManager() { return teamManager; }
     public SkinsManager getSkinsManager() { return skinsManager; }
@@ -203,10 +196,7 @@ public final class UHC_DBasic extends JavaPlugin {
     public ItemsListener getItemsListener() { return itemsListener; }
     public DependencyManager getDependencyManager() { return dependencyManager; }
 
-    /**
-     * Comprueba si un remitente tiene permisos de administración del plugin:
-     * OP o con el permiso {@code uhc.admin}. La consola se considera admin.
-     */
+    /** Returns true when a sender has plugin admin permissions. */
     public boolean isAdmin(CommandSender sender) {
         if (sender == null) return false;
         if (sender instanceof Player p && p.isOp()) return true;

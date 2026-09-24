@@ -2,11 +2,11 @@ package me.dalibex.UHC_DBasic.listeners;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.managers.AdminPanelManager;
-import me.dalibex.UHC_DBasic.managers.AdminSlots;
 import me.dalibex.UHC_DBasic.managers.GameManager;
 import me.dalibex.UHC_DBasic.managers.GamePhase;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import me.dalibex.UHC_DBasic.managers.TeamManager;
+import me.dalibex.UHC_DBasic.utils.AdminSlots;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
@@ -118,7 +118,7 @@ public class AdminPanelListener implements Listener {
                 || title.equals(lang.get("menus.time.title", p));
     }
 
-    // --- MANEJO DE MENÚS (EXTRACTOS) ---
+    // --- Menu handlers ---
 
     private void handleMainAdminClick(Player p, int slot, boolean left, boolean right, AdminPanelManager admin, LanguageManager lang) {
         if (slot == AdminSlots.MAIN_COMBAT) {
@@ -171,13 +171,12 @@ public class AdminPanelListener implements Listener {
         }
 
         int current = tm.getTeamSize();
-        int jugadoresOnline = Bukkit.getOnlinePlayers().size();
+        int onlinePlayers = Bukkit.getOnlinePlayers().size();
         
         if (left) {
             if (current < 4) {
                 int next = current + 1;
-                // Verificar que haya suficientes jugadores para al menos 2 equipos (o es modo solos)
-                if (next > 1 && jugadoresOnline < next * 2) {
+                if (next > 1 && onlinePlayers < next * 2) {
                     p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
                     return;
                 }
@@ -192,22 +191,29 @@ public class AdminPanelListener implements Listener {
             }
         }
         p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1.5f);
-        if (tm.isCustomTeamsEnabled()) { tm.initializeCustomTeams(); tm.giveAllSelectorItems(); }
+        if (tm.isCustomTeamsEnabled()) {
+            tm.initializeCustomTeams();
+            tm.giveAllSelectorItems();
+        }
         admin.openMainAdminPanel(p);
     }
 
     private void handleTeamSelectorClick(Player p, int slot, boolean right) {
         TeamManager tm = plugin.getTeamManager();
-        if (right) { 
-            if (tm.tryLeaveTeam(p)) { 
-                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1f, 0.5f); 
-                tm.openTeamSelectorGUI(p); 
-            } else { p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f); }
-        } else { 
-            if (tm.tryJoinTeam(p, slot)) { 
-                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1f, 1.5f); 
-                tm.openTeamSelectorGUI(p); 
-            } else { p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f); }
+        if (right) {
+            if (tm.tryLeaveTeam(p)) {
+                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1f, 0.5f);
+                tm.openTeamSelectorGUI(p);
+            } else {
+                p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
+            }
+        } else {
+            if (tm.tryJoinTeam(p, slot)) {
+                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1f, 1.5f);
+                tm.openTeamSelectorGUI(p);
+            } else {
+                p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
+            }
         }
     }
 
@@ -330,19 +336,22 @@ public class AdminPanelListener implements Listener {
     }
 
     private void handleGamemodeClick(Player p, int slot, AdminPanelManager admin, LanguageManager lang) {
-        if (slot == AdminSlots.GAMEMODE_BACK) { admin.openMainAdminPanel(p); p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, 1f, 1f); return; }
+        if (slot == AdminSlots.GAMEMODE_BACK) {
+            admin.openMainAdminPanel(p);
+            p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, 1f, 1f);
+            return;
+        }
         GameManager gm = plugin.getGameManager();
         if (gm.getPhase() != GamePhase.LOBBY) return;
-        if (slot == 1) { // Information Slot
+        if (slot == 1) {
             p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_CELEBRATE, 1f, 1f);
             return;
         }
-        if (slot == AdminSlots.GAMEMODE_CLASSIC) { 
-            gm.changeMode(new me.dalibex.UHC_DBasic.gamemodes.Classic(plugin, gm)); 
+        if (slot == AdminSlots.GAMEMODE_CLASSIC) {
+            gm.changeMode(new me.dalibex.UHC_DBasic.gamemodes.Classic(plugin, gm));
             p.playSound(p.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 1f, 1f);
-        }
-        else if (slot == AdminSlots.GAMEMODE_RESOURCE_RUSH) { 
-            gm.changeMode(new me.dalibex.UHC_DBasic.gamemodes.ResourceRush(plugin, gm)); 
+        } else if (slot == AdminSlots.GAMEMODE_RESOURCE_RUSH) {
+            gm.changeMode(new me.dalibex.UHC_DBasic.gamemodes.ResourceRush(plugin, gm));
             p.playSound(p.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 1f, 1.5f);
         }
         admin.openGamemodePanel(p);
@@ -358,17 +367,7 @@ public class AdminPanelListener implements Listener {
         }
 
         World w = Bukkit.getWorlds().get(0);
-        int amount = switch (slot) {
-            case AdminSlots.BORDER_MINUS_10 -> -10;
-            case AdminSlots.BORDER_MINUS_100 -> -100;
-            case AdminSlots.BORDER_MINUS_500 -> -500;
-            case AdminSlots.BORDER_MINUS_1000 -> -1000;
-            case AdminSlots.BORDER_PLUS_10 -> 10;
-            case AdminSlots.BORDER_PLUS_100 -> 100;
-            case AdminSlots.BORDER_PLUS_500 -> 500;
-            case AdminSlots.BORDER_PLUS_1000 -> 1000;
-            default -> 0;
-        };
+        int amount = AdminSlots.borderDeltaForSlot(slot);
         if (amount != 0) {
             double newSize = w.getWorldBorder().getSize() + amount;
             if (newSize < 20) {
@@ -391,25 +390,16 @@ public class AdminPanelListener implements Listener {
             p.playSound(p.getLocation(), gm.isPaused() ? Sound.BLOCK_NOTE_BLOCK_BASS : Sound.BLOCK_NOTE_BLOCK_PLING, 1f, 1f);
         }
         else {
-            // Los botones de cambio se muestran como LOCKED mientras la partida está en curso
             if (gm.getPhase() != GamePhase.LOBBY) {
                 p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
                 admin.openTimePanel(p);
                 return;
             }
-            int change = switch (slot) {
-                case AdminSlots.TIME_MINUS_1 -> -1;
-                case AdminSlots.TIME_MINUS_5 -> -5;
-                case AdminSlots.TIME_MINUS_10 -> -10;
-                case AdminSlots.TIME_PLUS_1 -> 1;
-                case AdminSlots.TIME_PLUS_5 -> 5;
-                case AdminSlots.TIME_PLUS_10 -> 10;
-                default -> 0;
-            };
+            int change = AdminSlots.timeDeltaMinutesForSlot(slot);
             if (change != 0) {
-                int nuevoTime = gm.getSecondsPerChapter() + (change * 60);
-                if (nuevoTime > 0) {
-                    gm.setSecondsPerChapter(nuevoTime);
+                int newTime = gm.getSecondsPerChapter() + (change * 60);
+                if (newTime > 0) {
+                    gm.setSecondsPerChapter(newTime);
                     float pitch = (change > 0) ? 1.2f : 0.8f;
                     p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, pitch);
                 } else {
@@ -420,7 +410,7 @@ public class AdminPanelListener implements Listener {
         admin.openTimePanel(p);
     }
 
-    // --- RESTRICCIONES DE INVENTARIO Y MANO SECUNDARIA ---
+    // --- Inventory and offhand restrictions ---
 
     @EventHandler
     public void onOffhandSwap(PlayerSwapHandItemsEvent event) {

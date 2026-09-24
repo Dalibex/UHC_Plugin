@@ -50,10 +50,7 @@ public class LangCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    /**
-     * Valida argumentos, estado del juego y disponibilidad del idioma.
-     * @return El código del idioma si es válido, null si falla.
-     */
+    /** Validates args, game state, and language availability. */
     private String validate(Player player, String[] args) {
         LanguageManager lang = plugin.getLang();
         String errorPrefix = lang.get("general.error-prefix", player);

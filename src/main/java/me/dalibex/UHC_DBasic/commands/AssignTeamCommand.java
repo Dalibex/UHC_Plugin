@@ -56,7 +56,6 @@ public class AssignTeamCommand implements CommandExecutor, TabCompleter {
         String targetName = args[0];
         String colorInput = args[1];
 
-        // Buscar al jugador
         Player target = Bukkit.getPlayer(targetName);
         if (target == null || !target.isOnline()) {
             admin.sendMessage(lang.get("game.assign-team-player-not-found", admin)
@@ -65,7 +64,6 @@ public class AssignTeamCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // Buscar el equipo por color/ID
         Team team = tm.getTeamByColorSearch(colorInput);
         if (team == null) {
             admin.sendMessage(lang.get("game.assign-team-not-found", admin)
@@ -74,14 +72,12 @@ public class AssignTeamCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // Verificar si el equipo está lleno
         if (tm.getMemberCount(team) >= tm.getTeamSize()) {
             admin.sendMessage(lang.get("menus.team-selector.already-full", admin));
             admin.playSound(admin.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
             return true;
         }
 
-        // Quitar del equipo anterior (si es del plugin) y asignar al objetivo.
         tm.movePlayerToTeam(target, team);
 
         String teamDisplay = legacySection().serialize(team.displayName().color(team.color()));
@@ -104,15 +100,12 @@ public class AssignTeamCommand implements CommandExecutor, TabCompleter {
         List<String> completions = new ArrayList<>();
 
         if (args.length == 1) {
-            // Autocompletar nombres de jugadores
             String partial = args[0].toLowerCase();
             completions = Bukkit.getOnlinePlayers().stream()
                     .map(Player::getName)
                     .filter(name -> name.toLowerCase().startsWith(partial))
                     .collect(Collectors.toList());
         } else if (args.length == 2) {
-            // Autocompletar colores del plugin sin el prefijo interno "h_":
-            // el usuario ve el color, pero internamente es h_<color>.
             String partial = args[1].toLowerCase();
             for (Team team : plugin.getTeamManager().getTeams()) {
                 String colorKey = TeamManager.normalizeColorInput(team.getName());

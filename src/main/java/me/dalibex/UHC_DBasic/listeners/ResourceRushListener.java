@@ -27,6 +27,8 @@ import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializ
 public class ResourceRushListener implements Listener {
 
     private final UHC_DBasic plugin;
+    private static final long SUMMARY_SHIFT_WINDOW_MS = 3000L;
+    private static final int SUMMARY_SHIFT_COUNT = 3;
 
     private final Map<UUID, Long> ultimoShift = new HashMap<>();
     private final Map<UUID, Integer> contadorShift = new HashMap<>();
@@ -74,7 +76,7 @@ public class ResourceRushListener implements Listener {
                 && !plugin.getGameManager().getEliminatedPlayers().contains(player.getName()) &&
                 plugin.getGameManager().getCurrentMode() instanceof ResourceRush rr) {
 
-            if (rr.getActiveObjectives().contains(material)) {
+            if (rr.isActiveObjective(material)) {
                 rr.completeObjective(player, material);
             }
         }
@@ -89,11 +91,11 @@ public class ResourceRushListener implements Listener {
         UUID uuid = p.getUniqueId();
         long ahora = System.currentTimeMillis();
 
-        if (!ultimoShift.containsKey(uuid) || (ahora - ultimoShift.get(uuid) > 3000)) {
+        if (!ultimoShift.containsKey(uuid) || (ahora - ultimoShift.get(uuid) > SUMMARY_SHIFT_WINDOW_MS)) {
             contadorShift.put(uuid, 1);
         } else {
             int cuenta = contadorShift.get(uuid) + 1;
-            if (cuenta >= 3) {
+            if (cuenta >= SUMMARY_SHIFT_COUNT) {
                 showObjectivesSummary(p);
                 contadorShift.put(uuid, 0);
             } else {

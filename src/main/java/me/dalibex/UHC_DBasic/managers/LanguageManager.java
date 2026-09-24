@@ -128,12 +128,14 @@ public class LanguageManager {
 
         List<String> list = config.getStringList(path);
 
-        // Seguridad: Si la lista está vacía o no existe
         if (list.isEmpty()) {
             return Collections.singletonList("§cList not found: " + path);
         }
 
-        list.replaceAll(line -> line.replace('&', '§'));
-        return list;
+        List<String> formatted = new ArrayList<>(list.size());
+        for (String line : list) {
+            formatted.add(line.replace('&', '§'));
+        }
+        return formatted;
     }
 }

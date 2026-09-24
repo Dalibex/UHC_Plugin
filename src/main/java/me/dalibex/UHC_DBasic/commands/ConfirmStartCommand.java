@@ -10,6 +10,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -31,6 +32,17 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
 
     private final UHC_DBasic plugin;
     private final StartCommand startCmd;
+    private static final int MIN_SCATTER_POSITIONS = 4;
+    private static final double SCATTER_EDGE_INSET = 0.5;
+    private static final double SPAWN_VERTICAL_OFFSET = 1.5;
+    private static final long SCATTER_INTERVAL_TICKS = 40L;
+    private static final long WORLD_LOAD_DELAY_TICKS = 120L;
+    private static final long COUNTDOWN_PERIOD_TICKS = 20L;
+    private static final int COUNTDOWN_SECONDS = 10;
+    private static final int START_EFFECT_DURATION_TICKS = 3600;
+    private static final int MAX_EFFECT_AMPLIFIER = 255;
+    private static final Material RESCUE_PLATFORM_MATERIAL = Material.GLASS;
+    private static final Material RESCUE_BOAT_MATERIAL = Material.OAK_BOAT;
 
     public ConfirmStartCommand(UHC_DBasic plugin, StartCommand startCmd) {
         this.plugin = plugin;
@@ -52,10 +64,9 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // Solo el admin que inició /start puede confirmarlo (o cualquier admin del plugin)
         if (plugin.isAdmin(player)) {
-            UUID iniciador = startCmd.getConfirmerUuid();
-            if (iniciador != null && !iniciador.equals(player.getUniqueId())) {
+            UUID initiator = startCmd.getConfirmerUuid();
+            if (initiator != null && !initiator.equals(player.getUniqueId())) {
                 player.sendMessage(plugin.getLang().get("start-menu.not-initiator", player));
                 return true;
             }
@@ -64,7 +75,6 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // Bloquear inicio si equipos personalizados activos y faltan jugadores por elegir
         TeamManager tm = plugin.getTeamManager();
         if (tm.isCustomTeamsEnabled() && tm.getTeamSize() > 1) {
             if (!tm.allPlayersHaveTeam()) {
@@ -96,27 +106,25 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * Coordina el borde, el scatter (TP) y la cuenta atrás.
+     * Coordinates border setup, scatter teleporting, and countdown.
      */
     private void startUHCProcess(int size) {
         World world = plugin.getGameManager().getStartupWorld();
         LanguageManager lang = plugin.getLang();
         long generation = plugin.getGameManager().getStartupGeneration();
 
-        // Limpiar ítems de selector de equipo INMEDIATAMENTE al confirmar
         plugin.getTeamManager().removeAllSelectorItems();
 
         world.getWorldBorder().setCenter(0, 0);
         world.getWorldBorder().setSize(size);
 
-        List<UUID> jugadores = new ArrayList<>(plugin.getGameManager().getEligibleRoster());
-        int totalJugadores = jugadores.size();
-        int numPosiciones = Math.max(4, totalJugadores);
+        List<UUID> players = new ArrayList<>(plugin.getGameManager().getEligibleRoster());
+        int totalPlayers = players.size();
+        int positionCount = Math.max(MIN_SCATTER_POSITIONS, totalPlayers);
         List<Integer> indices = new ArrayList<>();
-        for (int i = 0; i < numPosiciones; i++) indices.add(i);
+        for (int i = 0; i < positionCount; i++) indices.add(i);
         java.util.Collections.shuffle(indices);
 
-        // --- Tarea de Teletransporte Escalonado ---
         BukkitRunnable scatter = new BukkitRunnable() {
             int current = 0;
 
@@ -126,9 +134,9 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
                     cancel();
                     return;
                 }
-                if (current < totalJugadores) {
-                    UUID playerId = jugadores.get(current);
-                    Location location = calculateScatterLocation(world, indices.get(current), numPosiciones, size);
+                if (current < totalPlayers) {
+                    UUID playerId = players.get(current);
+                    Location location = calculateScatterLocation(world, indices.get(current), positionCount, size);
                     plugin.getGameManager().setPlannedScatterLocation(playerId, location);
                     Player p = Bukkit.getPlayer(playerId);
                     if (p != null) prepareAndTeleport(p, location);
@@ -136,7 +144,7 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
                     for (Player online : Bukkit.getOnlinePlayers()) {
                         online.sendMessage(lang.get("game.teleporting-progress", online)
                                 .replace("%current%", String.valueOf(current + 1))
-                                .replace("%total%", String.valueOf(totalJugadores)));
+                                .replace("%total%", String.valueOf(totalPlayers)));
                     }
                     current++;
                 } else {
@@ -152,11 +160,11 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
                             if (plugin.getGameManager().enterCountdown(generation)) startCountdown(lang, generation);
                         }
                     };
-                    plugin.getGameManager().trackStartupTask(delay.runTaskLater(plugin, 120L)); // 6 segundos de delay
+                    plugin.getGameManager().trackStartupTask(delay.runTaskLater(plugin, WORLD_LOAD_DELAY_TICKS));
                 }
             }
         };
-        plugin.getGameManager().trackStartupTask(scatter.runTaskTimer(plugin, 0L, 40L));
+        plugin.getGameManager().trackStartupTask(scatter.runTaskTimer(plugin, 0L, SCATTER_INTERVAL_TICKS));
     }
 
     private Location calculateScatterLocation(World world, int i, int numPosiciones, int size) {
@@ -174,12 +182,12 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
             xFinal = radio * (xCircular / Math.abs(zCircular));
         }
 
-        if (xFinal > 0) xFinal -= 0.5; else xFinal += 0.5;
-        if (zFinal > 0) zFinal -= 0.5; else zFinal += 0.5;
+        if (xFinal > 0) xFinal -= SCATTER_EDGE_INSET; else xFinal += SCATTER_EDGE_INSET;
+        if (zFinal > 0) zFinal -= SCATTER_EDGE_INSET; else zFinal += SCATTER_EDGE_INSET;
         int blockX = (int) Math.floor(xFinal);
         int blockZ = (int) Math.floor(zFinal);
-        double spawnX = blockX + 0.5;
-        double spawnZ = blockZ + 0.5;
+        double spawnX = blockX + SCATTER_EDGE_INSET;
+        double spawnZ = blockZ + SCATTER_EDGE_INSET;
 
         int blockY = world.getHighestBlockYAt(blockX, blockZ);
         org.bukkit.block.Block bloqueSuelo = world.getBlockAt(blockX, blockY, blockZ);
@@ -187,12 +195,11 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
         if (bloqueSuelo.isLiquid() || bloqueSuelo.getType().toString().contains("AIR")) {
             if (bloqueSuelo.isLiquid()) {
                 blockY += 1;
-                world.getBlockAt(blockX, blockY, blockZ).setType(Material.GLASS);
+                world.getBlockAt(blockX, blockY, blockZ).setType(RESCUE_PLATFORM_MATERIAL);
             }
         }
 
-        Location loc = new Location(world, spawnX, blockY + 1.5, spawnZ);
-        return loc;
+        return new Location(world, spawnX, blockY + SPAWN_VERTICAL_OFFSET, spawnZ);
     }
 
     private void prepareAndTeleport(Player p, Location loc) {
@@ -202,18 +209,17 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
         for (PotionEffect effect : p.getActivePotionEffects()) {
             p.removePotionEffect(effect.getType());
         }
-        // Efectos con más tiempo para que duren hasta que terminen todos los turnos
-        p.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 3600, 1, false, false, false));
-        p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 3600, 255, false, false, false));
-        p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 3600, 255, false, false, false));
-        p.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 3600, 255, false, false, false));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, START_EFFECT_DURATION_TICKS, 1, false, false, false));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, START_EFFECT_DURATION_TICKS, MAX_EFFECT_AMPLIFIER, false, false, false));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, START_EFFECT_DURATION_TICKS, MAX_EFFECT_AMPLIFIER, false, false, false));
+        p.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, START_EFFECT_DURATION_TICKS, MAX_EFFECT_AMPLIFIER, false, false, false));
     }
 
     private void giveBoatIfWaterRescueSpawn(Player p, Location loc) {
-        org.bukkit.block.Block platform = loc.clone().subtract(0, 1, 0).getBlock();
-        if (platform.getType() != Material.GLASS || !platform.getRelative(0, -1, 0).isLiquid()) return;
+        Block platform = loc.clone().subtract(0, 1, 0).getBlock();
+        if (platform.getType() != RESCUE_PLATFORM_MATERIAL || !platform.getRelative(0, -1, 0).isLiquid()) return;
 
-        ItemStack boat = new ItemStack(Material.OAK_BOAT);
+        ItemStack boat = new ItemStack(RESCUE_BOAT_MATERIAL);
         ItemMeta meta = boat.getItemMeta();
         if (meta != null) {
             meta.displayName(plugin.getLang().getComponent("items.rescue-boat.name", p));
@@ -225,7 +231,7 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
 
     private void startCountdown(LanguageManager lang, long generation) {
         BukkitRunnable countdown = new BukkitRunnable() {
-            int segundos = 10;
+            int segundos = COUNTDOWN_SECONDS;
 
             @Override
             public void run() {
@@ -280,7 +286,7 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
                 }
             }
         };
-        plugin.getGameManager().trackStartupTask(countdown.runTaskTimer(plugin, 20L, 20L));
+        plugin.getGameManager().trackStartupTask(countdown.runTaskTimer(plugin, COUNTDOWN_PERIOD_TICKS, COUNTDOWN_PERIOD_TICKS));
     }
 
     @Override

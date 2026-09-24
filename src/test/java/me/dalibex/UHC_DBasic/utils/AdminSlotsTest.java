@@ -1,4 +1,4 @@
-package me.dalibex.UHC_DBasic.managers;
+package me.dalibex.UHC_DBasic.utils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -18,6 +18,28 @@ class AdminSlotsTest {
         assertEquals(-1, AdminSlots.episodeForSlot(19));
         assertEquals(-1, AdminSlots.episodeForSlot(34));
         assertEquals(-1, AdminSlots.episodeForSlot(45));
+    }
+
+    @Test void borderDeltaSlotsMapExactly() {
+        assertEquals(-10, AdminSlots.borderDeltaForSlot(AdminSlots.BORDER_MINUS_10));
+        assertEquals(-100, AdminSlots.borderDeltaForSlot(AdminSlots.BORDER_MINUS_100));
+        assertEquals(-500, AdminSlots.borderDeltaForSlot(AdminSlots.BORDER_MINUS_500));
+        assertEquals(-1000, AdminSlots.borderDeltaForSlot(AdminSlots.BORDER_MINUS_1000));
+        assertEquals(10, AdminSlots.borderDeltaForSlot(AdminSlots.BORDER_PLUS_10));
+        assertEquals(100, AdminSlots.borderDeltaForSlot(AdminSlots.BORDER_PLUS_100));
+        assertEquals(500, AdminSlots.borderDeltaForSlot(AdminSlots.BORDER_PLUS_500));
+        assertEquals(1000, AdminSlots.borderDeltaForSlot(AdminSlots.BORDER_PLUS_1000));
+        assertEquals(0, AdminSlots.borderDeltaForSlot(AdminSlots.BORDER_BACK));
+    }
+
+    @Test void timeDeltaSlotsMapExactly() {
+        assertEquals(-1, AdminSlots.timeDeltaMinutesForSlot(AdminSlots.TIME_MINUS_1));
+        assertEquals(-5, AdminSlots.timeDeltaMinutesForSlot(AdminSlots.TIME_MINUS_5));
+        assertEquals(-10, AdminSlots.timeDeltaMinutesForSlot(AdminSlots.TIME_MINUS_10));
+        assertEquals(1, AdminSlots.timeDeltaMinutesForSlot(AdminSlots.TIME_PLUS_1));
+        assertEquals(5, AdminSlots.timeDeltaMinutesForSlot(AdminSlots.TIME_PLUS_5));
+        assertEquals(10, AdminSlots.timeDeltaMinutesForSlot(AdminSlots.TIME_PLUS_10));
+        assertEquals(0, AdminSlots.timeDeltaMinutesForSlot(AdminSlots.TIME_BACK));
     }
 
     @Test void publicSlotConstantsAreUniqueAndInPanelBounds() throws IllegalAccessException {

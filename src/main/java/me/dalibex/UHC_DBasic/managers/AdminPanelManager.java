@@ -23,6 +23,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.gamemodes.Classic;
 import me.dalibex.UHC_DBasic.gamemodes.ResourceRush;
+import me.dalibex.UHC_DBasic.utils.AdminSlots;
 import me.dalibex.UHC_DBasic.utils.TextUtil;
 import me.dalibex.UHC_DBasic.utils.TimeUtil;
 import net.kyori.adventure.text.Component;
@@ -70,7 +71,7 @@ public class AdminPanelManager {
 
         Inventory mainGui = Bukkit.createInventory(null, 9, lang.getComponent("menus.main-admin.title", player));
         int teamSize = tm.getTeamSize();
-        int jugadoresOnline = Bukkit.getOnlinePlayers().size();
+        int onlinePlayers = Bukkit.getOnlinePlayers().size();
 
         ItemStack pvpItem = new ItemStack(Material.IRON_SWORD);
         ItemMeta ameta = pvpItem.getItemMeta();
@@ -91,20 +92,20 @@ public class AdminPanelManager {
         mainGui.setItem(AdminSlots.MAIN_BORDER, createSimpleItem(Material.EMERALD_BLOCK, "menus.main-admin.border-item", player));
         mainGui.setItem(AdminSlots.MAIN_TIME, createSimpleItem(Material.CLOCK, "menus.main-admin.time-item", player));
 
-        GameManager rpm = plugin.getGameManager();
-        boolean partidaEnCurso = rpm.getPhase() != GamePhase.LOBBY;
+        GameManager gm = plugin.getGameManager();
+        boolean matchStarted = gm.getPhase() != GamePhase.LOBBY;
 
-        ItemStack gmItem = new ItemStack(partidaEnCurso ? Material.BARRIER : Material.NETHER_STAR);
+        ItemStack gmItem = new ItemStack(matchStarted ? Material.BARRIER : Material.NETHER_STAR);
         ItemMeta gmMeta = gmItem.getItemMeta();
-        String gmNameKey = partidaEnCurso ? "menus.main-admin.gamemode-item.name-locked" : "menus.main-admin.gamemode-item.name";
+        String gmNameKey = matchStarted ? "menus.main-admin.gamemode-item.name-locked" : "menus.main-admin.gamemode-item.name";
         gmMeta.displayName(lang.getComponent(gmNameKey, player));
 
         List<Component> gmLore = new ArrayList<>();
         for (String line : lang.getList("menus.main-admin.gamemode-item.lore", player)) {
-            gmLore.add(txt(line.replace("%mode%", rpm.getCurrentMode().getName())));
+            gmLore.add(txt(line.replace("%mode%", gm.getCurrentMode().getName())));
         }
 
-        if (partidaEnCurso) {
+        if (matchStarted) {
             gmLore.add(Component.empty());
             gmLore.add(lang.getComponent("menus.common.locked", player));
         }
@@ -113,7 +114,7 @@ public class AdminPanelManager {
         mainGui.setItem(AdminSlots.MAIN_GAMEMODE, gmItem);
 
         ItemStack customTeamItem;
-        if (partidaEnCurso) {
+        if (matchStarted) {
             customTeamItem = createLockedItem(player, "menus.main-admin.custom-teams-item.name-locked");
         } else {
             customTeamItem = new ItemStack(Material.PAINTING);
@@ -134,7 +135,7 @@ public class AdminPanelManager {
         mainGui.setItem(AdminSlots.MAIN_CUSTOM_TEAMS, customTeamItem);
 
         ItemStack teamItem;
-        if (partidaEnCurso) {
+        if (matchStarted) {
             teamItem = createLockedItem(player, "menus.main-admin.teams-item.name-locked");
         } else {
             teamItem = new ItemStack(Material.WHITE_BANNER);
@@ -142,13 +143,13 @@ public class AdminPanelManager {
             cMeta.displayName(lang.getComponent("menus.main-admin.teams-item.name", player));
             String sizeStr = (teamSize == 1) ? lang.get("menus.main-admin.teams-item.size-solos", player) :
                     lang.get("menus.main-admin.teams-item.size-teams", player).replace("%n%", String.valueOf(teamSize));
-            int numEquipos = (jugadoresOnline == 0) ? 0 : (int) Math.ceil((double) jugadoresOnline / teamSize);
+            int teamCount = (onlinePlayers == 0) ? 0 : (int) Math.ceil((double) onlinePlayers / teamSize);
 
             List<Component> lore = new ArrayList<>();
             for (String line : lang.getList("menus.main-admin.teams-item.lore", player)) {
-                lore.add(txt(line.replace("%size%", sizeStr).replace("%online%", String.valueOf(jugadoresOnline)).replace("%total%", String.valueOf(numEquipos))));
+                lore.add(txt(line.replace("%size%", sizeStr).replace("%online%", String.valueOf(onlinePlayers)).replace("%total%", String.valueOf(teamCount))));
             }
-            if (teamSize < 4 && jugadoresOnline < (teamSize + 1) * 2) {
+            if (teamSize < 4 && onlinePlayers < (teamSize + 1) * 2) {
                 lore.add(Component.empty());
                 lore.add(txt(lang.get("game.team-size-error", player).replace("%min%", String.valueOf((teamSize + 1) * 2)).replace("%n%", String.valueOf(teamSize + 1))));
             }
@@ -210,28 +211,13 @@ public class AdminPanelManager {
     public void openTeamsEpisodePanel(Player player) {
         LanguageManager lang = plugin.getLang();
         TeamManager tm = plugin.getTeamManager();
-        boolean partidaEnCurso = plugin.getGameManager().getPhase() != GamePhase.LOBBY;
+        boolean matchStarted = plugin.getGameManager().getPhase() != GamePhase.LOBBY;
         int selected = tm.getTeamsFormedEpisode();
 
         Inventory inv = Bukkit.createInventory(null, 45, lang.getComponent("menus.teamsepisode.title", player));
-
-        ItemStack info = new ItemStack(Material.BLUE_BANNER);
-        ItemMeta iMeta = info.getItemMeta();
-        iMeta.displayName(lang.getComponent("menus.teamsepisode.info.name", player));
-        List<Component> infoLore = new ArrayList<>();
-        for (String line : lang.getList("menus.teamsepisode.info.lore", player)) {
-            infoLore.add(txt(line.replace("%episode%", String.valueOf(selected))));
-        }
-        iMeta.lore(infoLore);
-        info.setItemMeta(iMeta);
-        inv.setItem(AdminSlots.TEAMS_EPISODE_INFO, info);
-
-        for (int i = 0; i < AdminSlots.TEAMS_EPISODE_BUTTONS.length; i++) {
-            inv.setItem(AdminSlots.TEAMS_EPISODE_BUTTONS[i], createEpisodeButton(i + 1, selected, partidaEnCurso, player, lang, "menus.teamsepisode"));
-        }
-
-        ItemStack back = createBackButton(player);
-        inv.setItem(AdminSlots.TEAMS_EPISODE_BACK, back);
+        populateEpisodeSelector(inv, player, lang, Material.BLUE_BANNER, "menus.teamsepisode",
+                selected, matchStarted, AdminSlots.TEAMS_EPISODE_INFO,
+                AdminSlots.TEAMS_EPISODE_BUTTONS, AdminSlots.TEAMS_EPISODE_BACK, 0);
 
         player.openInventory(inv);
     }
@@ -239,58 +225,28 @@ public class AdminPanelManager {
     public void openPvpEpisodePanel(Player player) {
         LanguageManager lang = plugin.getLang();
         GameManager gm = plugin.getGameManager();
-        boolean partidaEnCurso = gm.getPhase() != GamePhase.LOBBY;
+        boolean matchStarted = gm.getPhase() != GamePhase.LOBBY;
         int selected = gm.getPvpEnabledEpisode();
 
         Inventory inv = Bukkit.createInventory(null, 45, lang.getComponent("menus.pvpsepisode.title", player));
-
-        ItemStack info = new ItemStack(Material.NETHERITE_SWORD);
-        ItemMeta iMeta = info.getItemMeta();
-        iMeta.displayName(lang.getComponent("menus.pvpsepisode.info.name", player));
-        List<Component> infoLore = new ArrayList<>();
-        for (String line : lang.getList("menus.pvpsepisode.info.lore", player)) {
-            infoLore.add(txt(line.replace("%episode%", String.valueOf(selected))));
-        }
-        iMeta.lore(infoLore);
-        info.setItemMeta(iMeta);
-        inv.setItem(AdminSlots.PVP_EPISODE_INFO, info);
-
-        for (int i = 0; i < AdminSlots.PVP_EPISODE_BUTTONS.length; i++) {
-            inv.setItem(AdminSlots.PVP_EPISODE_BUTTONS[i], createEpisodeButton(i + 1, selected, partidaEnCurso, player, lang, "menus.pvpsepisode"));
-        }
-
-        ItemStack back = createBackButton(player);
-        inv.setItem(AdminSlots.PVP_EPISODE_BACK, back);
+        populateEpisodeSelector(inv, player, lang, Material.NETHERITE_SWORD, "menus.pvpsepisode",
+                selected, matchStarted, AdminSlots.PVP_EPISODE_INFO,
+                AdminSlots.PVP_EPISODE_BUTTONS, AdminSlots.PVP_EPISODE_BACK, 0);
 
         player.openInventory(inv);
     }
 
     public void openShulkerEpisodePanel(Player player, int shulkerNumber) {
         LanguageManager lang = plugin.getLang();
-        boolean partidaEnCurso = plugin.getGameManager().getPhase() != GamePhase.LOBBY;
+        boolean matchStarted = plugin.getGameManager().getPhase() != GamePhase.LOBBY;
         int selected = shulkerNumber == 1 ? getShulkerOneEpisode() : getShulkerTwoEpisode();
         String titleKey = shulkerNumber == 1 ? "menus.shulkerepisode.one-title" : "menus.shulkerepisode.two-title";
 
         Inventory inv = Bukkit.createInventory(null, 45, lang.getComponent(titleKey, player));
-
-        ItemStack info = new ItemStack(shulkerNumber == 1 ? Material.ORANGE_SHULKER_BOX : Material.LIGHT_BLUE_SHULKER_BOX);
-        ItemMeta iMeta = info.getItemMeta();
-        iMeta.displayName(lang.getComponent("menus.shulkerepisode.info.name", player));
-        List<Component> infoLore = new ArrayList<>();
-        for (String line : lang.getList("menus.shulkerepisode.info.lore", player)) {
-            infoLore.add(txt(line.replace("%episode%", String.valueOf(selected))
-                    .replace("%shulker%", String.valueOf(shulkerNumber))));
-        }
-        iMeta.lore(infoLore);
-        info.setItemMeta(iMeta);
-        inv.setItem(AdminSlots.SHULKER_EPISODE_INFO, info);
-
-        for (int i = 0; i < AdminSlots.SHULKER_EPISODE_BUTTONS.length; i++) {
-            inv.setItem(AdminSlots.SHULKER_EPISODE_BUTTONS[i], createEpisodeButton(i + 1, selected, partidaEnCurso, player, lang, "menus.shulkerepisode"));
-        }
-
-        ItemStack back = createBackButton(player);
-        inv.setItem(AdminSlots.SHULKER_EPISODE_BACK, back);
+        Material infoMaterial = shulkerNumber == 1 ? Material.ORANGE_SHULKER_BOX : Material.LIGHT_BLUE_SHULKER_BOX;
+        populateEpisodeSelector(inv, player, lang, infoMaterial, "menus.shulkerepisode",
+                selected, matchStarted, AdminSlots.SHULKER_EPISODE_INFO,
+                AdminSlots.SHULKER_EPISODE_BUTTONS, AdminSlots.SHULKER_EPISODE_BACK, shulkerNumber);
 
         player.openInventory(inv);
     }
@@ -369,35 +325,35 @@ public class AdminPanelManager {
         LanguageManager lang = plugin.getLang();
         Inventory timeGui = Bukkit.createInventory(null, 27, lang.getComponent("menus.time.title", player));
 
-        GameManager rpm = plugin.getGameManager();
-        boolean estaPausado = rpm.isPaused();
-        boolean partidaEnCurso = rpm.getPhase() != GamePhase.LOBBY;
-        int totalSecs = rpm.getSecondsPerChapter();
+        GameManager gm = plugin.getGameManager();
+        boolean paused = gm.isPaused();
+        boolean matchStarted = gm.getPhase() != GamePhase.LOBBY;
+        int totalSecs = gm.getSecondsPerChapter();
 
-        String tiempoVisual = TimeUtil.formatHms(totalSecs);
+        String displayTime = TimeUtil.formatHms(totalSecs);
 
         ItemStack info = new ItemStack(Material.CLOCK);
         ItemMeta iMeta = info.getItemMeta();
         iMeta.displayName(lang.getComponent("menus.time.info-item.name", player));
         List<Component> lore = new ArrayList<>();
         for (String line : lang.getList("menus.time.info-item.lore", player)) {
-            lore.add(txt(line.replace("%time%", tiempoVisual)));
+            lore.add(txt(line.replace("%time%", displayTime)));
         }
         iMeta.lore(lore);
         info.setItemMeta(iMeta);
         timeGui.setItem(AdminSlots.TIME_INFO, info);
 
-        timeGui.setItem(AdminSlots.TIME_MINUS_1, createTimeBtn(Material.RED_STAINED_GLASS_PANE, "§c-1 m", -1, partidaEnCurso, player, lang));
-        timeGui.setItem(AdminSlots.TIME_MINUS_5, createTimeBtn(Material.RED_WOOL, "§c-5 m", -5, partidaEnCurso, player, lang));
-        timeGui.setItem(AdminSlots.TIME_MINUS_10, createTimeBtn(Material.RED_CONCRETE, "§c-10 m", -10, partidaEnCurso, player, lang));
+        timeGui.setItem(AdminSlots.TIME_MINUS_1, createTimeBtn(Material.RED_STAINED_GLASS_PANE, "§c-1 m", -1, matchStarted, player, lang));
+        timeGui.setItem(AdminSlots.TIME_MINUS_5, createTimeBtn(Material.RED_WOOL, "§c-5 m", -5, matchStarted, player, lang));
+        timeGui.setItem(AdminSlots.TIME_MINUS_10, createTimeBtn(Material.RED_CONCRETE, "§c-10 m", -10, matchStarted, player, lang));
 
-        timeGui.setItem(AdminSlots.TIME_PLUS_1, createTimeBtn(Material.GREEN_STAINED_GLASS_PANE, "§a+1 m", 1, partidaEnCurso, player, lang));
-        timeGui.setItem(AdminSlots.TIME_PLUS_5, createTimeBtn(Material.GREEN_WOOL, "§a+5 m", 5, partidaEnCurso, player, lang));
-        timeGui.setItem(AdminSlots.TIME_PLUS_10, createTimeBtn(Material.GREEN_CONCRETE, "§a+10 m", 10, partidaEnCurso, player, lang));
+        timeGui.setItem(AdminSlots.TIME_PLUS_1, createTimeBtn(Material.GREEN_STAINED_GLASS_PANE, "§a+1 m", 1, matchStarted, player, lang));
+        timeGui.setItem(AdminSlots.TIME_PLUS_5, createTimeBtn(Material.GREEN_WOOL, "§a+5 m", 5, matchStarted, player, lang));
+        timeGui.setItem(AdminSlots.TIME_PLUS_10, createTimeBtn(Material.GREEN_CONCRETE, "§a+10 m", 10, matchStarted, player, lang));
 
-        ItemStack pauseBtn = new ItemStack(estaPausado ? Material.LIME_DYE : Material.GRAY_DYE);
+        ItemStack pauseBtn = new ItemStack(paused ? Material.LIME_DYE : Material.GRAY_DYE);
         ItemMeta pMeta = pauseBtn.getItemMeta();
-        pMeta.displayName(estaPausado ? lang.getComponent("menus.time.resume", player) : lang.getComponent("menus.time.pause", player));
+        pMeta.displayName(paused ? lang.getComponent("menus.time.resume", player) : lang.getComponent("menus.time.pause", player));
         pauseBtn.setItemMeta(pMeta);
         timeGui.setItem(AdminSlots.TIME_PAUSE, pauseBtn);
 
@@ -431,10 +387,10 @@ public class AdminPanelManager {
     }
 
     private ItemStack createBorderItem(Material mat, String name, int amount, Player player, LanguageManager lang) {
-        boolean bloqueado = !plugin.getGameManager().isMatchActive();
-        ItemStack item = new ItemStack(bloqueado ? Material.BARRIER : mat);
+        boolean locked = !plugin.getGameManager().isMatchActive();
+        ItemStack item = new ItemStack(locked ? Material.BARRIER : mat);
         ItemMeta meta = item.getItemMeta();
-        if (bloqueado) {
+        if (locked) {
             meta.displayName(txt("§7§m" + name));
             meta.lore(List.of(lang.getComponent("menus.common.locked", player), lang.getComponent("game.border-not-started", player)));
         } else {
@@ -445,10 +401,10 @@ public class AdminPanelManager {
         return item;
     }
 
-    private ItemStack createTimeBtn(Material mat, String name, int amount, boolean bloqueado, Player player, LanguageManager lang) {
-        ItemStack item = new ItemStack(bloqueado ? Material.BARRIER : mat);
+    private ItemStack createTimeBtn(Material mat, String name, int amount, boolean locked, Player player, LanguageManager lang) {
+        ItemStack item = new ItemStack(locked ? Material.BARRIER : mat);
         ItemMeta meta = item.getItemMeta();
-        if (bloqueado) {
+        if (locked) {
             meta.displayName(txt("§7§m" + name));
             meta.lore(List.of(lang.getComponent("menus.common.locked", player), lang.getComponent("menus.common.locked-lore", player)));
         } else {
@@ -498,6 +454,36 @@ public class AdminPanelManager {
         meta.lore(finalLore);
         item.setItemMeta(meta);
         return item;
+    }
+
+    private void populateEpisodeSelector(Inventory inv, Player player, LanguageManager lang, Material infoMaterial,
+                                         String menuKey, int selected, boolean locked, int infoSlot,
+                                         int[] episodeSlots, int backSlot, int shulkerNumber) {
+        inv.setItem(infoSlot, createEpisodeInfoItem(infoMaterial, menuKey, selected, player, lang, shulkerNumber));
+
+        for (int i = 0; i < episodeSlots.length; i++) {
+            inv.setItem(episodeSlots[i], createEpisodeButton(i + 1, selected, locked, player, lang, menuKey));
+        }
+
+        inv.setItem(backSlot, createBackButton(player));
+    }
+
+    private ItemStack createEpisodeInfoItem(Material material, String menuKey, int selected, Player player,
+                                            LanguageManager lang, int shulkerNumber) {
+        ItemStack info = new ItemStack(material);
+        ItemMeta meta = info.getItemMeta();
+        meta.displayName(lang.getComponent(menuKey + ".info.name", player));
+
+        List<Component> lore = new ArrayList<>();
+        for (String line : lang.getList(menuKey + ".info.lore", player)) {
+            String text = line.replace("%episode%", String.valueOf(selected));
+            if (shulkerNumber > 0) text = text.replace("%shulker%", String.valueOf(shulkerNumber));
+            lore.add(txt(text));
+        }
+
+        meta.lore(lore);
+        info.setItemMeta(meta);
+        return info;
     }
 
     private ItemStack createEpisodeButton(int episode, int selected, boolean locked, Player player, LanguageManager lang, String menuKey) {

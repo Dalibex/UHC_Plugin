@@ -14,8 +14,6 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -55,10 +53,7 @@ public class StartCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    /**
-     * Valida argumentos, formato numérico, rango mínimo y estado del juego.
-     * @return el tamaño (size) si es válido, -1 si falla (enviando mensaje de error).
-     */
+    /** Validates args, numeric format, minimum border size, and game state. */
     int validate(Player player, String[] args) {
         LanguageManager lang = plugin.getLang();
         String errorPrefix = lang.get("general.error-prefix", player);
@@ -99,27 +94,25 @@ public class StartCommand implements CommandExecutor, TabCompleter {
         return phase == me.dalibex.UHC_DBasic.managers.GamePhase.LOBBY;
     }
 
-    /**
-     * Construye y envía el mensaje interactivo con los botones SÍ/NO.
-     */
+    /** Builds and sends the interactive confirmation message. */
     private void sendConfirmationMenu(Player player, int size) {
         LanguageManager lang = plugin.getLang();
-        Component mensaje = legacySection().deserialize(lang.get("general.prefix", player));
+        Component message = legacySection().deserialize(lang.get("general.prefix", player));
 
-        Component botonSi = legacySection().deserialize(lang.get("start-menu.buttons.confirm.text", player))
+        Component confirmButton = legacySection().deserialize(lang.get("start-menu.buttons.confirm.text", player))
                 .clickEvent(ClickEvent.runCommand("/confirmstart " + size))
                 .hoverEvent(HoverEvent.showText(legacySection().deserialize(lang.get("start-menu.buttons.confirm.hover", player))));
 
-        Component botonNo = legacySection().deserialize(lang.get("start-menu.buttons.cancel.text", player))
+        Component cancelButton = legacySection().deserialize(lang.get("start-menu.buttons.cancel.text", player))
                 .clickEvent(ClickEvent.runCommand("/cancelstart"))
                 .hoverEvent(HoverEvent.showText(legacySection().deserialize(lang.get("start-menu.buttons.cancel.hover", player))));
 
-        mensaje = mensaje.append(legacySection().deserialize(" "))
-                .append(botonSi)
+        message = message.append(legacySection().deserialize(" "))
+                .append(confirmButton)
                 .append(legacySection().deserialize("   "))
-                .append(botonNo);
+                .append(cancelButton);
 
-        player.sendMessage(mensaje);
+        player.sendMessage(message);
     }
 
     public boolean hasPendingConfirmation() {
@@ -137,8 +130,8 @@ public class StartCommand implements CommandExecutor, TabCompleter {
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         if (args.length == 1) {
-            return CommandTabs.prefixFilter(Arrays.asList("500", "1000", "2000", "3000"), args[0]);
+            return CommandTabs.prefixFilter(List.of("500", "1000", "2000", "3000"), args[0]);
         }
-        return new ArrayList<>();
+        return List.of();
     }
 }

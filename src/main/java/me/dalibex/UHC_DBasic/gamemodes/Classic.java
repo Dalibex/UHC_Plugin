@@ -43,31 +43,28 @@ public class Classic extends AbstractUHCGameMode {
     }
 
     @Override
-    protected void onChapterChange(int nuevoCap) {
+    protected void onChapterChange(int newChapter) {
         LanguageManager lang = plugin.getLang();
 
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if (nuevoCap < 10) {
+            if (newChapter < 10) {
                 p.sendMessage(lang.get("game-events.chapter-start", p)
                         .replace("%prefix%", lang.get("general.prefix", p))
-                        .replace("%chapter%", String.valueOf(nuevoCap)));
+                        .replace("%chapter%", String.valueOf(newChapter)));
                 p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
-            } else if (nuevoCap == 10) {
+            } else if (newChapter == 10) {
                 for (String s : lang.getList("game-events.final-phase", p)) p.sendMessage(s);
                 p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
             }
         }
 
-        // Rotación de Skins (Capítulos 2 al 10)
-        if (me.dalibex.UHC_DBasic.managers.SkinsManager.isRotationEpisode(nuevoCap)) {
+        if (me.dalibex.UHC_DBasic.managers.SkinsManager.isRotationEpisode(newChapter)) {
             runSkinRotation();
         }
 
-        // Formación de Equipos (episodio configurable)
-        maybeFormTeams(nuevoCap, null);
+        maybeFormTeams(newChapter, null);
 
-        // Activación de PVP (episodio configurable)
-        if (nuevoCap == gm.getPvpEnabledEpisode()) {
+        if (newChapter == gm.getPvpEnabledEpisode()) {
             for (World w : Bukkit.getWorlds()) w.setGameRule(PVP, true);
             for (Player p : Bukkit.getOnlinePlayers()) {
                 for (String s : lang.getList("game-events.pvp-enabled", p)) p.sendMessage(s);
@@ -77,7 +74,7 @@ public class Classic extends AbstractUHCGameMode {
     }
 
     @Override
-    public void updateScoreboard(Player player, String tiempo, String tiempoTotal, boolean partidaActiva) {
+    public void updateScoreboard(Player player, String chapterTime, String totalTime, boolean matchActive) {
         LanguageManager lang = plugin.getLang();
         Scoreboard board = player.getScoreboard();
 
@@ -89,15 +86,15 @@ public class Classic extends AbstractUHCGameMode {
         Objective obj = getOrCreateSidebar(board, player, lang);
         List<String> keys = new ArrayList<>();
 
-        ScoreboardHelper.syncTabHealthObjective(board, player, lang, partidaActiva);
+        ScoreboardHelper.syncTabHealthObjective(board, player, lang, matchActive);
 
-        if (!partidaActiva) {
+        if (!matchActive) {
             ScoreboardHelper.addLobbyScores(obj, keys, getName(), player, lang);
         } else {
             AtomicInteger next = new AtomicInteger(30);
             ScoreboardHelper.addPhaseInfo(obj, next, keys, player, lang, gm);
             ScoreboardHelper.addTeamInfo(obj, next, keys, player, lang, plugin.getTeamManager(), gm);
-            ScoreboardHelper.addTimers(obj, next, keys, tiempo, tiempoTotal, player, lang, gm);
+            ScoreboardHelper.addTimers(obj, next, keys, chapterTime, totalTime, player, lang, gm);
         }
 
         reconcileSidebarKeys(obj, player, keys);
@@ -107,7 +104,7 @@ public class Classic extends AbstractUHCGameMode {
     public void checkVictory() {
         if (!gm.isMatchActive() || gm.getTotalSeconds() <= 5) return;
 
-Map<String, String> teams = new java.util.HashMap<>();
+        Map<String, String> teams = new java.util.HashMap<>();
         for (String name : gm.getInitialParticipants()) {
             Team team = plugin.getTeamManager().getPlayerTeam(name);
             if (team != null) teams.put(name, team.getName());
@@ -119,10 +116,10 @@ Map<String, String> teams = new java.util.HashMap<>();
             return;
         }
         if (outcome.status() == GameOutcomeEvaluator.Status.WINNER) {
-            Team equipoGanador = outcome.teamWinner()
+            Team winnerTeam = outcome.teamWinner()
                     ? Bukkit.getScoreboardManager().getMainScoreboard().getTeam(outcome.winnerKey())
                     : createTempWinnerTeam(outcome.winnerKey());
-            finishGame(equipoGanador);
+            finishGame(winnerTeam);
         }
     }
 
@@ -137,7 +134,7 @@ Map<String, String> teams = new java.util.HashMap<>();
         return temp;
     }
 
-    private void finishGame(Team ganador) {
+    private void finishGame(Team winner) {
         LanguageManager lang = plugin.getLang();
         finishGameSession();
 
@@ -146,10 +143,10 @@ Map<String, String> teams = new java.util.HashMap<>();
             plugin.getSkinsManager().updateVisualIdentity(online);
         }
 
-        if (ganador != null) {
-            broadcastVictory(ganador, lang);
+        if (winner != null) {
+            broadcastVictory(winner, lang);
             List<Player> winners = new ArrayList<>();
-            for (String entry : winningEntries(ganador)) {
+            for (String entry : winningEntries(winner)) {
                 Player p = Bukkit.getPlayer(entry);
                 if (p != null && !gm.getEliminatedPlayers().contains(entry)) winners.add(p);
             }
@@ -159,48 +156,48 @@ Map<String, String> teams = new java.util.HashMap<>();
         }
     }
 
-    private List<String> winningEntries(Team ganador) {
-        if (ganador != null && ganador.getName().startsWith(ScoreboardHelper.TEAM_PREFIX)) {
-            return plugin.getTeamManager().getMemberNames(ganador);
+    private List<String> winningEntries(Team winner) {
+        if (winner != null && winner.getName().startsWith(ScoreboardHelper.TEAM_PREFIX)) {
+            return plugin.getTeamManager().getMemberNames(winner);
         }
-        return ganador == null ? List.of() : new ArrayList<>(ganador.getEntries());
+        return winner == null ? List.of() : new ArrayList<>(winner.getEntries());
     }
 
-    private void broadcastVictory(Team ganador, LanguageManager lang) {
-        String color = TextUtil.legacyColor(ganador.color());
-        String nombreEquipo = legacySection().serialize(ganador.displayName());
+    private void broadcastVictory(Team winner, LanguageManager lang) {
+        String color = TextUtil.legacyColor(winner.color());
+        String teamName = legacySection().serialize(winner.displayName());
         
-        List<String> formattedNames = winningEntries(ganador).stream()
+        List<String> formattedNames = winningEntries(winner).stream()
                 .map(entry -> gm.getEliminatedPlayers().contains(entry) ? "§7§m" + entry + "§r" : "§f" + entry)
                 .collect(Collectors.toList());
         String membersList = String.join("§7, ", formattedNames);
 
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.sendMessage(legacySection().deserialize(""));
-            p.sendMessage(legacySection().deserialize(lang.get("victory.broadcast-header", p).replace("%color%", color).replace("%team%", nombreEquipo)));
+            p.sendMessage(legacySection().deserialize(lang.get("victory.broadcast-header", p).replace("%color%", color).replace("%team%", teamName)));
             p.sendMessage(legacySection().deserialize(lang.get("victory.team-members", p).replace("%members%", membersList)));
             p.sendMessage(legacySection().deserialize(lang.get("victory.broadcast-footer", p)));
             p.sendMessage(legacySection().deserialize(""));
 
             p.showTitle(Title.title(
                 legacySection().deserialize(lang.get("victory.title", p)),
-                legacySection().deserialize(lang.get("victory.subtitle", p).replace("%color%", color).replace("%team%", nombreEquipo)),
+                legacySection().deserialize(lang.get("victory.subtitle", p).replace("%color%", color).replace("%team%", teamName)),
                 Title.Times.times(Duration.ofMillis(500), Duration.ofMillis(5000), Duration.ofMillis(1000))));
             p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
             
-            showPostGameScoreboard(p, ganador, lang);
+            showPostGameScoreboard(p, winner, lang);
         }
     }
 
-    private void showPostGameScoreboard(Player player, Team ganador, LanguageManager lang) {
+    private void showPostGameScoreboard(Player player, Team winner, LanguageManager lang) {
         Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
         Objective obj = board.registerNewObjective("victoria", Criteria.DUMMY, lang.getComponent("victory.scoreboard-title", player));
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
         obj.numberFormat(NumberFormat.blank());
-        String colorCode = TextUtil.legacyColor(ganador.color());
+        String colorCode = TextUtil.legacyColor(winner.color());
         obj.getScore(lang.get("victory.scoreboard-winner", player)
                 .replace("%color%", colorCode)
-                .replace("%team%", legacySection().serialize(ganador.displayName()))).setScore(1);
+                .replace("%team%", legacySection().serialize(winner.displayName()))).setScore(1);
         player.setScoreboard(board);
     }
 }

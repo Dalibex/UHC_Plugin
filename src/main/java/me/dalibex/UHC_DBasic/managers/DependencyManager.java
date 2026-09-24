@@ -9,9 +9,7 @@ import org.bukkit.command.ConsoleCommandSender;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.utils.TextUtil;
 
-/**
- * Manager encargado de validar la presencia y estado de plugins dependientes.
- */
+/** Validates required and optional plugin dependencies. */
 public class DependencyManager {
 
     private final List<String> mandatoryPlugins = new ArrayList<>();
@@ -22,18 +20,13 @@ public class DependencyManager {
     }
 
     private void setupDependencies() {
-        // Plugins obligatorios para el funcionamiento básico
         mandatoryPlugins.add("TAB");
         mandatoryPlugins.add("SkinsRestorer");
 
-        // Plugins opcionales para funcionalidades extra
         // optionalPlugins.add("PlaceholderAPI");
     }
 
-    /**
-     * Verifica que todos los plugins obligatorios estén instalados y activos.
-     * @return true si todo está correcto, false si falta alguna dependencia crítica.
-     */
+    /** Returns true when all mandatory dependencies are installed and enabled. */
     public boolean checkDependencies() {
         ConsoleCommandSender console = Bukkit.getConsoleSender();
         boolean allMandatoryPresent = true;
