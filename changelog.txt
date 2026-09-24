@@ -1,6 +1,30 @@
-Changelog - UHC ELOUD 1.5.3
+Changelog - UHC ELOUD 1.5.4
 
 Note: It is recommended to perform tests on development servers before using this build in a live event. I have conducted intensive testing (including simulations with bots), but I do not guarantee that minor errors will not exist in specific environments.
+
+=== ENGLISH ===
+
+New Features
+- Shulker Episode Selector: both episode shulkers can now be configured from the Admin Panel with independent episode selectors (1-10). Both can use the same episode if desired.
+- Rescue Boat: if scatter places a player on a glass rescue block over water, the player receives a boat automatically.
+
+Bugfixes
+- TAB Health: the `vida_tab` health objective is now synchronized before the initial health refresh and works in both Classic UHC and Resource Rush.
+- Death Heads Under Water: death head placement now searches for a safer replaceable position and drops a fallback player head if the block placement cannot be completed.
+
+=== ESPAÑOL ===
+
+Nuevas Funciones
+- Selector de Episodio de Shulkers: ahora las dos shulkers de episodio se pueden configurar desde el Panel de Admin con selectores independientes (1-10). Ambas pueden usar el mismo episodio si se desea.
+- Barco de Rescate: si el scatter coloca a un jugador sobre un bloque de cristal de rescate encima de agua, recibe un barco automáticamente.
+
+Corrección de Errores
+- Vida en TAB: el objetivo `vida_tab` ahora se sincroniza antes del refresco inicial de vida y funciona tanto en Classic UHC como en Resource Rush.
+- Cabezas Bajo Agua: la colocación de cabezas de muerte ahora busca una posición reemplazable más segura y suelta una cabeza como fallback si no se puede completar la colocación.
+
+---
+
+Changelog - UHC ELOUD 1.5.3
 
 === ENGLISH ===
 

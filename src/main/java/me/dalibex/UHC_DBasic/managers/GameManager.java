@@ -83,6 +83,7 @@ public class GameManager {
                 continue;
             }
             p.playerListName(Component.text(p.getName()));
+            modoActual.updateScoreboard(p, "00:00", "00:00", true);
             p.damage(0.01);
             plugin.getSkinsManager().updateVisualIdentity(p);
 

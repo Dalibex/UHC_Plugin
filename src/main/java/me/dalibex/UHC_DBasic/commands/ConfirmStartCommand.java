@@ -11,6 +11,8 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -195,6 +197,7 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
 
     private void prepareAndTeleport(Player p, Location loc) {
         p.teleport(loc);
+        giveBoatIfWaterRescueSpawn(p, loc);
 
         for (PotionEffect effect : p.getActivePotionEffects()) {
             p.removePotionEffect(effect.getType());
@@ -204,6 +207,20 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
         p.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 3600, 255, false, false, false));
         p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 3600, 255, false, false, false));
         p.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 3600, 255, false, false, false));
+    }
+
+    private void giveBoatIfWaterRescueSpawn(Player p, Location loc) {
+        org.bukkit.block.Block platform = loc.clone().subtract(0, 1, 0).getBlock();
+        if (platform.getType() != Material.GLASS || !platform.getRelative(0, -1, 0).isLiquid()) return;
+
+        ItemStack boat = new ItemStack(Material.OAK_BOAT);
+        ItemMeta meta = boat.getItemMeta();
+        if (meta != null) {
+            meta.displayName(plugin.getLang().getComponent("items.rescue-boat.name", p));
+            boat.setItemMeta(meta);
+        }
+        p.getInventory().addItem(boat).values().forEach(leftover -> p.getWorld().dropItemNaturally(p.getLocation(), leftover));
+        p.sendMessage(plugin.getLang().get("game.water-spawn-boat", p));
     }
 
     private void startCountdown(LanguageManager lang, long generation) {

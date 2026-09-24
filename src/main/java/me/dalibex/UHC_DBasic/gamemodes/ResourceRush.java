@@ -112,11 +112,6 @@ public class ResourceRush extends AbstractUHCGameMode {
             runSkinRotation();
         }
 
-        // Shulker 2
-        if (nuevoCap == 8 && plugin.getAdminPanel().isShulkerTwoEnabled()) {
-            giveGlobalItem("items.shulker.name", Material.LIGHT_BLUE_SHULKER_BOX);
-        }
-
         // Formación de Equipos (episodio configurable)
         maybeFormTeams(nuevoCap, this::syncResourceRushTeams);
 
@@ -201,6 +196,7 @@ public class ResourceRush extends AbstractUHCGameMode {
 
         Objective obj = getOrCreateSidebar(board, player, lang);
         List<String> keys = new ArrayList<>();
+        ScoreboardHelper.syncTabHealthObjective(board, player, lang, partidaActiva);
 
         if (!partidaActiva) {
             ScoreboardHelper.addLobbyScores(obj, keys, getName(), player, lang);

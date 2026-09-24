@@ -23,7 +23,8 @@ class AdminSlotsTest {
     @Test void publicSlotConstantsAreUniqueAndInPanelBounds() throws IllegalAccessException {
         Map<String, Integer> bounds = Map.of(
                 "MAIN_", 9, "GAMEMODE_", 9, "GENERAL_", 27, "SHULKERS_", 27,
-                "TEAMS_EPISODE_", 45, "PVP_EPISODE_", 45, "RULES_", 36, "BORDER_", 36, "TIME_", 27);
+                "SHULKER_EPISODE_", 45, "TEAMS_EPISODE_", 45, "PVP_EPISODE_", 45,
+                "RULES_", 36, "BORDER_", 36, "TIME_", 27);
         for (Map.Entry<String, Integer> panel : bounds.entrySet()) {
             Set<Integer> occupied = new HashSet<>();
             for (Field field : AdminSlots.class.getFields()) {

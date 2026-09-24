@@ -6,6 +6,7 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.block.Block;
 import org.bukkit.block.Skull;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -17,6 +18,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -59,13 +61,51 @@ public class GameLogicListener implements Listener {
     }
 
     private void spawnDeathHead(Player p) {
-        Location loc = p.getLocation();
-        loc.getBlock().setType(Material.NETHER_BRICK_FENCE);
-        loc.clone().add(0, 1, 0).getBlock().setType(Material.PLAYER_HEAD);
-        if (loc.clone().add(0, 1, 0).getBlock().getState() instanceof Skull skull) {
+        Block base = findDeathHeadBase(p.getLocation());
+        if (base == null) {
+            dropDeathHeadFallback(p);
+            return;
+        }
+
+        base.setType(Material.NETHER_BRICK_FENCE, false);
+        Block headBlock = base.getRelative(0, 1, 0);
+        headBlock.setType(Material.PLAYER_HEAD, false);
+        if (headBlock.getState() instanceof Skull skull) {
             // La cabeza muestra la skin REAL del muerto (no la falsa que llevaba)
             plugin.getSkinsManager().applyOwnHead(skull, p);
+        } else {
+            dropDeathHeadFallback(p);
         }
+    }
+
+    private Block findDeathHeadBase(Location deathLocation) {
+        Block center = deathLocation.getBlock();
+        for (int y = 0; y <= 2; y++) {
+            for (int radius = 0; radius <= 2; radius++) {
+                for (int dx = -radius; dx <= radius; dx++) {
+                    for (int dz = -radius; dz <= radius; dz++) {
+                        if (Math.max(Math.abs(dx), Math.abs(dz)) != radius) continue;
+                        Block candidate = center.getRelative(dx, y, dz);
+                        if (canReplace(candidate) && canReplace(candidate.getRelative(0, 1, 0))) return candidate;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean canReplace(Block block) {
+        Material type = block.getType();
+        return type.isAir() || block.isLiquid() || !type.isSolid();
+    }
+
+    private void dropDeathHeadFallback(Player p) {
+        ItemStack head = new ItemStack(Material.PLAYER_HEAD);
+        if (head.getItemMeta() instanceof SkullMeta meta) {
+            meta.setOwningPlayer(p);
+            head.setItemMeta(meta);
+        }
+        p.getWorld().dropItemNaturally(p.getLocation(), head);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

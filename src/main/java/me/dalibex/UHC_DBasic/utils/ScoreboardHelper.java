@@ -5,7 +5,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.scoreboard.Criteria;
+import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
+import org.bukkit.scoreboard.RenderType;
+import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
 import me.dalibex.UHC_DBasic.managers.GameManager;
@@ -30,6 +34,22 @@ public class ScoreboardHelper {
 
     /** Prefijo de los equipos internos del mundo ("h_"). */
     public static final String TEAM_PREFIX = "h_";
+
+    /**
+     * Sincroniza el objetivo de vida que Minecraft renderiza en el TAB.
+     */
+    public static void syncTabHealthObjective(Scoreboard board, Player player, LanguageManager lang, boolean active) {
+        Objective objVida = board.getObjective(HEALTH_OBJECTIVE);
+        if (active) {
+            if (objVida == null) {
+                objVida = board.registerNewObjective(HEALTH_OBJECTIVE, Criteria.HEALTH,
+                        lang.getComponent("scoreboard.health-icon", player), RenderType.HEARTS);
+            }
+            objVida.setDisplaySlot(DisplaySlot.PLAYER_LIST);
+        } else if (objVida != null) {
+            objVida.unregister();
+        }
+    }
 
     /**
      * Añade las líneas del sidebar del lobby: modo, esperando y jugadores online.

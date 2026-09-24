@@ -10,7 +10,6 @@ import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import static org.bukkit.GameRules.PVP;
-import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -64,11 +63,6 @@ public class Classic extends AbstractUHCGameMode {
             runSkinRotation();
         }
 
-        // Shulker 2 (Episodio 8)
-        if (nuevoCap == 8 && plugin.getAdminPanel().isShulkerTwoEnabled()) {
-            giveGlobalItem("items.shulker.name", Material.LIGHT_BLUE_SHULKER_BOX);
-        }
-
         // Formación de Equipos (episodio configurable)
         maybeFormTeams(nuevoCap, null);
 
@@ -95,17 +89,7 @@ public class Classic extends AbstractUHCGameMode {
         Objective obj = getOrCreateSidebar(board, player, lang);
         List<String> keys = new ArrayList<>();
 
-        Objective objVida = board.getObjective(ScoreboardHelper.HEALTH_OBJECTIVE);
-        if (partidaActiva) {
-            if (objVida == null) {
-                objVida = board.registerNewObjective(ScoreboardHelper.HEALTH_OBJECTIVE, Criteria.HEALTH,
-                        lang.getComponent("scoreboard.health-icon", player),
-                        org.bukkit.scoreboard.RenderType.HEARTS);
-                objVida.setDisplaySlot(DisplaySlot.PLAYER_LIST);
-            }
-        } else if (objVida != null) {
-            objVida.unregister();
-        }
+        ScoreboardHelper.syncTabHealthObjective(board, player, lang, partidaActiva);
 
         if (!partidaActiva) {
             ScoreboardHelper.addLobbyScores(obj, keys, getName(), player, lang);
@@ -194,7 +178,7 @@ Map<String, String> teams = new java.util.HashMap<>();
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.sendMessage(legacySection().deserialize(""));
             p.sendMessage(legacySection().deserialize(lang.get("victory.broadcast-header", p).replace("%color%", color).replace("%team%", nombreEquipo)));
-            p.sendMessage(legacySection().deserialize("§7Integrantes: " + membersList));
+            p.sendMessage(legacySection().deserialize(lang.get("victory.team-members", p).replace("%members%", membersList)));
             p.sendMessage(legacySection().deserialize(lang.get("victory.broadcast-footer", p)));
             p.sendMessage(legacySection().deserialize(""));
 

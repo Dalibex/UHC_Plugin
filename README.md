@@ -1,6 +1,6 @@
 # ⚔️ UHC ELOUD
 
-![Plugin Version](https://img.shields.io/badge/Plugin_Version-1.5.3-orange)
+![Plugin Version](https://img.shields.io/badge/Plugin_Version-1.5.4-orange)
 ![Minecraft Version](https://img.shields.io/badge/Minecraft_Version-26.2-gold)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Platform](https://img.shields.io/badge/Platform-Spigot%20%7C%20Paper-blue)
@@ -11,9 +11,27 @@ Based on **UHC ESPAÑA** created by **ElRichMC**.
 
 ---
 
-## 🚀 What's New in Version 1.5.3 (Current)
+## 🚀 What's New in Version 1.5.4 (Current)
 
-This version polishes the administration experience and makes the identity rotation much more stable on real servers.
+This version focuses on match-start reliability, water-edge cases, and more flexible supply timing.
+
+* 📦 **Configurable Shulker Episodes:**
+  - Each episode shulker now has its own episode selector in the Admin Panel.
+  - Both shulkers can be assigned to the same episode if the host wants a double supply drop.
+
+* ❤️ **TAB Health Fix:**
+  - The `vida_tab` health objective is synchronized before the initial health refresh.
+  - Covered for both Classic UHC and Resource Rush.
+
+* 🌊 **Water Spawn Support:**
+  - If scatter creates a glass rescue block over water, the player receives a rescue boat automatically.
+
+* 💀 **Safer Death Heads:**
+  - Death heads now use safer placement around the death location and fall back to dropping a player head if the block placement is not possible.
+
+## 🚀 What's New in Version 1.5.3
+
+This version polished the administration experience and made the identity rotation much more stable on real servers.
 
 * 🎮 **Team Formation Episode:**
   - Choose the episode (1–10) in which teams are formed and the compasses are given out.
@@ -51,9 +69,8 @@ This version polishes the administration experience and makes the identity rotat
   - Frozen roster, stored border size (confirmation never trusts its argument), planned scatter positions, and cancellable tasks: resets and cancellation invalidate pending operations.
   - Rejoins during the start sequence get their planned position and re-enter the game.
 
-* 🧪 **Unit Tests and CI:**
-  - JUnit 5 suite (**53 green tests**) covering pure policy logic (skin rotation, version comparison, sidebars, victory evaluation, command parsing, resource integrity).
-  - GitHub Actions CI on Java 25 (`test`, `jar`, JaCoCo report, artifacts).
+* 🧪 **Unit Tests:**
+  - JUnit 5 suite covering pure policy logic (skin rotation, version comparison, sidebars, victory evaluation, command parsing, resource integrity).
 
 * 📋 **Resource Rush Hardening:**
   - Goals are awarded only on real pickups and verified crafting (not generic clicks); offline participant progress is tracked and an individual winner is supported.

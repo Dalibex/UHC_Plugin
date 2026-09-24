@@ -31,6 +31,7 @@ import org.bukkit.scoreboard.Scoreboard;
 
 import io.papermc.paper.scoreboard.numbers.NumberFormat;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
+import me.dalibex.UHC_DBasic.managers.AdminPanelManager;
 import me.dalibex.UHC_DBasic.managers.GameManager;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import me.dalibex.UHC_DBasic.managers.TeamManager;
@@ -71,17 +72,14 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
         int segundosCap = gm.getSecondsPerChapter();
         int capituloActual = gm.getChapter();
 
-        // Entrega de primer Shulker (Episodio 1)
-        if (plugin.getAdminPanel().isShulkerOneEnabled() && !shulkerOneDelivered && cronometroSegundos > 1) {
-            giveGlobalItem("items.shulker.name", Material.ORANGE_SHULKER_BOX);
-            shulkerOneDelivered = true;
-        }
+        deliverConfiguredShulkers(capituloActual, cronometroSegundos > 1);
 
         // Cálculo de cambio de capítulo
         int capituloCalculado = (cronometroSegundos / segundosCap) + 1;
         if (capituloCalculado > capituloActual) {
             gm.setChapter(capituloCalculado);
             onChapterChange(capituloCalculado);
+            deliverConfiguredShulkers(capituloCalculado, true);
         }
 
         // Lógica específica del primer segundo (Brújulas si es manual)
@@ -95,6 +93,20 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
      * @param nuevoCap El número del nuevo capítulo.
      */
     protected abstract void onChapterChange(int nuevoCap);
+
+    private void deliverConfiguredShulkers(int chapter, boolean allowDelivery) {
+        AdminPanelManager admin = plugin.getAdminPanel();
+        if (allowDelivery && admin.isShulkerOneEnabled() && !shulkerOneDelivered
+                && chapter == admin.getShulkerOneEpisode()) {
+            giveGlobalItem("items.shulker.name", Material.ORANGE_SHULKER_BOX);
+            shulkerOneDelivered = true;
+        }
+        if (allowDelivery && admin.isShulkerTwoEnabled() && !shulkerTwoDelivered
+                && chapter == admin.getShulkerTwoEpisode()) {
+            giveGlobalItem("items.shulker.name", Material.LIGHT_BLUE_SHULKER_BOX);
+            shulkerTwoDelivered = true;
+        }
+    }
 
     /**
      * Maneja la lógica de inicialización en el segundo 1 de la partida.

@@ -75,6 +75,10 @@ public class AdminPanelListener implements Listener {
             handleGeneralRulesClick(p, event.getSlot(), admin);
         } else if (title.equals(lang.get("menus.shulkers.title", p))) {
             handleShulkersClick(p, event.getSlot(), admin);
+        } else if (title.equals(lang.get("menus.shulkerepisode.one-title", p))) {
+            handleShulkerEpisodeClick(p, event.getSlot(), admin, 1);
+        } else if (title.equals(lang.get("menus.shulkerepisode.two-title", p))) {
+            handleShulkerEpisodeClick(p, event.getSlot(), admin, 2);
         } else if (title.equals(lang.get("menus.teamsepisode.title", p))) {
             handleTeamsEpisodeClick(p, event.getSlot(), admin);
         } else if (title.equals(lang.get("menus.pvpsepisode.title", p))) {
@@ -104,6 +108,8 @@ public class AdminPanelListener implements Listener {
         return title.equals(lang.get("menus.main-admin.title", p))
                 || title.equals(lang.get("menus.generalrules.title", p))
                 || title.equals(lang.get("menus.shulkers.title", p))
+                || title.equals(lang.get("menus.shulkerepisode.one-title", p))
+                || title.equals(lang.get("menus.shulkerepisode.two-title", p))
                 || title.equals(lang.get("menus.teamsepisode.title", p))
                 || title.equals(lang.get("menus.pvpsepisode.title", p))
                 || title.equals(lang.get("menus.gamerules.title", p))
@@ -231,11 +237,38 @@ public class AdminPanelListener implements Listener {
         if (slot == AdminSlots.SHULKERS_TOGGLE_1) {
             admin.setShulkerOneEnabled(!admin.isShulkerOneEnabled());
             p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1f, 1f);
+        } else if (slot == AdminSlots.SHULKERS_EPISODE_1) {
+            p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, 1f, 1f);
+            admin.openShulkerEpisodePanel(p, 1);
+            return;
+        } else if (slot == AdminSlots.SHULKERS_EPISODE_2) {
+            p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, 1f, 1f);
+            admin.openShulkerEpisodePanel(p, 2);
+            return;
         } else if (slot == AdminSlots.SHULKERS_TOGGLE_2) {
             admin.setShulkerTwoEnabled(!admin.isShulkerTwoEnabled());
             p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1f, 1f);
         }
         admin.openShulkersPanel(p);
+    }
+
+    private void handleShulkerEpisodeClick(Player p, int slot, AdminPanelManager admin, int shulkerNumber) {
+        if (slot == AdminSlots.SHULKER_EPISODE_BACK) {
+            p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, 1f, 1f);
+            admin.openShulkersPanel(p);
+            return;
+        }
+        if (plugin.getGameManager().getPhase() != GamePhase.LOBBY) {
+            p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
+            return;
+        }
+        int episode = AdminSlots.episodeForSlot(slot);
+        if (episode != -1) {
+            if (shulkerNumber == 1) admin.setShulkerOneEpisode(episode);
+            else admin.setShulkerTwoEpisode(episode);
+            p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1f, 1.2f);
+        }
+        admin.openShulkerEpisodePanel(p, shulkerNumber);
     }
 
     private void handleTeamsEpisodeClick(Player p, int slot, AdminPanelManager admin) {

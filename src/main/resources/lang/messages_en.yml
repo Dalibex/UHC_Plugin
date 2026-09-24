@@ -18,6 +18,7 @@ game:
   countdown-subtitle: "&eGetting ready..."
   started-title: "&a&lUHC HAS BEGUN!"
   started-subtitle: "&7Good luck!"
+  water-spawn-boat: "%prefix%&fYou received a boat because you spawned over water."
   player-head-name: "&6%player%'s &eHead"
   border-not-started: "&c&l⚠ &cYou cannot adjust the border because the game hasn't started."
   border-update: "&7[&bBorder&7] &fNew size: &6%size%x%size%"
@@ -249,26 +250,42 @@ menus:
     title: "&8⚙ Global Settings"
     settings:
       shulker-item-1:
-        name: "&6Episode 1 Shulker"
+        name: "&6Shulker 1"
         lore:
-          - "&7Gives a shulker to everyone when game starts."
+          - "&7Gives a shulker to everyone on the selected part."
           - ""
           - "&fCurrent status: %status%"
+          - "&fCurrent episode: &ePart %episode%"
           - ""
           - "&eClick to toggle"
       shulker-item-2:
-        name: "&dEpisode 8 Shulker"
+        name: "&dShulker 2"
         lore:
-          - "&7Gives a shulker when game is ending."
+          - "&7Gives another shulker on the selected part."
           - ""
           - "&fCurrent status: %status%"
+          - "&fCurrent episode: &ePart %episode%"
           - ""
           - "&eClick to toggle"
+      shulker-episode-1:
+        name: "&6Shulker 1 Episode"
+        lore:
+          - "&7Choose the part in which"
+          - "&7the first shulker is given."
+          - ""
+          - "&eClick to open"
+      shulker-episode-2:
+        name: "&dShulker 2 Episode"
+        lore:
+          - "&7Choose the part in which"
+          - "&7the second shulker is given."
+          - ""
+          - "&eClick to open"
       shulkers-menu:
         name: "&6Episode Shulkers"
         lore:
           - "&7Configure the shulkers given"
-          - "&7on episodes 1 and 8."
+          - "&7during the match."
           - ""
           - "&eClick to open"
       pvp-episode-menu:
@@ -288,6 +305,25 @@ menus:
 
   shulkers:
     title: "&8⚙ Episode Shulkers"
+
+  shulkerepisode:
+    one-title: "&8⚙ Shulker 1 Episode"
+    two-title: "&8⚙ Shulker 2 Episode"
+    selected-status: "&a● &lSelected"
+    info:
+      name: "&6Shulker Episode"
+      lore:
+        - "&fCurrent shulker %shulker%: &ePart %episode%"
+        - ""
+        - "&7Choose the part in which this shulker is given."
+        - "&7Both shulkers can use the same part."
+    button:
+      name: "&6Part %episode%"
+      lore:
+        - "&7This shulker will be given on"
+        - "&7part %episode%."
+        - ""
+        - "&eClick to select"
 
   teamsepisode:
     title: "&8⚙ Team Formation"
@@ -483,6 +519,8 @@ items:
       - "&7before the game starts."
   shulker:
     name: "&d&lTeam Supply Box"
+  rescue-boat:
+    name: "&b&lRescue Boat"
 
 crafts:
   golden-head:

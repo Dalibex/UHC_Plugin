@@ -33,9 +33,16 @@ public final class AdminSlots {
     public static final int GENERAL_BACK = 18;
 
     // ---- Sub-panel de shulkers de episodio (27 slots) ----
-    public static final int SHULKERS_TOGGLE_1 = 11;
-    public static final int SHULKERS_TOGGLE_2 = 15;
+    public static final int SHULKERS_TOGGLE_1 = 10;
+    public static final int SHULKERS_EPISODE_1 = 12;
+    public static final int SHULKERS_EPISODE_2 = 14;
+    public static final int SHULKERS_TOGGLE_2 = 16;
     public static final int SHULKERS_BACK = 18;
+
+    // ---- Sub-panel de episodio de shulkers (45 slots) ----
+    public static final int SHULKER_EPISODE_INFO = 13;
+    public static final int SHULKER_EPISODE_BACK = 40;
+    public static final int[] SHULKER_EPISODE_BUTTONS = {20, 21, 22, 23, 24, 29, 30, 31, 32, 33};
 
     // ---- Sub-panel de episodio de formación de equipos (45 slots) ----
     public static final int TEAMS_EPISODE_INFO = 13;

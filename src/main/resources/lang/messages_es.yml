@@ -18,6 +18,7 @@ game:
   countdown-subtitle: "&ePreparándote..."
   started-title: "&a&l¡UHC HA COMENZADO!"
   started-subtitle: "&7¡Buena suerte!"
+  water-spawn-boat: "%prefix%&fHas recibido un barco porque apareciste sobre agua."
   player-head-name: "&eCabeza de &6%player%"
   border-not-started: "&c&l⚠ &cNo puedes ajustar el borde porque la partida no ha empezado."
   border-update: "&7[&bBorde&7] &fNuevo tamaño: &6%size%x%size%"
@@ -32,7 +33,7 @@ game:
   time-button-name-plural: "%prefix%%amount% Minutos"
   border-button-name: "%prefix%%amount% Bloques"
   assign-team-disabled: "&cEquipos personalizados no está activado."
-  assign-team-usage: "&cUsage: /assignteam <player> <color>"
+  assign-team-usage: "&cUso: /assignteam <jugador> <color>"
   assign-team-player-not-found: "&cJugador %player% no encontrado."
   assign-team-not-found: "&cEquipo %team% no encontrado."
   assign-team-success: "&aHas asignado a %player% al equipo %team%."
@@ -57,7 +58,7 @@ help:
     - ""
     - "&e/uhcadmin &7- &fAbre panel de administrador."
     - ""
-    - "&e/team <name> &7- &fRenombra o crea el nombre de tu equipo."
+    - "&e/team <nombre> &7- &fRenombra o crea el nombre de tu equipo."
     - ""
     - "&e/settime <H> <M> <S> &7- &fAjusta el tiempo de las partes manualmente."
     - ""
@@ -65,7 +66,7 @@ help:
     - ""
     - "&e/setpvpepisode <episodio> &7- &fDefine la parte en la que termina el pacto de caballeros."
     - ""
-    - "&e/assignteam <player> <team> &7- &fAsigna jugadores a equipos."
+    - "&e/assignteam <jugador> <equipo> &7- &fAsigna jugadores a equipos."
     - ""
     - "&e/abandon &7- &fTe marcas como eliminado de la partida en curso (o como admin a otro jugador)."
     - ""
@@ -120,17 +121,17 @@ start-menu:
   buttons:
     confirm:
       text: "&a[EMPEZAR UHC]"
-      hover: "&7Click para EMPEZAR e iniciar la cuenta atrás"
+      hover: "&7Clic para EMPEZAR e iniciar la cuenta atrás"
     cancel:
       text: "&c[CANCELAR]"
-      hover: "&7Click para CANCELAR la acción"
+      hover: "&7Clic para CANCELAR la acción"
 
 # Sección de game
 timer:
   usage:
-    - "&c&lERROR > &fCorrect usage: /settime <hours> <minutes> <seconds>"
-    - "&7Example for 10 secs: &f/settime 0 0 10"
-    - "&7Example for 20 mins: &f/settime 0 20 0"
+    - "&c&lERROR > &fUso correcto: /settime <horas> <minutos> <segundos>"
+    - "&7Ejemplo para 10 segundos: &f/settime 0 0 10"
+    - "&7Ejemplo para 20 minutos: &f/settime 0 20 0"
   already-started: "&cLa partida ya ha comenzado, no puedes cambiar esto ahora."
   invalid-number: "&cDebes introducir números enteros."
   negative-values: "&cLos valores no pueden ser negativos"
@@ -156,16 +157,16 @@ menus:
     status: "&7Estado: "
     enabled: "&aActivado"
     disabled: "&cDesactivado"
-    click-to-toggle: "&eClick para cambiar"
+    click-to-toggle: "&eClic para cambiar"
     locked: "&c⚠ BLOQUEADO"
     locked-lore: "&7No puedes cambiar esto una vez iniciada la partida."
   rules:
     nat-regen: "&bRegeneración Natural"
     pvp: "&bPVP"
     day-night: "&bCiclo día/noche"
-    monsters: "&bSpawn de Enemigos"
+    monsters: "&bAparición de Enemigos"
     advancements: "&bAnuncio de Logros"
-    trader: "&bSpawn del Wandering Trader"
+    trader: "&bAparición del Comerciante Ambulante"
     locator: "&bBarra de Localización"
   main-admin:
     title: "&8⚙ Panel Administración UHC"
@@ -175,14 +176,14 @@ menus:
         - "&7Combate 1.8: %status18%"
         - "&7Escudos, Mano Secundaria: %statusOffhand%"
         - ""
-        - "&bClick Izquierdo: &7Toggle Cooldown 1.8"
-        - "&bClick Derecho: &7Toggle Mano Secundaria/Escudos"
+        - "&bClic izquierdo: &7Alternar cooldown 1.8"
+        - "&bClic derecho: &7Alternar mano secundaria/escudos"
     general-rules-item:
       name: "&bAjustes Generales"
-      lore: ["&7Haz click para ver y editar ajustes", "&7generales de la partida."]
+      lore: ["&7Haz clic para ver y editar ajustes", "&7generales de la partida."]
     rules-item:
-      name: "&bCambiar GameRules"
-      lore: ["&7Haz click para ver y editar", "&7las reglas del servidor."]
+      name: "&bCambiar Reglas"
+      lore: ["&7Haz clic para ver y editar", "&7las reglas del servidor."]
     gamemode-item:
       name: "&bSelector de Modo de Juego"
       name-locked: "&7&mSelector de Modo de Juego"
@@ -207,8 +208,8 @@ menus:
         - "&fJugadores online: &b%online%"
         - "&fEquipos resultantes: &b%total%"
         - ""
-        - "&bClick Izquierdo: &7Aumentar (+1)"
-        - "&bClick Derecho: &7Reducir (-1)"
+        - "&bClic izquierdo: &7Aumentar (+1)"
+        - "&bClic derecho: &7Reducir (-1)"
       balance-warning: "&e⚠ &iEl reparto será equilibrado (ej: 3, 2, 2)"
     custom-teams-item:
       name: "&aEquipos Personalizados"
@@ -219,14 +220,14 @@ menus:
         - ""
         - "&fEstado actual: %status%"
         - ""
-        - "&eClick para cambiar"
+        - "&eClic para cambiar"
         - "&c⚠ Al desactivar se borrarán los equipos y opciones actuales."
 
   gamemode:
     title: "&8🕹️ Seleccionar Modo"
     selected-status: "&a● &lSeleccionado"
     not-selected-status: "&7○ No seleccionado"
-    click-to-select: "&eClick para seleccionar"
+    click-to-select: "&eClic para seleccionar"
     classic-activated: "&aModo Clásico seleccionado!"
     resource-rush-activated: "&6Modo Resource Rush seleccionado!"
     classic:
@@ -249,45 +250,80 @@ menus:
     title: "&8⚙ Ajustes Generales"
     settings:
       shulker-item-1:
-        name: "&6Shulker de Episodio 1"
+        name: "&6Shulker 1"
         lore:
-          - "&7Entrega una shulker a todos al iniciar partida."
+          - "&7Entrega una shulker a todos en la parte elegida."
           - ""
           - "&fEstado actual: %status%"
+          - "&fEpisodio actual: &eParte %episode%"
           - ""
-          - "&eClick para cambiar"
+          - "&eClic para cambiar"
       shulker-item-2:
-        name: "&dShulker de Episodio 8"
+        name: "&dShulker 2"
         lore:
-          - "&7Entrega una shulker cerca del final de partida."
+          - "&7Entrega otra shulker en la parte elegida."
           - ""
           - "&fEstado actual: %status%"
+          - "&fEpisodio actual: &eParte %episode%"
           - ""
-          - "&eClick para cambiar"
+          - "&eClic para cambiar"
+      shulker-episode-1:
+        name: "&6Episodio de Shulker 1"
+        lore:
+          - "&7Elige en qué parte se entrega"
+          - "&7la primera shulker."
+          - ""
+          - "&eClic para abrir"
+      shulker-episode-2:
+        name: "&dEpisodio de Shulker 2"
+        lore:
+          - "&7Elige en qué parte se entrega"
+          - "&7la segunda shulker."
+          - ""
+          - "&eClic para abrir"
       shulkers-menu:
         name: "&6Shulkers de Episodio"
         lore:
           - "&7Configura las shulkers que se"
-          - "&7entregan en el episodio 1 y 8."
+          - "&7entregan durante la partida."
           - ""
-          - "&eClick para abrir"
+          - "&eClic para abrir"
       pvp-episode-menu:
         name: "&cEpisodio de PVP"
         lore:
           - "&7Define en qué parte termina"
           - "&7el pacto de caballeros."
           - ""
-          - "&eClick para abrir"
+          - "&eClic para abrir"
       teams-episode-menu:
         name: "&bEpisodio de Formación de Equipos"
         lore:
           - "&7Define en qué parte se forman los equipos:"
           - "&7se entregan las brújulas y se anuncia el sorteo."
           - ""
-          - "&eClick para abrir"
+          - "&eClic para abrir"
 
   shulkers:
     title: "&8⚙ Shulkers de Episodio"
+
+  shulkerepisode:
+    one-title: "&8⚙ Episodio Shulker 1"
+    two-title: "&8⚙ Episodio Shulker 2"
+    selected-status: "&a● &lSeleccionado"
+    info:
+      name: "&6Episodio de Shulker"
+      lore:
+        - "&fShulker %shulker% actual: &eParte %episode%"
+        - ""
+        - "&7Elige en qué parte se entrega esta shulker."
+        - "&7Ambas shulkers pueden usar la misma parte."
+    button:
+      name: "&6Parte %episode%"
+      lore:
+        - "&7Esta shulker se entregará en la"
+        - "&7parte %episode%."
+        - ""
+        - "&eClic para seleccionar"
 
   teamsepisode:
     title: "&8⚙ Formación de Equipos"
@@ -309,7 +345,7 @@ menus:
         - "&7Los equipos se formarán en la"
         - "&7parte %episode%."
         - ""
-        - "&eClick para seleccionar"
+        - "&eClic para seleccionar"
 
   pvpsepisode:
     title: "&8⚙ Activación de PVP"
@@ -330,10 +366,10 @@ menus:
         - "&7El PVP se activará en la"
         - "&7parte %episode%."
         - ""
-        - "&eClick para seleccionar"
+        - "&eClic para seleccionar"
 
   gamerules:
-    title: "&8⚙ Cambiar GameRules"
+    title: "&8⚙ Cambiar Reglas"
 
   barrier:
     title: "&8⚖ Ajustar tamaño de barrera"
@@ -361,8 +397,8 @@ menus:
     team-item:
       name: "&6Equipo %name%"
       lore:
-        - "&7Click Izquierdo para unirte"
-        - "&eClick Derecho para abandonar"
+        - "&7Clic izquierdo para unirte"
+        - "&eClic derecho para abandonar"
         - ""
         - "&fIntegrantes (%current%/%max%):"
     empty-slot: "&7- &oHueco disponible"
@@ -476,12 +512,14 @@ tracking-compass:
 
 items:
   team-selector:
-    name: "&b&lSelector de Equipos &7(Click Derecho)"
+    name: "&b&lSelector de Equipos &7(Clic Derecho)"
     lore:
       - "&7Úsalo para elegir tu equipo"
       - "&7antes de que empiece la partida."
   shulker:
     name: "&d&lCaja de Equipo"
+  rescue-boat:
+    name: "&b&lBarco de Rescate"
 
 crafts:
   golden-head:

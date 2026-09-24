@@ -34,6 +34,8 @@ public class AdminPanelManager {
     private boolean bloquearManoSecundaria = false;
     private boolean shulkerOneEnabled = true;
     private boolean shulkerTwoEnabled = true;
+    private int shulkerOneEpisode = 1;
+    private int shulkerTwoEpisode = 8;
 
     public AdminPanelManager(UHC_DBasic plugin) {
         this.plugin = plugin;
@@ -194,8 +196,10 @@ public class AdminPanelManager {
         LanguageManager lang = plugin.getLang();
         Inventory inv = Bukkit.createInventory(null, 27, lang.getComponent("menus.shulkers.title", player));
 
-        inv.setItem(AdminSlots.SHULKERS_TOGGLE_1, createShulkerBtn(Material.ORANGE_SHULKER_BOX, "menus.generalrules.settings.shulker-item-1", isShulkerOneEnabled(), player));
-        inv.setItem(AdminSlots.SHULKERS_TOGGLE_2, createShulkerBtn(Material.LIGHT_BLUE_SHULKER_BOX, "menus.generalrules.settings.shulker-item-2", isShulkerTwoEnabled(), player));
+        inv.setItem(AdminSlots.SHULKERS_TOGGLE_1, createShulkerBtn(Material.ORANGE_SHULKER_BOX, "menus.generalrules.settings.shulker-item-1", isShulkerOneEnabled(), getShulkerOneEpisode(), player));
+        inv.setItem(AdminSlots.SHULKERS_EPISODE_1, createSimpleItem(Material.CLOCK, "menus.generalrules.settings.shulker-episode-1", player));
+        inv.setItem(AdminSlots.SHULKERS_EPISODE_2, createSimpleItem(Material.CLOCK, "menus.generalrules.settings.shulker-episode-2", player));
+        inv.setItem(AdminSlots.SHULKERS_TOGGLE_2, createShulkerBtn(Material.LIGHT_BLUE_SHULKER_BOX, "menus.generalrules.settings.shulker-item-2", isShulkerTwoEnabled(), getShulkerTwoEpisode(), player));
 
         ItemStack back = createBackButton(player);
         inv.setItem(AdminSlots.SHULKERS_BACK, back);
@@ -257,6 +261,36 @@ public class AdminPanelManager {
 
         ItemStack back = createBackButton(player);
         inv.setItem(AdminSlots.PVP_EPISODE_BACK, back);
+
+        player.openInventory(inv);
+    }
+
+    public void openShulkerEpisodePanel(Player player, int shulkerNumber) {
+        LanguageManager lang = plugin.getLang();
+        boolean partidaEnCurso = plugin.getGameManager().getPhase() != GamePhase.LOBBY;
+        int selected = shulkerNumber == 1 ? getShulkerOneEpisode() : getShulkerTwoEpisode();
+        String titleKey = shulkerNumber == 1 ? "menus.shulkerepisode.one-title" : "menus.shulkerepisode.two-title";
+
+        Inventory inv = Bukkit.createInventory(null, 45, lang.getComponent(titleKey, player));
+
+        ItemStack info = new ItemStack(shulkerNumber == 1 ? Material.ORANGE_SHULKER_BOX : Material.LIGHT_BLUE_SHULKER_BOX);
+        ItemMeta iMeta = info.getItemMeta();
+        iMeta.displayName(lang.getComponent("menus.shulkerepisode.info.name", player));
+        List<Component> infoLore = new ArrayList<>();
+        for (String line : lang.getList("menus.shulkerepisode.info.lore", player)) {
+            infoLore.add(txt(line.replace("%episode%", String.valueOf(selected))
+                    .replace("%shulker%", String.valueOf(shulkerNumber))));
+        }
+        iMeta.lore(infoLore);
+        info.setItemMeta(iMeta);
+        inv.setItem(AdminSlots.SHULKER_EPISODE_INFO, info);
+
+        for (int i = 0; i < AdminSlots.SHULKER_EPISODE_BUTTONS.length; i++) {
+            inv.setItem(AdminSlots.SHULKER_EPISODE_BUTTONS[i], createEpisodeButton(i + 1, selected, partidaEnCurso, player, lang, "menus.shulkerepisode"));
+        }
+
+        ItemStack back = createBackButton(player);
+        inv.setItem(AdminSlots.SHULKER_EPISODE_BACK, back);
 
         player.openInventory(inv);
     }
@@ -382,14 +416,14 @@ public class AdminPanelManager {
         return item;
     }
 
-    private ItemStack createShulkerBtn(Material mat, String key, boolean enabled, Player p) {
+    private ItemStack createShulkerBtn(Material mat, String key, boolean enabled, int episode, Player p) {
         ItemStack item = new ItemStack(mat);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(plugin.getLang().getComponent(key + ".name", p));
         List<Component> lore = new ArrayList<>();
         String status = enabled ? plugin.getLang().get("menus.common.enabled", p) : plugin.getLang().get("menus.common.disabled", p);
         for (String line : plugin.getLang().getList(key + ".lore", p)) {
-            lore.add(txt(line.replace("%status%", status)));
+            lore.add(txt(line.replace("%status%", status).replace("%episode%", String.valueOf(episode))));
         }
         meta.lore(lore);
         item.setItemMeta(meta);
@@ -511,4 +545,8 @@ public class AdminPanelManager {
     public void setShulkerOneEnabled(boolean e) { this.shulkerOneEnabled = e; }
     public boolean isShulkerTwoEnabled() { return shulkerTwoEnabled; }
     public void setShulkerTwoEnabled(boolean e) { this.shulkerTwoEnabled = e; }
+    public int getShulkerOneEpisode() { return shulkerOneEpisode; }
+    public void setShulkerOneEpisode(int episode) { this.shulkerOneEpisode = episode; }
+    public int getShulkerTwoEpisode() { return shulkerTwoEpisode; }
+    public void setShulkerTwoEpisode(int episode) { this.shulkerTwoEpisode = episode; }
 }
