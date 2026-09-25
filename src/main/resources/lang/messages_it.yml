@@ -1,0 +1,524 @@
+# Messaggi generali di sistema
+general:
+  prefix: "&e&lUHC ELOUD > &f"
+  error-prefix: "&c&lERRORE > &7"
+  no-permission: "&cQuesto comando e riservato agli amministratori."
+  only-players: "&cQuesto comando e disponibile solo per i giocatori."
+  inv-full: "&cInventario pieno! L'oggetto e caduto ai tuoi piedi."
+  update-available: "&6[UHC] &aE disponibile una nuova versione! (&e%latest%&7 — la tua versione: &f%current%&7)"
+  update-download: "&eScaricala qui: &b%url%"
+
+game:
+  invalid-number: "%error-prefix% §fLa dimensione deve essere un numero intero valido."
+  teleporting-progress: "§fTeletrasporto dei giocatori... §e(%current%/%total%)"
+  loading-world: "§6§l[!] §fTutti i giocatori sono stati teletrasportati. Caricamento mondo e chunk..."
+  game-already-started: "&cLa partita e gia iniziata"
+  countdown-title: "&6%time%"
+  countdown-subtitle: "&ePreparati..."
+  started-title: "&a&lL'UHC E INIZIATO!"
+  started-subtitle: "&7Buona fortuna!"
+  water-spawn-boat: "%prefix%&fHai ricevuto una barca perche sei apparso sopra l'acqua."
+  player-head-name: "&eTesta di &6%player%"
+  border-not-started: "&c&l⚠ &cNon puoi modificare il bordo perche la partita non e iniziata."
+  border-update: "&7[&bBordo&7] &fNuova dimensione: &6%size%x%size%"
+  team-size-max: "&cLa dimensione massima di una squadra e 4."
+  team-size-error: "&cGiocatori insufficienti! Servono almeno %min% giocatori per squadre da %n%"
+  time-min-error: "&cIl tempo minimo e 1 minuto."
+  start-blocked-custom-teams: "&cImpossibile iniziare. Alcuni giocatori non hanno ancora scelto una squadra!"
+  start-blocked-team-count: "&cTroppe squadre usate. Dovete raggrupparvi in almeno %min% squadre per questa dimensione (%n%)."
+  custom-teams-solos-error: "&cLe squadre personalizzate non possono essere attivate in modalita Solos!"
+  time-update: "%prefix%&fDurata della partita impostata a: &b%time% minuti&f."
+  time-button-name: "%prefix%%amount% Minuto"
+  time-button-name-plural: "%prefix%%amount% Minuti"
+  border-button-name: "%prefix%%amount% Blocchi"
+  assign-team-disabled: "&cLe squadre personalizzate non sono attive."
+  assign-team-usage: "&cUso: /assignteam <giocatore> <colore>"
+  assign-team-player-not-found: "&cGiocatore %player% non trovato."
+  assign-team-not-found: "&cSquadra %team% non trovata."
+  assign-team-success: "&aHai assegnato %player% alla squadra %team%."
+  abandon-game-not-started: "&cNon puoi abbandonare se la partita non e iniziata."
+  abandon-not-participant: "&cIl giocatore %player% non partecipa alla partita."
+  abandon-already: "&cIl giocatore %player% e gia eliminato."
+  abandon-self: "&cHai abbandonato la partita. Ora sei spettatore."
+  abandon-admin-set: "&aHai segnato %player% come abbandonato."
+  abandon-broadcast: "&8[&eUHC&8] &c%player% &7ha abbandonato la partita."
+
+help:
+  header: "&8&m--------------&r &6&lCOMANDI UHC ELOUD &8&m--------------"
+  footer: "&8&m---------------------------------------------------"
+  user-title: "&e★ &6&lComandi giocatore"
+  admin-title: "&e★ &6&lComandi admin"
+  nav-user: "&a[Comandi giocatore]"
+  nav-admin: "&c[Comandi admin]"
+  nav-user-hover: "&7Mostra i comandi giocatore"
+  nav-admin-hover: "&7Mostra i comandi amministratore"
+  user-list:
+    - "&e/uhccommands &7- &fMostra questo menu."
+    - "&e/team <name> &7- &fRinomina o imposta il nome della tua squadra."
+    - "&e/lang <language> &7- &fCambia la tua lingua."
+    - "&e/abandon &7- &fAbbandona la partita in corso."
+  admin-list:
+    - "&e/uhcadmin &7- &fApre il pannello amministratore."
+    - "&e/reset &7- &fPrepara o reimposta mondo e lobby."
+    - "&e/start <size> &7- &fAvvia il flusso UHC con conferma."
+    - "&e/settime <H> <M> <S> &7- &fImposta la durata degli episodi."
+    - "&e/assignteam <player> <team> &7- &fAssegna un giocatore a una squadra."
+    - "&e/setteamepisode <episode> &7- &fImposta quando si formano le squadre."
+    - "&e/setpvpepisode <episode> &7- &fImposta quando si attiva il PVP."
+    - "&e/abandon <player> &7- &fSegna un giocatore come eliminato."
+
+teams:
+  name-required: "&cDevi inserire un nome! /team <name>"
+  no-team: "&cNon puoi rinominare una squadra se non ne fai parte."
+  rename-success: "&aIl nome della tua squadra ora e: &e%name%&a!"
+  prefix-format: "&f[%color%%name%&f] "
+  assigned: "%prefix%&fSei stato assegnato a %color%%name%"
+  founded: "%prefix%&fLa squadra %color%%name% &fe stata fondata!"
+  renamed: "%prefix%&fLa squadra %color%%old% &fora si chiama: %color%%new%"
+  colors:
+    red: "Rosso"
+    blue: "Blu"
+    green: "Verde"
+    yellow: "Giallo"
+    orange: "Arancione"
+    purple: "Viola"
+    cyan: "Ciano"
+    pink: "Rosa"
+    lime: "Verde lime"
+    light_blue: "Azzurro"
+    magenta: "Magenta"
+    white: "Bianco"
+  episode:
+    usage: "%error-prefix%§fUso corretto: /setteamepisode <episode 1-10>"
+    range: "%error-prefix%§fL'episodio deve essere tra 1 e 10."
+    success: "%prefix%&fLe squadre si formeranno nell'&aEpisodio %episode%"
+
+pvp:
+  episode:
+    usage: "%error-prefix%§fUso corretto: /setpvpepisode <episode 1-10>"
+    range: "%error-prefix%§fL'episodio deve essere tra 1 e 10."
+    success: "%prefix%&fIl patto di non aggressione finira nell'&aEpisodio %episode%"
+
+lobby:
+  reset-success: "%prefix%Mondo preparato/reimpostato con successo"
+
+start-menu:
+  usage: "%error-prefix%§fUso corretto: /start <size>"
+  already-starting: "%error-prefix% §fUna conferma e gia in attesa o la partita sta iniziando."
+  cancelled: "§6§l[!] §fAzione annullata. Usa §e/start [size] §fquando sei pronto"
+  not-initiator: "&cSolo l'amministratore che ha usato /start puo confermare questa azione."
+  buttons:
+    confirm:
+      text: "&a[AVVIA UHC]"
+      hover: "&7Avvia e inizia il conto alla rovescia"
+    cancel:
+      text: "&c[ANNULLA]"
+      hover: "&7Non fare nulla, annulla l'azione"
+
+timer:
+  usage:
+    - "&c&lERRORE > &fUso corretto: /settime <ore> <minuti> <secondi>"
+    - "&7Esempio per 10 sec: &f/settime 0 0 10"
+    - "&7Esempio per 20 min: &f/settime 0 20 0"
+  already-started: "&fLa partita e gia iniziata, non puoi cambiarlo ora."
+  invalid-number: "&cDevi inserire numeri interi."
+  negative-values: "&cI valori non possono essere negativi"
+  max-value-limit: "&cIl valore massimo per ogni unita e 99"
+  too-short: "&cIl tempo totale deve essere maggiore di 0 secondi"
+  success: "%prefix%&fDurata di ogni episodio impostata a: &e%time%"
+
+admin-messages:
+  combat-toggle: "%prefix%Il combattimento 1.8 e stato %state%"
+  offhand-toggle: "%prefix%Mano secondaria e scudi sono stati %state%"
+  state-enabled: "&aATTIVATO"
+  state-disabled: "&cDISATTIVATO"
+  state-blocked: "&cBLOCCATO"
+  state-allowed: "&aPERMESSO"
+
+menus:
+  common:
+    back: "&cIndietro"
+    status: "&7Stato: "
+    enabled: "&aAttivo"
+    disabled: "&cDisattivo"
+    click-to-toggle: "&eClicca per cambiare"
+    locked: "&c⚠ BLOCCATO"
+    locked-lore: "&7Non puoi modificarlo dopo l'inizio della partita."
+  rules:
+    nat-regen: "&bRigenerazione naturale"
+    pvp: "&bPVP"
+    day-night: "&bCiclo giorno/notte"
+    monsters: "&bSpawn dei mostri"
+    advancements: "&bMessaggi degli avanzamenti"
+    trader: "&bSpawn del mercante ambulante"
+    locator: "&bBarra localizzatore"
+
+  main-admin:
+    title: "&8⚙ Pannello Admin UHC"
+    combat-item:
+      name: "&bImpostazioni combattimento classico"
+      lore:
+        - "&7Combattimento 1.8: %status18%"
+        - "&7Scudi, mano secondaria: %statusOffhand%"
+        - ""
+        - "&bClic sinistro: &7Attiva/disattiva cooldown 1.8"
+        - "&bClic destro: &7Attiva/disattiva mano secondaria/scudi"
+    general-rules-item:
+      name: "&bImpostazioni globali"
+      lore: [ "&7Clicca per vedere e modificare", "&7le impostazioni globali." ]
+    rules-item:
+      name: "&bModifica GameRules"
+      lore: ["&7Clicca per vedere e modificare", "&7le regole del server."]
+    gamemode-item:
+      name: "&bSelettore modalita"
+      name-locked: "&7&mSelettore modalita"
+      lore:
+        - "&7Scegli l'esperienza per questo UHC."
+        - ""
+        - "&fModalita attuale: &e%mode%"
+    border-item:
+      name: "&5Impostazioni bordo"
+      lore: ["&7Gestisci la dimensione ", "&7della zona di gioco."]
+    time-item:
+      name: "&6Controllo partita"
+      lore: ["&7Pausa, riprendi o modifica", "&7la durata degli episodi."]
+    teams-item:
+      name: "&aConfigura squadre"
+      name-locked: "&7&mConfigura squadre"
+      size-solos: "Solos"
+      size-teams: "Squadre da %n%"
+      lore:
+        - "&7Dimensione attuale: &e%size%"
+        - ""
+        - "&fGiocatori online: &b%online%"
+        - "&fSquadre risultanti: &b%total%"
+        - ""
+        - "&bClic sinistro: &7Aumenta (+1)"
+        - "&bClic destro: &7Diminuisci (-1)"
+      balance-warning: "&e⚠ &iLa distribuzione sara bilanciata (es: 3, 2, 2)"
+    custom-teams-item:
+      name: "&aSquadre personalizzate"
+      name-locked: "&7&mSquadre personalizzate"
+      lore:
+        - "&7Permette ai giocatori di scegliere la squadra"
+        - "&7con un menu prima dell'inizio."
+        - ""
+        - "&fStato attuale: %status%"
+        - ""
+        - "&eClicca per cambiare"
+        - "&c⚠ Disattivare cancellera tutte le squadre e selezioni."
+
+  gamemode:
+    title: "&8🕹️ Seleziona modalita"
+    selected-status: "&a● &lSelezionata"
+    not-selected-status: "&7○ Non selezionata"
+    click-to-select: "&eClicca per selezionare"
+    classic-activated: "&aModalita Classic selezionata!"
+    resource-rush-activated: "&6Modalita Resource Rush selezionata!"
+    classic:
+      name: "Classic UHC"
+      lore:
+        - "&7L'esperienza UHC tradizionale."
+        - ""
+        - "&f• &7Vinci come ultima squadra o ultimo giocatore in vita."
+        - ""
+    resource-rush:
+      name: "Resource Rush"
+      lore:
+        - "&7Gara per risorse e combattimento!"
+        - ""
+        - "&f• &7Ogni episodio rivela &6oggetti casuali&7, fino a 12 totali."
+        - "&f• &7Sii il primo a ottenerli per vincere!"
+        - "&f• &7Combina modalita classica e caccia agli oggetti."
+        - ""
+  generalrules:
+    title: "&8⚙ Impostazioni globali"
+    settings:
+      shulker-item-1:
+        name: "&6Shulker 1"
+        lore:
+          - "&7Da una shulker a tutti nell'episodio scelto."
+          - ""
+          - "&fStato attuale: %status%"
+          - "&fEpisodio attuale: &eEpisodio %episode%"
+          - ""
+          - "&eClicca per cambiare"
+      shulker-item-2:
+        name: "&dShulker 2"
+        lore:
+          - "&7Da un'altra shulker nell'episodio scelto."
+          - ""
+          - "&fStato attuale: %status%"
+          - "&fEpisodio attuale: &eEpisodio %episode%"
+          - ""
+          - "&eClicca per cambiare"
+      shulker-episode-1:
+        name: "&6Episodio Shulker 1"
+        lore:
+          - "&7Scegli l'episodio in cui"
+          - "&7viene data la prima shulker."
+          - ""
+          - "&eClicca per aprire"
+      shulker-episode-2:
+        name: "&dEpisodio Shulker 2"
+        lore:
+          - "&7Scegli l'episodio in cui"
+          - "&7viene data la seconda shulker."
+          - ""
+          - "&eClicca per aprire"
+      shulkers-menu:
+        name: "&6Shulker degli episodi"
+        lore:
+          - "&7Configura le shulker date"
+          - "&7durante la partita."
+          - ""
+          - "&eClicca per aprire"
+      pvp-episode-menu:
+        name: "&cEpisodio PVP"
+        lore:
+          - "&7Imposta l'episodio in cui"
+          - "&7finisce il patto di non aggressione."
+          - ""
+          - "&eClicca per aprire"
+      teams-episode-menu:
+        name: "&bEpisodio formazione squadre"
+        lore:
+          - "&7Imposta l'episodio in cui si formano le squadre:"
+          - "&7vengono date le bussole e annunciata la formazione."
+          - ""
+          - "&eClicca per aprire"
+
+  shulkers:
+    title: "&8⚙ Shulker degli episodi"
+
+  shulkerepisode:
+    one-title: "&8⚙ Episodio Shulker 1"
+    two-title: "&8⚙ Episodio Shulker 2"
+    selected-status: "&a● &lSelezionato"
+    info:
+      name: "&6Episodio shulker"
+      lore:
+        - "&fShulker %shulker% attuale: &eEpisodio %episode%"
+        - ""
+        - "&7Scegli l'episodio in cui questa shulker viene data."
+        - "&7Entrambe le shulker possono usare lo stesso episodio."
+    button:
+      name: "&6Episodio %episode%"
+      lore:
+        - "&7Questa shulker verra data"
+        - "&7nell'episodio %episode%."
+        - ""
+        - "&eClicca per selezionare"
+
+  teamsepisode:
+    title: "&8⚙ Formazione squadre"
+    selected-status: "&a● &lSelezionato"
+    info:
+      name: "&bEpisodio di formazione"
+      lore:
+        - "&fFormazione attuale: &eEpisodio %episode%"
+        - ""
+        - "&7Scegli l'episodio in cui le squadre si formano."
+        - "&7In quel momento vengono date le bussole alleate"
+        - "&7e la formazione viene annunciata."
+        - ""
+        - "&7Puoi usare &f/setteamepisode <episode>"
+        - "&7per cambiare questa impostazione."
+    button:
+      name: "&6Episodio %episode%"
+      lore:
+        - "&7Le squadre si formeranno"
+        - "&7nell'episodio %episode%."
+        - ""
+        - "&eClicca per selezionare"
+
+  pvpsepisode:
+    title: "&8⚙ Attivazione PVP"
+    selected-status: "&a● &lSelezionato"
+    info:
+      name: "&cEpisodio PVP"
+      lore:
+        - "&fPVP attuale: &eEpisodio %episode%"
+        - ""
+        - "&7Scegli l'episodio in cui"
+        - "&7il patto finisce e il PVP inizia."
+        - ""
+        - "&7Puoi usare &f/setpvpepisode <episode>"
+        - "&7per cambiare questa impostazione."
+    button:
+      name: "&6Episodio %episode%"
+      lore:
+        - "&7Il PVP verra attivato"
+        - "&7nell'episodio %episode%."
+        - ""
+        - "&eClicca per selezionare"
+
+  gamerules:
+    title: "&8⚙ Modifica GameRules"
+
+  barrier:
+    title: "&8⚖ Regola dimensione bordo"
+    min-size-error: "§cLa dimensione minima del bordo e 20 blocchi."
+    min-size-lore: "&7Dimensione minima: &f20 &7blocchi."
+    current-size:
+      name: "&bDimensione attuale"
+      lore: "&fIl bordo e: &6%size%x%size%"
+    change-lore: "&7Cambia il bordo di &f%amount% &7blocchi."
+
+  time:
+    title: "&8⏲ Controllo tempo"
+    info-item:
+      name: "&eTempo per episodio"
+      lore:
+        - "&fDurata attuale: &b%time%"
+        - ""
+        - "&7Puoi usare &f/settime H M S"
+        - "&7per una regolazione precisa."
+    change-lore: "&7Cambia la durata di &f%amount% &7minuti per episodio."
+    pause: "&7⏸ Metti in pausa"
+    resume: "&a▶ Riprendi"
+  team-selector:
+    title: "&8🛡 Selezione squadra"
+    team-item:
+      name: "&6Squadra %name%"
+      lore:
+        - "&7Clic sinistro per entrare"
+        - "&eClic destro per uscire"
+        - ""
+        - "&fMembri (%current%/%max%):"
+    empty-slot: "&7- &oPosto disponibile"
+    member-format: "&7- &f%player%"
+    already-full: "&cQuesta squadra e gia piena."
+    joined: "&aSei entrato nella squadra %name%"
+    left: "&eHai lasciato la tua squadra"
+    already-in-team: "&cSei gia in questa squadra."
+
+chat:
+  global-tag: "&cGLOBALE"
+  private-tag: "&aPRIVATO"
+  empty-global-error: "&cDevi scrivere un messaggio dopo il !"
+  format-global: "&8[&r%tag%&8] &8[&r%color%%team%&8] &f%player%: &7%msg%"
+  format-team: "&8[&b%team%&8] &f%player%: &f%msg%"
+  format-private: "&8[&r%tag%&8] &f%player%: &f%msg%"
+
+victory:
+  broadcast-header: "&e&l🎉 CONGRATULAZIONI, %color%%team%&e:"
+  broadcast-footer: "&6&lSono i vincitori dell'UHC!"
+  team-members: "&7Membri: &f%members%"
+  title: "&6🏆 VITTORIA! 🏆"
+  subtitle: "%color%%team% &fha vinto"
+  no-survivors: "&c☠ La partita e finita senza sopravvissuti"
+  scoreboard-title: "&6&lVITTORIA"
+  scoreboard-winner: "&fSquadra vincitrice: %color%%team%"
+
+game-events:
+  chapter-start: "%prefix%&fL'episodio &a%chapter% &fe iniziato"
+  final-phase:
+    - ""
+    - "&8&m------------------------------------"
+    - "&c&lIL TEMPO E FINITO! &c⚔"
+    - "&fVai a X=0 Z=0 per la battaglia finale"
+    - "&8&m------------------------------------"
+  teams-formed: "&6&lLE SQUADRE SONO STATE FORMATE! ⚔"
+  pvp-enabled:
+    - ""
+    - "&8&m------------------------------------"
+    - "&c&lIL PVP E STATO ATTIVATO! &c⚔"
+    - "&fIl patto di non aggressione e terminato"
+    - "&8&m------------------------------------"
+  skins:
+    identity-changed: "&d&l» &7La tua identita ora e: &f%player%"
+    revealed-attacker: "&d&l» &7Identita rivelata di: &f%player%"
+    revealed-victim: "&d&l» &7La tua identita e stata rivelata da: &f%player%"
+
+resource-rush:
+  ruleta-anuncio: "&6Resource Rush > &fNuovo obiettivo sbloccato: "
+  objective-global: "&6Resource Rush > %color%%team% &fha ottenuto: &e%item% &7(%done%/12)"
+  objective-reached: "&aObiettivo raggiunto: &f%item%!"
+  summary:
+    header: "&6&l=== I TUOI OBIETTIVI ATTUALI ==="
+    empty: " &7Nessun oggetto e stato ancora rivelato..."
+    item-done: " &a✔ &7&m%item%"
+    item-pending: " &c✘ &f%item%"
+    footer: "&7(%done%/%total% oggetti rivelati ottenuti)\n&6&l==============================="
+  team-finished: "&6&l[!] &fLa squadra %color%%team% &fha completato tutti i &e12 obiettivi&f!"
+  finish-alert: "&6&l> &eHai finito! &7Verrai spostato in spettatore tra 10 secondi"
+  spectator-message: "&6&l> &7Ora sei spettatore"
+  podio-header: "&7&m------------------------------------"
+  podio-title: "&6&lRESOURCE RUSH FINITO!"
+  podio-line: "%medal% &e%team%"
+  podio-footer: "&7&m------------------------------------"
+  medals:
+    1: "§6①"
+    2: "§f②"
+    3: "§c③"
+
+scoreboard:
+  title: "&6&lELOUD UHC"
+  waiting: " &6>> &7In attesa... "
+  players: " &fGiocatori: &b%online% &d👥 "
+  phase: " &fEpisodio attuale: &a%chapter%"
+  finalized: " &6&lTEMPO FINITO!"
+  go-center: " &fVai a X=0 Z=0"
+  pvp-label: " &fPVP: %status%"
+  pvp-pact: "&ePatto di non aggressione "
+  pvp-active: "&cATTIVO ⚔ "
+  team-label: " &b🛡 &fSquadra: %color%%name%"
+  team-rename-warn: " &c⚠ &7Usa /team"
+  team-assigning: " &d👥 &7Assegnazione..."
+  team-mates-label: " &d👥 &fSquadra: %color%%name%"
+  mate-offline: " &7[OFF]"
+  mate-dead: " &c✘"
+  no-mates: " &7&oCompagni: &c✘"
+  time-total-label: " &c⏳ &lTempo totale"
+  time-next-label: " &d⌚ &lProssimo episodio"
+  anonymous-prefix: "&7Giocatore %id% &8["
+  anonymous-suffix: "&8]"
+  health-icon: "&c❤"
+  mode-label: " §fModalita: &b%mode%"
+
+scoreboard-rr:
+  rr-counter: " &6&lObiettivi: &f%done%/%total%"
+  rr-objectives-title: "&6&lObiettivi:"
+  rr-waiting: " &7In attesa dell'episodio... "
+  rr-completed: " &a✔ &8&m%item%"
+  rr-pending: " &f• &7%item%"
+
+tracking-compass:
+  name: "&b&lTracciatore compagni"
+  lore: ["&7Indica il compagno piu vicino.", "&eNon perderlo!"]
+  inv-full: "&b&l» &cInventario pieno! &fIl tuo tracciatore e caduto a terra."
+  received: "&b&l» &fHai ricevuto un &btracciatore&f di squadra."
+
+items:
+  team-selector:
+    name: "&b&lSelettore squadra &7(Clic destro)"
+    lore:
+      - "&7Usalo per scegliere la tua squadra"
+      - "&7prima dell'inizio della partita."
+  shulker:
+    name: "&d&lCassa rifornimenti squadra"
+  rescue-boat:
+    name: "&b&lBarca di salvataggio"
+
+crafts:
+  golden-head:
+    name: "&6&l&k! &e&lTESTA D'ORO &6&l&k!"
+    lore:
+      - "&7&m-----------------------"
+      - "&6&lArtefatto leggendario"
+      - "&7Contiene l'essenza di un caduto."
+      - ""
+      - "&6Effetti al consumo:"
+      - " &8» &fRigenerazione &eII &7(12s)"
+      - " &8» &fAssorbimento &6II &7(5min)"
+      - "&7&m-----------------------"
+
+compass:
+  tracking-actionbar: "&bTracciamento: &f%player% &7(&a%dist%m&7)"
+
+lang:
+  usage: "%error-prefix%§fUso corretto: /lang <language>"
+  invalid: "§cQuesta lingua non e disponibile."
+  already-started: "§cNon puoi cambiare la lingua globale dopo l'inizio della partita."
+  switch: "%prefix%&aLingua cambiata in: &eItaliano"

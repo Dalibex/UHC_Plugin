@@ -142,15 +142,17 @@ public class GameLogicListener implements Listener {
         }
 
         ItemStack hand = attacker.getInventory().getItemInMainHand();
-        double reduction = axeDamageReduction(hand.getType());
-        if (reduction > 0.0) event.setDamage(Math.max(MIN_COMBAT_DAMAGE, event.getDamage() - reduction));
+        double legacyDamage = legacyAxeDamage(hand.getType());
+        if (legacyDamage > 0.0) event.setDamage(legacyDamage);
     }
 
-    private double axeDamageReduction(Material material) {
+    static double legacyAxeDamage(Material material) {
         return switch (material) {
-            case WOODEN_AXE, GOLDEN_AXE, IRON_AXE, NETHERITE_AXE -> 4.0;
-            case STONE_AXE -> 5.0;
-            case DIAMOND_AXE -> 3.0;
+            case WOODEN_AXE, GOLDEN_AXE -> 3.0;
+            case STONE_AXE -> 4.0;
+            case IRON_AXE -> 5.0;
+            case DIAMOND_AXE -> 6.0;
+            case NETHERITE_AXE -> 7.0;
             default -> 0.0;
         };
     }

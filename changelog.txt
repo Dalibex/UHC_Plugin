@@ -7,9 +7,19 @@ Note: It is recommended to perform tests on development servers before using thi
 New Features
 - Shulker Episode Selector: both episode shulkers can now be configured from the Admin Panel with independent episode selectors (1-10). Both can use the same episode if desired.
 - Rescue Boat: if scatter places a player on a glass rescue block over water, the player receives a boat automatically.
+- New Languages: French, German and Italian were added alongside Spanish and English.
+- Interactive Commands Menu: /uhccommands now separates player and admin commands with clickable navigation in chat.
+
+Adjustments and Improvements
+- Scatter Preparation Note: pregenerating the world up to the selected border is recommended for production UHC matches to reduce live worldgen lag and Paper worldgen warnings during scatter.
+- Skin Rotation Timing: initial identity rotation starts sooner and applies skins faster during episode 1.
+- Start Protection: players now receive short protection and regeneration at match start to reduce accidental spawn/scatter damage.
+- 1.8 Combat Balance: axes now use legacy-style damage when 1.8 combat is enabled. Diamond axes deal 6 damage and netherite axes deal 7.
 
 Bugfixes
-- TAB Health: the `vida_tab` health objective is now synchronized before the initial health refresh and works in both Classic UHC and Resource Rush.
+- TAB Health: the player-list health display is created when needed and refreshed shortly after the match starts.
+- PVP Episode 1: PVP now activates correctly at match start when the configured PVP episode is 1.
+- Live Admin Settings: shulker settings are locked once the match starts, while 1.8 combat and offhand/shield settings can still be adjusted during the game.
 - Death Heads Under Water: death head placement now searches for a safer replaceable position and drops a fallback player head if the block placement cannot be completed.
 
 === ESPAÑOL ===
@@ -17,9 +27,19 @@ Bugfixes
 Nuevas Funciones
 - Selector de Episodio de Shulkers: ahora las dos shulkers de episodio se pueden configurar desde el Panel de Admin con selectores independientes (1-10). Ambas pueden usar el mismo episodio si se desea.
 - Barco de Rescate: si el scatter coloca a un jugador sobre un bloque de cristal de rescate encima de agua, recibe un barco automáticamente.
+- Nuevos Idiomas: se añadieron francés, alemán e italiano junto a español e inglés.
+- Menú de Comandos Interactivo: /uhccommands ahora separa comandos de jugador y admin con navegación clicable en el chat.
+
+Ajustes y Mejoras
+- Nota de Scatter: se recomienda pregenerar el mundo hasta el borde elegido para partidas reales, reduciendo lag de generación y warnings de worldgen de Paper durante el scatter.
+- Tiempo de Rotación de Skins: la rotación inicial de identidades empieza antes y aplica skins más rápido durante el episodio 1.
+- Protección Inicial: los jugadores reciben una protección corta y regeneración al iniciar la partida para reducir daño accidental del spawn/scatter.
+- Balance de Combate 1.8: las hachas ahora usan daño estilo legacy cuando el combate 1.8 está activado. La de diamante hace 6 de daño y la de netherita 7.
 
 Corrección de Errores
-- Vida en TAB: el objetivo `vida_tab` ahora se sincroniza antes del refresco inicial de vida y funciona tanto en Classic UHC como en Resource Rush.
+- Vida en TAB: la vida del tabulador se crea cuando hace falta y se refresca poco después de empezar la partida.
+- Episodio 1 de PVP: el PVP ahora se activa correctamente al inicio de la partida cuando el episodio configurado es el 1.
+- Ajustes Admin en Partida: los ajustes de shulkers se bloquean al empezar la partida, mientras que combate 1.8 y mano secundaria/escudos siguen siendo editables durante la partida.
 - Cabezas Bajo Agua: la colocación de cabezas de muerte ahora busca una posición reemplazable más segura y suelta una cabeza como fallback si no se puede completar la colocación.
 
 ---

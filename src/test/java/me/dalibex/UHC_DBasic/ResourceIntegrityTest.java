@@ -22,14 +22,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ResourceIntegrityTest {
     private static final Pattern PLACEHOLDER = Pattern.compile("%[^%\\s]+%");
+    private static final List<String> LANGUAGE_CODES = List.of("es", "en", "fr", "de", "it");
 
     @Test void languageLeafKeysTypesAndPlaceholdersMatch() throws IOException {
-        Map<String, Object> es = flatten(loadFile("src/main/resources/lang/messages_es.yml"));
-        Map<String, Object> en = flatten(loadFile("src/main/resources/lang/messages_en.yml"));
-        assertEquals(es.keySet(), en.keySet());
-        for (String key : es.keySet()) {
-            assertEquals(es.get(key).getClass(), en.get(key).getClass(), key);
-            assertEquals(placeholders(es.get(key)), placeholders(en.get(key)), key);
+        Map<String, Object> baseline = flatten(loadFile("src/main/resources/lang/messages_es.yml"));
+        for (String languageCode : LANGUAGE_CODES) {
+            Map<String, Object> current = flatten(loadFile("src/main/resources/lang/messages_" + languageCode + ".yml"));
+            assertEquals(baseline.keySet(), current.keySet(), languageCode);
+            for (String key : baseline.keySet()) {
+                assertEquals(baseline.get(key).getClass(), current.get(key).getClass(), languageCode + ":" + key);
+                assertEquals(placeholders(baseline.get(key)), placeholders(current.get(key)), languageCode + ":" + key);
+            }
         }
     }
 
@@ -38,7 +41,7 @@ class ResourceIntegrityTest {
         assertEquals("${version}", source.get("version"));
         assertTrue(source.get("depend") instanceof List<?>);
         assertEquals(Set.of("TAB", "SkinsRestorer"), new LinkedHashSet<>((List<?>) source.get("depend")));
-        assertEquals(Set.of("uhcadmin", "uhccommands", "test", "start", "confirmstart", "cancelstart",
+        assertEquals(Set.of("uhcadmin", "uhccommands", "start", "confirmstart", "cancelstart",
                         "reset", "team", "settime", "lang", "assignteam", "abandon", "setteamepisode", "setpvpepisode"),
                 ((Map<?, ?>) source.get("commands")).keySet());
 

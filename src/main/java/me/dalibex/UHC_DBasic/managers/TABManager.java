@@ -148,6 +148,7 @@ public class TABManager {
 
         try {
             config.save(configFile);
+            plugin.getLogger().info("TAB configuration updated. Reload scheduled in 2 seconds.");
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "tab reload");
             }, TAB_RELOAD_DELAY_TICKS);

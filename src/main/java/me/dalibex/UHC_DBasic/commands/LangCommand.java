@@ -3,6 +3,7 @@ package me.dalibex.UHC_DBasic.commands;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import me.dalibex.UHC_DBasic.managers.GamePhase;
+import me.dalibex.UHC_DBasic.utils.ScoreboardHelper;
 import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -13,10 +14,11 @@ import org.bukkit.scoreboard.DisplaySlot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
 import java.util.List;
 
 public class LangCommand implements CommandExecutor, TabCompleter {
+
+    private static final List<String> SUPPORTED_LANGUAGES = List.of("es", "en", "fr", "de", "it");
 
     private final UHC_DBasic plugin;
 
@@ -40,6 +42,7 @@ public class LangCommand implements CommandExecutor, TabCompleter {
 
         if (player.getScoreboard().getObjective(DisplaySlot.SIDEBAR) != null) {
             plugin.getGameManager().getCurrentMode().updateScoreboard(player, "00:00", "00:00", false);
+            ScoreboardHelper.removeTabHealthObjective(player.getScoreboard());
         }
 
         String prefix = lang.get("general.prefix", player);
@@ -67,7 +70,7 @@ public class LangCommand implements CommandExecutor, TabCompleter {
         }
 
         String targetLang = args[0].toLowerCase();
-        if (!targetLang.equals("es") && !targetLang.equals("en")) {
+        if (!SUPPORTED_LANGUAGES.contains(targetLang)) {
             player.sendMessage(lang.get("lang.invalid", player).replace("%error-prefix%", errorPrefix));
             return null;
         }
@@ -78,7 +81,7 @@ public class LangCommand implements CommandExecutor, TabCompleter {
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         if (args.length == 1) {
-            return Arrays.asList("es", "en");
+            return SUPPORTED_LANGUAGES;
         }
         return null;
     }

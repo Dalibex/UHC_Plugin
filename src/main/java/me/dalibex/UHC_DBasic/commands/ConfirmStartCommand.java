@@ -17,6 +17,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -33,6 +34,7 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
     private final UHC_DBasic plugin;
     private final StartCommand startCmd;
     private static final int MIN_SCATTER_POSITIONS = 4;
+    private static final int SCATTER_PRELOAD_RADIUS_CHUNKS = 2;
     private static final double SCATTER_EDGE_INSET = 0.5;
     private static final double SPAWN_VERTICAL_OFFSET = 1.5;
     private static final long SCATTER_INTERVAL_TICKS = 40L;
@@ -136,7 +138,9 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
                 }
                 if (current < totalPlayers) {
                     UUID playerId = players.get(current);
-                    Location location = calculateScatterLocation(world, indices.get(current), positionCount, size);
+                    ScatterPoint scatterPoint = calculateScatterPoint(indices.get(current), positionCount, size);
+                    preloadScatterChunks(world, scatterPoint);
+                    Location location = resolveScatterLocation(world, scatterPoint);
                     plugin.getGameManager().setPlannedScatterLocation(playerId, location);
                     Player p = Bukkit.getPlayer(playerId);
                     if (p != null) prepareAndTeleport(p, location);
@@ -167,43 +171,64 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
         plugin.getGameManager().trackStartupTask(scatter.runTaskTimer(plugin, 0L, SCATTER_INTERVAL_TICKS));
     }
 
-    private Location calculateScatterLocation(World world, int i, int numPosiciones, int size) {
-        double radio = size / 2.0;
-        double angulo = (2 * Math.PI * i / numPosiciones) + (Math.PI / 4);
-        double xCircular = Math.cos(angulo);
-        double zCircular = Math.sin(angulo);
+    private ScatterPoint calculateScatterPoint(int index, int positionCount, int size) {
+        double radius = size / 2.0;
+        double angle = (2 * Math.PI * index / positionCount) + (Math.PI / 4);
+        double circularX = Math.cos(angle);
+        double circularZ = Math.sin(angle);
 
-        double xFinal, zFinal;
-        if (Math.abs(xCircular) > Math.abs(zCircular)) {
-            xFinal = (xCircular > 0) ? radio : -radio;
-            zFinal = radio * (zCircular / Math.abs(xCircular));
+        double finalX;
+        double finalZ;
+        if (Math.abs(circularX) > Math.abs(circularZ)) {
+            finalX = (circularX > 0) ? radius : -radius;
+            finalZ = radius * (circularZ / Math.abs(circularX));
         } else {
-            zFinal = (zCircular > 0) ? radio : -radio;
-            xFinal = radio * (xCircular / Math.abs(zCircular));
+            finalZ = (circularZ > 0) ? radius : -radius;
+            finalX = radius * (circularX / Math.abs(circularZ));
         }
 
-        if (xFinal > 0) xFinal -= SCATTER_EDGE_INSET; else xFinal += SCATTER_EDGE_INSET;
-        if (zFinal > 0) zFinal -= SCATTER_EDGE_INSET; else zFinal += SCATTER_EDGE_INSET;
-        int blockX = (int) Math.floor(xFinal);
-        int blockZ = (int) Math.floor(zFinal);
+        if (finalX > 0) finalX -= SCATTER_EDGE_INSET; else finalX += SCATTER_EDGE_INSET;
+        if (finalZ > 0) finalZ -= SCATTER_EDGE_INSET; else finalZ += SCATTER_EDGE_INSET;
+
+        int blockX = (int) Math.floor(finalX);
+        int blockZ = (int) Math.floor(finalZ);
         double spawnX = blockX + SCATTER_EDGE_INSET;
         double spawnZ = blockZ + SCATTER_EDGE_INSET;
 
-        int blockY = world.getHighestBlockYAt(blockX, blockZ);
-        org.bukkit.block.Block bloqueSuelo = world.getBlockAt(blockX, blockY, blockZ);
+        return new ScatterPoint(blockX, blockZ, spawnX, spawnZ);
+    }
 
-        if (bloqueSuelo.isLiquid() || bloqueSuelo.getType().toString().contains("AIR")) {
-            if (bloqueSuelo.isLiquid()) {
+    private void preloadScatterChunks(World world, ScatterPoint point) {
+        int centerChunkX = point.blockX() >> 4;
+        int centerChunkZ = point.blockZ() >> 4;
+
+        for (int chunkX = centerChunkX - SCATTER_PRELOAD_RADIUS_CHUNKS; chunkX <= centerChunkX + SCATTER_PRELOAD_RADIUS_CHUNKS; chunkX++) {
+            for (int chunkZ = centerChunkZ - SCATTER_PRELOAD_RADIUS_CHUNKS; chunkZ <= centerChunkZ + SCATTER_PRELOAD_RADIUS_CHUNKS; chunkZ++) {
+                world.loadChunk(chunkX, chunkZ, true);
+            }
+        }
+    }
+
+    private Location resolveScatterLocation(World world, ScatterPoint point) {
+        int blockX = point.blockX();
+        int blockZ = point.blockZ();
+        int blockY = world.getHighestBlockYAt(blockX, blockZ);
+        Block ground = world.getBlockAt(blockX, blockY, blockZ);
+
+        if (ground.isLiquid() || ground.getType().toString().contains("AIR")) {
+            if (ground.isLiquid()) {
                 blockY += 1;
                 world.getBlockAt(blockX, blockY, blockZ).setType(RESCUE_PLATFORM_MATERIAL);
             }
         }
 
-        return new Location(world, spawnX, blockY + SPAWN_VERTICAL_OFFSET, spawnZ);
+        return new Location(world, point.spawnX(), blockY + SPAWN_VERTICAL_OFFSET, point.spawnZ());
     }
 
     private void prepareAndTeleport(Player p, Location loc) {
         p.teleport(loc);
+        p.setVelocity(new Vector(0, 0, 0));
+        p.setFallDistance(0f);
         giveBoatIfWaterRescueSpawn(p, loc);
 
         for (PotionEffect effect : p.getActivePotionEffects()) {
@@ -231,7 +256,7 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
 
     private void startCountdown(LanguageManager lang, long generation) {
         BukkitRunnable countdown = new BukkitRunnable() {
-            int segundos = COUNTDOWN_SECONDS;
+            int seconds = COUNTDOWN_SECONDS;
 
             @Override
             public void run() {
@@ -239,9 +264,9 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
                     cancel();
                     return;
                 }
-                if (segundos > 0) {
+                if (seconds > 0) {
                     for (Player p : Bukkit.getOnlinePlayers()) {
-                        String title = lang.get("game.countdown-title", p).replace("%time%", String.valueOf(segundos));
+                        String title = lang.get("game.countdown-title", p).replace("%time%", String.valueOf(seconds));
                         String subtitle = lang.get("game.countdown-subtitle", p);
                         p.showTitle(Title.title(
                             legacySection().deserialize(title),
@@ -249,7 +274,7 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
                             Title.Times.times(Duration.ZERO, Duration.ofMillis(1100), Duration.ZERO)));
                         p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1f, 1f);
                     }
-                    segundos--;
+                    seconds--;
                 } else {
                     for (Player p : Bukkit.getOnlinePlayers()) {
                         if (plugin.getGameManager().getEligibleRoster().contains(p.getUniqueId())) {
@@ -270,7 +295,7 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
                         p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
                     }
 
-                    // --- GAMERULES A TODAS LAS DIMENSIONES ---
+                    // Apply final match gamerules to every loaded dimension.
                     for (World w : Bukkit.getWorlds()) {
                         w.setGameRule(ADVANCE_TIME, true);
                         w.setGameRule(PVP, false);
@@ -295,5 +320,8 @@ public class ConfirmStartCommand implements CommandExecutor, TabCompleter {
             return CommandTabs.prefixFilter(List.of(String.valueOf(startCmd.getPendingSize())), args[0]);
         }
         return new ArrayList<>();
+    }
+
+    private record ScatterPoint(int blockX, int blockZ, double spawnX, double spawnZ) {
     }
 }

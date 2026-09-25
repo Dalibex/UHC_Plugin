@@ -12,9 +12,6 @@ commands:
   uhccommands:
     description: Shows the list of UHC_DBasic plugin commands
     usage: /uhccommands
-  test:
-    description: Test command
-    usage: /test
   start:
     description: Starts the UHC process (creates wall)
     usage: /start [size]

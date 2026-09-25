@@ -8,10 +8,10 @@ public interface UHCGameMode {
     String getName();
 
     /** Runs every second for timed mode events. */
-    void onTick(int cronometroSegundos, int tiempoTotalSegundos);
+    void onTick(int chapterSeconds, int totalSeconds);
 
     /** Updates the mode-specific scoreboard. */
-    void updateScoreboard(Player player, String chapterTime, String totalTime, boolean partidaActiva);
+    void updateScoreboard(Player player, String chapterTime, String totalTime, boolean matchActive);
 
     /** Checks mode-specific victory conditions. */
     void checkVictory();

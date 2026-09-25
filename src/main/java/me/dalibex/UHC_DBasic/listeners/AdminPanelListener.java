@@ -122,7 +122,6 @@ public class AdminPanelListener implements Listener {
 
     private void handleMainAdminClick(Player p, int slot, boolean left, boolean right, AdminPanelManager admin, LanguageManager lang) {
         if (slot == AdminSlots.MAIN_COMBAT) {
-            if (plugin.getGameManager().getPhase() != GamePhase.LOBBY) return;
             if (left) admin.toggleCombate18(); else if (right) admin.toggleOffhandLock();
             p.playSound(p.getLocation(), Sound.BLOCK_LEVER_CLICK, 1f, 1.2f);
             admin.openMainAdminPanel(p);
@@ -219,6 +218,10 @@ public class AdminPanelListener implements Listener {
 
     private void handleGeneralRulesClick(Player p, int slot, AdminPanelManager admin) {
         if (slot == AdminSlots.GENERAL_SHULKERS_MENU) {
+            if (plugin.getGameManager().getPhase() != GamePhase.LOBBY) {
+                p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
+                return;
+            }
             p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_DIAMOND, 1f, 1f);
             admin.openShulkersPanel(p);
         } else if (slot == AdminSlots.GENERAL_PVP_EPISODE_MENU) {

@@ -7,8 +7,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.ConsoleCommandSender;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
-import me.dalibex.UHC_DBasic.utils.TextUtil;
-
 /** Validates required and optional plugin dependencies. */
 public class DependencyManager {
 
@@ -31,14 +29,14 @@ public class DependencyManager {
         ConsoleCommandSender console = Bukkit.getConsoleSender();
         boolean allMandatoryPresent = true;
 
-        console.sendMessage(TextUtil.deserialize("&6[UHC] Checking dependencies..."));
+        console.sendMessage("[UHC] Checking dependencies...");
 
         for (String pluginName : mandatoryPlugins) {
             if (Bukkit.getPluginManager().getPlugin(pluginName) != null && 
                 Bukkit.getPluginManager().isPluginEnabled(pluginName)) {
-                console.sendMessage(TextUtil.deserialize("&a  [✔] " + pluginName + " detected and active."));
+                console.sendMessage("  [OK] " + pluginName + " detected and active.");
             } else {
-                console.sendMessage(TextUtil.deserialize("&c  [✘] " + pluginName + " NOT DETECTED OR DISABLED."));
+                console.sendMessage("  [FAIL] " + pluginName + " not detected or disabled.");
                 allMandatoryPresent = false;
             }
         }
@@ -46,21 +44,21 @@ public class DependencyManager {
         for (String pluginName : optionalPlugins) {
             if (Bukkit.getPluginManager().getPlugin(pluginName) != null && 
                 Bukkit.getPluginManager().isPluginEnabled(pluginName)) {
-                console.sendMessage(TextUtil.deserialize("&b  [ℹ] " + pluginName + " detected (Optional)."));
+                console.sendMessage("  [INFO] " + pluginName + " detected (optional).");
             }
         }
 
         if (!allMandatoryPresent) {
-            console.sendMessage(TextUtil.deserialize("&c--------------------------------------------------"));
-            console.sendMessage(TextUtil.deserialize("&c [UHC ERROR] MISSING MANDATORY DEPENDENCIES"));
-            console.sendMessage(TextUtil.deserialize("&c Please download and install the missing plugins:"));
+            console.sendMessage("--------------------------------------------------");
+            console.sendMessage("[UHC ERROR] Missing mandatory dependencies");
+            console.sendMessage("Please download and install the missing plugins:");
             for (String pluginName : mandatoryPlugins) {
                 if (Bukkit.getPluginManager().getPlugin(pluginName) == null) {
-                    console.sendMessage(TextUtil.deserialize("&e  - " + pluginName));
+                    console.sendMessage("  - " + pluginName);
                 }
             }
-            console.sendMessage(TextUtil.deserialize("&c The plugin will be disabled to avoid errors."));
-            console.sendMessage(TextUtil.deserialize("&c--------------------------------------------------"));
+            console.sendMessage("The plugin will be disabled to avoid errors.");
+            console.sendMessage("--------------------------------------------------");
         }
 
         return allMandatoryPresent;

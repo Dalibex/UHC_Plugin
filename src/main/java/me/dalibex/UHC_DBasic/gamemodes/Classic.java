@@ -9,9 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
-import static org.bukkit.GameRules.PVP;
 import org.bukkit.Sound;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Criteria;
 import org.bukkit.scoreboard.DisplaySlot;
@@ -64,13 +62,7 @@ public class Classic extends AbstractUHCGameMode {
 
         maybeFormTeams(newChapter, null);
 
-        if (newChapter == gm.getPvpEnabledEpisode()) {
-            for (World w : Bukkit.getWorlds()) w.setGameRule(PVP, true);
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                for (String s : lang.getList("game-events.pvp-enabled", p)) p.sendMessage(s);
-                p.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1f, 1f);
-            }
-        }
+        maybeEnablePvp(newChapter);
     }
 
     @Override
@@ -85,8 +77,6 @@ public class Classic extends AbstractUHCGameMode {
 
         Objective obj = getOrCreateSidebar(board, player, lang);
         List<String> keys = new ArrayList<>();
-
-        ScoreboardHelper.syncTabHealthObjective(board, player, lang, matchActive);
 
         if (!matchActive) {
             ScoreboardHelper.addLobbyScores(obj, keys, getName(), player, lang);

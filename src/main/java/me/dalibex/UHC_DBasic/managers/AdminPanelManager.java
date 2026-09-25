@@ -165,12 +165,18 @@ public class AdminPanelManager {
     public void openGeneralRulesPanel(Player player) {
         LanguageManager lang = plugin.getLang();
         Inventory inv = Bukkit.createInventory(null, 27, lang.getComponent("menus.generalrules.title", player));
+        boolean matchStarted = plugin.getGameManager().getPhase() != GamePhase.LOBBY;
 
-        ItemStack shulkersBtn = new ItemStack(Material.PURPLE_SHULKER_BOX);
-        ItemMeta sMeta = shulkersBtn.getItemMeta();
-        sMeta.displayName(lang.getComponent("menus.generalrules.settings.shulkers-menu.name", player));
-        sMeta.lore(lang.getComponentList("menus.generalrules.settings.shulkers-menu.lore", player));
-        shulkersBtn.setItemMeta(sMeta);
+        ItemStack shulkersBtn;
+        if (matchStarted) {
+            shulkersBtn = createLockedItem(player, "menus.generalrules.settings.shulkers-menu.name");
+        } else {
+            shulkersBtn = new ItemStack(Material.PURPLE_SHULKER_BOX);
+            ItemMeta sMeta = shulkersBtn.getItemMeta();
+            sMeta.displayName(lang.getComponent("menus.generalrules.settings.shulkers-menu.name", player));
+            sMeta.lore(lang.getComponentList("menus.generalrules.settings.shulkers-menu.lore", player));
+            shulkersBtn.setItemMeta(sMeta);
+        }
         inv.setItem(AdminSlots.GENERAL_SHULKERS_MENU, shulkersBtn);
 
         ItemStack pvpEpBtn = new ItemStack(Material.NETHERITE_SWORD);

@@ -101,7 +101,7 @@ public final class UHC_DBasic extends JavaPlugin {
             gameManager.fullReset();
         }, INITIAL_RESET_DELAY_TICKS);
 
-        getLogger().info("§aUHC ELOUD Plugin Enabled.");
+        getLogger().info("Startup completed successfully.");
     }
 
     private void registerCommands() {
@@ -152,31 +152,24 @@ public final class UHC_DBasic extends JavaPlugin {
         getCommand("setpvpepisode").setExecutor(setPvpEpisodeCmd);
         getCommand("setpvpepisode").setTabCompleter(setPvpEpisodeCmd);
 
-        getCommand("test").setExecutor((sender, command, s, strings) -> {
-            if (!isAdmin(sender)) {
-                if (sender instanceof Player pl) {
-                    pl.sendMessage(getLang().get("general.no-permission", pl));
-                }
-                return true;
-            }
-            sender.sendMessage("§a[UHC] Plugin and its dependencies (TAB/SkinsRestorer) working perfectly!");
-            return true;
-        });
-        getCommand("test").setTabCompleter(CommandTabs.NO_SUGGESTIONS);
     }
 
     private void logBanner() {
         org.bukkit.command.ConsoleCommandSender console = Bukkit.getConsoleSender();
+        String tabSetupMode = getConfig().getString("tab.setup-mode", "once");
         console.sendMessage(" ");
-        console.sendMessage("§6§l--------------------------------------------------");
-        console.sendMessage("§e§l   _  _ _  _ ____    ____ _    ____ _  _ ___  ");
-        console.sendMessage("§e§l   |  | |__| |       |___ |    |  | |  | |  \\ ");
-        console.sendMessage("§e§l   |__| |  | |___    |___ |___ |__| |__| |__/ ");
-        console.sendMessage("§6");
-        console.sendMessage("§f   Developed by: §b§lDalibex");
-        console.sendMessage("§f   Version: §a" + getPluginMeta().getVersion());
-        console.sendMessage("§f   Status: §2§lACTIVE AND LOADED");
-        console.sendMessage("§6§l--------------------------------------------------");
+        console.sendMessage("§6§l==================================================");
+        console.sendMessage("§6§l   _  _ _  _ ____    ____ _    ____ _  _ ___  ");
+        console.sendMessage("§6§l   |  | |__| |       |___ |    |  | |  | |  \\ ");
+        console.sendMessage("§6§l   |__| |  | |___    |___ |___ |__| |__| |__/ ");
+        console.sendMessage("§6 ");
+        console.sendMessage("§f   UHC ELOUD");
+        console.sendMessage("§f   Developed by: Dalibex");
+        console.sendMessage("§f   Version: " + getPluginMeta().getVersion());
+        console.sendMessage("§f   Dependencies: OK");
+        console.sendMessage("§f   TAB setup: " + tabSetupMode);
+        console.sendMessage("§f   Status: ACTIVE AND LOADED");
+        console.sendMessage("§6§l==================================================");
         console.sendMessage(" ");
     }
 

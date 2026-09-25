@@ -34,7 +34,7 @@ public class LanguageManager {
         File langFolder = new File(plugin.getDataFolder(), "lang");
         if (!langFolder.exists()) langFolder.mkdirs();
 
-        String[] supported = {"es", "en"};
+        String[] supported = {"es", "en", "fr", "de", "it"};
         for (String lang : supported) {
             String fileName = "lang/messages_" + lang + ".yml";
             File file = new File(plugin.getDataFolder(), fileName);

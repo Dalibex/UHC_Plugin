@@ -15,10 +15,8 @@ import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
-import static org.bukkit.GameRules.PVP;
 import org.bukkit.Material;
 import org.bukkit.Sound;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -118,19 +116,18 @@ public class ResourceRush extends AbstractUHCGameMode {
 
         maybeFormTeams(nuevoCap, this::syncResourceRushTeams);
 
-        if (nuevoCap == gm.getPvpEnabledEpisode()) {
-            for (World w : Bukkit.getWorlds()) w.setGameRule(PVP, true);
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                for (String s : lang.getList("game-events.pvp-enabled", p)) p.sendMessage(s);
-                p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1f, 1f);
-            }
-        }
+        maybeEnablePvp(nuevoCap);
     }
 
     @Override
     protected void handleInitialSecond(LanguageManager lang) {
         super.handleInitialSecond(lang);
         syncResourceRushTeams();
+    }
+
+    @Override
+    protected Sound getPvpEnabledSound() {
+        return Sound.ENTITY_WITHER_SPAWN;
     }
 
     private void scheduleForCurrentSession(Runnable action, long delay) {
@@ -198,8 +195,6 @@ public class ResourceRush extends AbstractUHCGameMode {
 
         Objective obj = getOrCreateSidebar(board, player, lang);
         List<String> keys = new ArrayList<>();
-        ScoreboardHelper.syncTabHealthObjective(board, player, lang, matchActive);
-
         if (!matchActive) {
             ScoreboardHelper.addLobbyScores(obj, keys, getName(), player, lang);
         } else {

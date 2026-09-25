@@ -25,7 +25,7 @@ import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializ
 public class ScoreboardHelper {
 
     public static final String SIDEBAR_OBJECTIVE = "uhc";
-    public static final String HEALTH_OBJECTIVE = "vida_tab";
+    public static final String HEALTH_OBJECTIVE = "health_tab";
     public static final String TEAM_PREFIX = "h_";
 
     private static final int FINAL_CHAPTER = 10;
@@ -33,18 +33,22 @@ public class ScoreboardHelper {
     private static final double MEDIUM_HEALTH_THRESHOLD = 10.0;
     private static final double LOW_HEALTH_THRESHOLD = 5.0;
 
-    /** Synchronizes the health objective rendered in the TAB player list. */
-    public static void syncTabHealthObjective(Scoreboard board, Player player, LanguageManager lang, boolean active) {
-        Objective objVida = board.getObjective(HEALTH_OBJECTIVE);
-        if (active) {
-            if (objVida == null) {
-                objVida = board.registerNewObjective(HEALTH_OBJECTIVE, Criteria.HEALTH,
-                        lang.getComponent("scoreboard.health-icon", player), RenderType.HEARTS);
-            }
-            objVida.setDisplaySlot(DisplaySlot.PLAYER_LIST);
-        } else if (objVida != null) {
-            objVida.unregister();
+    /** Ensures the health objective rendered in the TAB player list exists without resending it every tick. */
+    public static void ensureTabHealthObjective(Scoreboard board, Player player, LanguageManager lang) {
+        Objective healthObjective = board.getObjective(HEALTH_OBJECTIVE);
+        if (healthObjective == null) {
+            healthObjective = board.registerNewObjective(HEALTH_OBJECTIVE, Criteria.HEALTH,
+                    lang.getComponent("scoreboard.health-icon", player), RenderType.HEARTS);
         }
+        if (healthObjective.getDisplaySlot() != DisplaySlot.PLAYER_LIST) {
+            healthObjective.setDisplaySlot(DisplaySlot.PLAYER_LIST);
+        }
+    }
+
+    /** Removes the TAB health objective from a player's scoreboard when leaving active gameplay. */
+    public static void removeTabHealthObjective(Scoreboard board) {
+        Objective healthObjective = board.getObjective(HEALTH_OBJECTIVE);
+        if (healthObjective != null) healthObjective.unregister();
     }
 
     /** Adds lobby sidebar lines: mode, waiting status, and online players. */
@@ -60,14 +64,14 @@ public class ScoreboardHelper {
 
     /** Adds phase and PVP status lines. */
     public static void addPhaseInfo(Objective obj, AtomicInteger next, List<String> keys, Player player, LanguageManager lang, GameManager gm) {
-        int capitulo = gm.getChapter();
-        String pvpStatus = (capitulo < gm.getPvpEnabledEpisode())
+        int chapter = gm.getChapter();
+        String pvpStatus = (chapter < gm.getPvpEnabledEpisode())
                 ? lang.get("scoreboard.pvp-pact", player)
                 : lang.get("scoreboard.pvp-active", player);
 
         score(obj, "§1 ", next.getAndDecrement(), keys);
-        if (capitulo < FINAL_CHAPTER) {
-            score(obj, lang.get("scoreboard.phase", player).replace("%chapter%", String.valueOf(capitulo)), next.getAndDecrement(), keys);
+        if (chapter < FINAL_CHAPTER) {
+            score(obj, lang.get("scoreboard.phase", player).replace("%chapter%", String.valueOf(chapter)), next.getAndDecrement(), keys);
         } else {
             score(obj, lang.get("scoreboard.finalized", player), next.getAndDecrement(), keys);
             if (gm.getCurrentMode() instanceof me.dalibex.UHC_DBasic.gamemodes.Classic) {
@@ -83,7 +87,7 @@ public class ScoreboardHelper {
     public static void addTeamInfo(Objective obj, AtomicInteger next, List<String> keys, Player player, LanguageManager lang, TeamManager tm, GameManager gm) {
         Team team = tm.getPlayerTeam(player.getName());
         int teamSize = tm.getTeamSize();
-        int capitulo = gm.getChapter();
+        int chapter = gm.getChapter();
 
         if (teamSize == 1) {
             String line = (team != null && !tm.isDefaultName(team)) ?
@@ -92,7 +96,7 @@ public class ScoreboardHelper {
             score(obj, line, next.getAndDecrement(), keys);
         } else {
             boolean manual = tm.isCustomTeamsEnabled();
-            if (capitulo < tm.getTeamsFormedEpisode() && !manual) {
+            if (chapter < tm.getTeamsFormedEpisode() && !manual) {
                 for (int i = 1; i < teamSize; i++) {
                     score(obj, " §d👥 §f: §k??????" + (" ".repeat(i)), next.getAndDecrement(), keys);
                 }
@@ -115,38 +119,38 @@ public class ScoreboardHelper {
     private static void addMateLine(Objective obj, AtomicInteger next, List<String> keys, Player viewer, String entry, LanguageManager lang, GameManager gm) {
         String healthText;
         String colorPrefix = "§f";
-        String nombreParaMostrar = entry;
-        Player m = Bukkit.getPlayer(entry);
+        String displayName = entry;
+        Player mate = Bukkit.getPlayer(entry);
 
         if (gm.getEliminatedPlayers().contains(entry)) {
             colorPrefix = "§7§m";
             healthText = lang.get("scoreboard.mate-dead", viewer);
         } else {
-            if (m != null && m.isOnline()) {
-                nombreParaMostrar = m.getName();
+            if (mate != null && mate.isOnline()) {
+                displayName = mate.getName();
                 colorPrefix = "§f";
-                double h = m.getHealth();
-                String c = (h > HIGH_HEALTH_THRESHOLD) ? "§a"
-                        : (h > MEDIUM_HEALTH_THRESHOLD) ? "§2"
-                        : (h > LOW_HEALTH_THRESHOLD) ? "§e" : "§c";
-                healthText = " " + c + (int) h + "§4❤";
+                double health = mate.getHealth();
+                String healthColor = (health > HIGH_HEALTH_THRESHOLD) ? "§a"
+                        : (health > MEDIUM_HEALTH_THRESHOLD) ? "§2"
+                        : (health > LOW_HEALTH_THRESHOLD) ? "§e" : "§c";
+                healthText = " " + healthColor + (int) health + "§4❤";
             } else {
                 healthText = lang.get("scoreboard.mate-offline", viewer);
             }
         }
-        score(obj, "§6> " + colorPrefix + nombreParaMostrar + healthText, next.getAndDecrement(), keys);
+        score(obj, "§6> " + colorPrefix + displayName + healthText, next.getAndDecrement(), keys);
     }
 
     /** Adds total time and next-chapter timers. */
-    public static void addTimers(Objective obj, AtomicInteger next, List<String> keys, String tiempo, String tiempoTotal, Player player, LanguageManager lang, GameManager gm) {
+    public static void addTimers(Objective obj, AtomicInteger next, List<String> keys, String chapterTime, String totalTime, Player player, LanguageManager lang, GameManager gm) {
         score(obj, "§6 ", next.getAndDecrement(), keys);
         score(obj, lang.get("scoreboard.time-total-label", player), next.getAndDecrement(), keys);
-        score(obj, "§6> §f" + tiempoTotal, next.getAndDecrement(), keys);
+        score(obj, "§6> §f" + totalTime, next.getAndDecrement(), keys);
         score(obj, "§7 ", next.getAndDecrement(), keys);
         
         if (gm.getChapter() < FINAL_CHAPTER) {
             score(obj, lang.get("scoreboard.time-next-label", player), next.getAndDecrement(), keys);
-            score(obj, "§6> §f" + tiempo, next.getAndDecrement(), keys);
+            score(obj, "§6> §f" + chapterTime, next.getAndDecrement(), keys);
         }
     }
 

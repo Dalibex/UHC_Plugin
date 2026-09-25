@@ -37,6 +37,8 @@ import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import me.dalibex.UHC_DBasic.managers.TeamManager;
 import me.dalibex.UHC_DBasic.utils.ScoreboardHelper;
 
+import static org.bukkit.GameRules.PVP;
+
 /** Base class for shared UHC mode behavior: chapters, special items, victory effects, and identity rotation. */
 public abstract class AbstractUHCGameMode implements UHCGameMode {
 
@@ -45,6 +47,7 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
     protected boolean shulkerOneDelivered = false;
     protected boolean shulkerTwoDelivered = false;
     protected boolean teamsFormed = false;
+    protected boolean pvpEnabled = false;
 
     /** Sidebar keys per player, used to clear stale lines without re-registering the objective each tick. */
     private final Map<UUID, Set<String>> sidebarKeys = new HashMap<>();
@@ -101,6 +104,30 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
             // Chapter 1 has no chapter-change event, so configured episode 1
             // team formation must be triggered from the initial-second path.
             maybeFormTeams(1, null);
+        }
+        maybeEnablePvp(1, getPvpEnabledSound());
+    }
+
+    /** Sound used when the configured PVP episode starts. */
+    protected Sound getPvpEnabledSound() {
+        return Sound.ENTITY_LIGHTNING_BOLT_THUNDER;
+    }
+
+    /** Enables PVP once the configured chapter is reached. */
+    protected void maybeEnablePvp(int chapter) {
+        maybeEnablePvp(chapter, getPvpEnabledSound());
+    }
+
+    private void maybeEnablePvp(int chapter, Sound sound) {
+        if (pvpEnabled || chapter < gm.getPvpEnabledEpisode()) return;
+
+        pvpEnabled = true;
+        for (org.bukkit.World w : Bukkit.getWorlds()) w.setGameRule(PVP, true);
+
+        LanguageManager lang = plugin.getLang();
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            for (String s : lang.getList("game-events.pvp-enabled", p)) p.sendMessage(s);
+            p.playSound(p.getLocation(), sound, 1f, 1f);
         }
     }
 
@@ -252,6 +279,7 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
         this.shulkerOneDelivered = false;
         this.shulkerTwoDelivered = false;
         this.teamsFormed = false;
+        this.pvpEnabled = false;
         plugin.getItemsListener().clearCompassTargetCache();
 
         // Clear stale lines from online player scoreboards.

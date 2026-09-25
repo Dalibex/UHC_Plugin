@@ -49,8 +49,8 @@ import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializ
 public class SkinsManager {
 
     private static final long COMBAT_WINDOW_MS = 30_000L;
-    private static final long ROTATION_INTERVAL_TICKS = 100L;
-    private static final long ROTATION_START_TICKS = 200L;
+    private static final long ROTATION_INTERVAL_TICKS = 40L;
+    private static final long ROTATION_START_TICKS = 40L;
     private static final int MAX_COMBAT_RETRIES = 6;
     private static final int SHUFFLE_ATTEMPTS = 30;
     private static final int SHUFFLE_FALLBACK_ATTEMPTS = 100;

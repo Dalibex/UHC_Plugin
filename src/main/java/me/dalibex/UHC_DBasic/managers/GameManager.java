@@ -36,7 +36,11 @@ public class GameManager {
     private static final double TAB_HEALTH_REFRESH_DAMAGE = 0.01;
     private static final double DEFAULT_MAX_HEALTH = 20.0;
     private static final long STARTUP_HEAL_DELAY_TICKS = 1L;
+    private static final long TAB_HEALTH_REFRESH_DELAY_TICKS = 20L;
     private static final long GAME_TICK_PERIOD_TICKS = 20L;
+    private static final int START_PROTECTION_DURATION_TICKS = 200;
+    private static final int START_PROTECTION_AMPLIFIER = 255;
+    private static final int START_REGENERATION_AMPLIFIER = 1;
     private static final int LOBBY_EFFECT_AMPLIFIER = 255;
     private static final int LOBBY_REGEN_DURATION_TICKS = 200;
 
@@ -94,7 +98,9 @@ public class GameManager {
             }
             p.playerListName(Component.text(p.getName()));
             modoActual.updateScoreboard(p, "00:00", "00:00", true);
-            p.damage(TAB_HEALTH_REFRESH_DAMAGE);
+            ScoreboardHelper.ensureTabHealthObjective(p.getScoreboard(), p, plugin.getLang());
+            applyStartProtection(p);
+            scheduleTabHealthRefresh(p);
             plugin.getSkinsManager().updateVisualIdentity(p);
 
             new BukkitRunnable() {
@@ -122,12 +128,12 @@ public class GameManager {
 
                 modoActual.onTick(cronometroSegundos, tiempoTotalSegundos);
 
-                int restante = segundosPorCapitulo - (cronometroSegundos % segundosPorCapitulo);
-                String fRestante = TimeUtil.formatClock(restante);
-                String fTotal = TimeUtil.formatClock(tiempoTotalSegundos);
+                int remainingSeconds = segundosPorCapitulo - (cronometroSegundos % segundosPorCapitulo);
+                String chapterTime = TimeUtil.formatClock(remainingSeconds);
+                String totalTime = TimeUtil.formatClock(tiempoTotalSegundos);
 
                 for (Player p : Bukkit.getOnlinePlayers()) {
-                    modoActual.updateScoreboard(p, fRestante, fTotal, true);
+                    modoActual.updateScoreboard(p, chapterTime, totalTime, true);
                 }
 
                 modoActual.checkVictory();
@@ -135,6 +141,27 @@ public class GameManager {
                 plugin.getItemsListener().updateTrackingCompasses();
             }
         }.runTaskTimer(plugin, 0L, GAME_TICK_PERIOD_TICKS);
+    }
+
+    private void applyStartProtection(Player player) {
+        player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE,
+                START_PROTECTION_DURATION_TICKS, START_PROTECTION_AMPLIFIER, false, false, false));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION,
+                START_PROTECTION_DURATION_TICKS, START_REGENERATION_AMPLIFIER, false, false, false));
+    }
+
+    private void scheduleTabHealthRefresh(Player player) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!player.isOnline() || !isMatchActive()) return;
+                ScoreboardHelper.ensureTabHealthObjective(player.getScoreboard(), player, plugin.getLang());
+                PotionEffect resistance = player.getPotionEffect(PotionEffectType.RESISTANCE);
+                if (resistance != null) player.removePotionEffect(PotionEffectType.RESISTANCE);
+                player.damage(TAB_HEALTH_REFRESH_DAMAGE);
+                if (resistance != null) player.addPotionEffect(resistance);
+            }
+        }.runTaskLater(plugin, TAB_HEALTH_REFRESH_DELAY_TICKS);
     }
 
     public void fullReset() {
@@ -161,17 +188,17 @@ public class GameManager {
         TeamManager tm = plugin.getTeamManager();
         tm.migrateLegacyTeamsOnce();
         // Preserve custom team choices across /reset.
-        Map<String, String> equiposPrevios = tm.isCustomTeamsEnabled() ? tm.snapshotTeamMembers() : Map.of();
+        Map<String, String> previousTeams = tm.isCustomTeamsEnabled() ? tm.snapshotTeamMembers() : Map.of();
         tm.deleteAllTeams();
         if (tm.isCustomTeamsEnabled()) {
             tm.initializeCustomTeams();
-            tm.restoreTeamMembers(equiposPrevios);
+            tm.restoreTeamMembers(previousTeams);
         }
         Scoreboard managerBoard = Bukkit.getScoreboardManager().getMainScoreboard();
         Objective uhcObjective = managerBoard.getObjective(ScoreboardHelper.SIDEBAR_OBJECTIVE);
         if (uhcObjective != null) uhcObjective.unregister();
-        Objective vidaTabObjective = managerBoard.getObjective(ScoreboardHelper.HEALTH_OBJECTIVE);
-        if (vidaTabObjective != null) vidaTabObjective.unregister();
+        Objective tabHealthObjective = managerBoard.getObjective(ScoreboardHelper.HEALTH_OBJECTIVE);
+        if (tabHealthObjective != null) tabHealthObjective.unregister();
 
         this.phase = GamePhase.LOBBY;
     }
@@ -200,6 +227,7 @@ public class GameManager {
         plugin.getSkinsManager().restoreOwnIdentity(p);
         if (modoActual != null) {
             modoActual.updateScoreboard(p, "00:00", "00:00", false);
+            ScoreboardHelper.removeTabHealthObjective(p.getScoreboard());
         }
 
         TeamManager tm = plugin.getTeamManager();
@@ -345,31 +373,32 @@ public class GameManager {
         return phase == GamePhase.RUNNING || phase == GamePhase.PAUSED;
     }
 
-    public void setGameStarted(boolean estado) {
-        if (estado) {
+    public void setGameStarted(boolean started) {
+        if (started) {
             throw new IllegalStateException("Use the explicit startup transitions");
         }
         // Compatibility for existing game modes; new finish paths should call enterEnding().
         enterEnding();
     }
 
-    public void changeMode(UHCGameMode nuevoModo) {
+    public void changeMode(UHCGameMode newMode) {
         // Transfer sidebar keys so the new mode can clean stale scoreboard lines.
         Map<UUID, Set<String>> transfer = null;
-        if (modoActual instanceof AbstractUHCGameMode anterior) {
-            transfer = anterior.takeSidebarKeys();
+        if (modoActual instanceof AbstractUHCGameMode previousMode) {
+            transfer = previousMode.takeSidebarKeys();
         }
 
-        this.modoActual = nuevoModo;
+        this.modoActual = newMode;
         this.modoActual.onReset();
 
-        if (transfer != null && modoActual instanceof AbstractUHCGameMode nuevo) {
-            nuevo.adoptSidebarKeys(transfer);
+        if (transfer != null && modoActual instanceof AbstractUHCGameMode newAbstractMode) {
+            newAbstractMode.adoptSidebarKeys(transfer);
         }
 
         if (!isGameStarted()) {
             for (Player p : Bukkit.getOnlinePlayers()) {
                 modoActual.updateScoreboard(p, "00:00", "00:00", false);
+                ScoreboardHelper.removeTabHealthObjective(p.getScoreboard());
             }
         }
     }

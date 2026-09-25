@@ -14,6 +14,7 @@ import me.dalibex.UHC_DBasic.gamemodes.UHCGameMode;
 import me.dalibex.UHC_DBasic.managers.GameManager;
 import me.dalibex.UHC_DBasic.managers.GamePhase;
 
+import me.dalibex.UHC_DBasic.utils.ScoreboardHelper;
 import me.dalibex.UHC_DBasic.utils.TimeUtil;
 import me.dalibex.UHC_DBasic.utils.UpdateChecker;
 import net.kyori.adventure.text.Component;
@@ -38,7 +39,7 @@ public class PlayerConnectionListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player p = event.getPlayer();
         GameManager gm = plugin.getGameManager();
-        UHCGameMode modo = gm.getCurrentMode();
+        UHCGameMode mode = gm.getCurrentMode();
 
         if (gm.isGameStarted()) {
             handleInGameJoin(p, gm);
@@ -54,7 +55,7 @@ public class PlayerConnectionListener implements Listener {
             }
         }
 
-        updateAllScoreboards(gm, modo);
+        updateAllScoreboards(gm, mode);
         handleUpdateNotice(p);
     }
 
@@ -69,10 +70,10 @@ public class PlayerConnectionListener implements Listener {
             }
             return;
         }
-        boolean eraParticipante = gm.getInitialParticipants().contains(p.getName());
-        boolean estaEliminado = gm.getEliminatedPlayers().contains(p.getName());
+        boolean wasParticipant = gm.getInitialParticipants().contains(p.getName());
+        boolean isEliminated = gm.getEliminatedPlayers().contains(p.getName());
 
-        if (!eraParticipante || estaEliminado) {
+        if (!wasParticipant || isEliminated) {
             p.setGameMode(GameMode.SPECTATOR);
         } else {
             p.setGameMode(GameMode.SURVIVAL);
@@ -117,13 +118,18 @@ public class PlayerConnectionListener implements Listener {
     }
 
     /** Forces scoreboard refresh for every online player. */
-    private void updateAllScoreboards(GameManager gm, UHCGameMode modo) {
-        int crono = gm.getTotalSeconds();
-        String timeStr = TimeUtil.formatClock(crono);
+    private void updateAllScoreboards(GameManager gm, UHCGameMode mode) {
+        int totalSeconds = gm.getTotalSeconds();
+        String timeStr = TimeUtil.formatClock(totalSeconds);
         boolean active = gm.isMatchActive();
 
         for (Player online : Bukkit.getOnlinePlayers()) {
-            modo.updateScoreboard(online, "...", timeStr, active);
+            mode.updateScoreboard(online, "...", timeStr, active);
+            if (active) {
+                ScoreboardHelper.ensureTabHealthObjective(online.getScoreboard(), online, plugin.getLang());
+            } else {
+                ScoreboardHelper.removeTabHealthObjective(online.getScoreboard());
+            }
         }
     }
 }
