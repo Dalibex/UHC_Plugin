@@ -11,28 +11,34 @@ UHC ELOUD is a Paper UHC plugin based on **UHC ESPAÑA** by **ElRichMC**. It man
 
 Version `1.5.4` focuses on smoother hosted matches, clearer administration, and better player-facing options.
 
+### New And Improved
+
 - New languages: Spanish, English, French, German, and Italian are available with `/lang`.
 - Cleaner `/uhccommands`: player and admin commands are now separated in an interactive chat menu.
-- Configurable shulker episodes: both episode shulkers can be configured independently from the Admin Panel, and both can use the same episode if desired.
-- Safer match start: players receive short start protection, TAB health is refreshed after the match starts, and water rescue spawns give a boat automatically.
-- Safer live admin flow: shulker episode settings lock once the match starts, while 1.8 combat and offhand/shield settings remain adjustable during the game.
-- Better death heads: death heads are placed more safely and fall back to dropping a player head when placement is impossible.
-- 1.8 combat balance: axes now use legacy-style damage when the 1.8 combat option is enabled.
+- Configurable shulker episodes: both episode shulkers can be configured independently of the Admin Panel, and both can use the same episode if desired.
 - Faster identity setup: episode 1 skin rotation starts sooner and applies identities more quickly.
+- Safer match start: players receive short start protection, and water rescue spawns give a boat automatically.
+
+### Fixes
+
+- 1.8 combat balance: axes now use legacy-style damage when the 1.8 combat option is enabled correctly.
+- TAB health: player-list health is created when needed and refreshed shortly after the match starts.
+- PVP episode 1: PVP now activates correctly at match start when configured for episode 1.
+- Live admin settings: shulker settings lock once the match starts, while 1.8 combat and offhand/shield settings remain adjustable during the game.
+- Death heads: death heads are placed more safely and fall back to dropping a player head when placement is impossible.
 
 ## Main Features
 
-- Multi-language support: Spanish, English, French, German, and Italian with personal `/lang <language>` preference.
-- Dynamic sidebar: phase, chapter timer, total time, team info, and teammate health.
-- TAB integration: identity-aware tablist/n nametag placeholders and player-list health objective.
-- SkinsRestorer integration: rotating fake identities, reveal-on-hit, reconnect resync, and real-skin death heads.
-- Classic UHC mode: standard team/solo UHC flow with chapter events and final victory handling.
-- Resource Rush mode: objective-based UHC mode with team/solo progress and podium finish.
-- Admin GUI: gamemode, border, chapter time, game rules, custom teams, PVP episode, team episode, and shulker episode settings.
-- Hybrid 1.8 combat option: spam-click combat, sweep attack removal, and adjusted axe damage.
-- Team selector: custom teams with internal `h_` scoreboard team namespace.
-- Tracking compass: points to the nearest teammate alive and updates while held.
-- Golden heads: craft fallen players' heads with gold ingots for regeneration and absorption.
+- Hosted UHC flow: `/reset`, confirmed `/start`, scatter, chapters, border controls, final phase, and victory handling.
+- Game modes: Classic UHC for standard matches and Resource Rush for goal-based games with podium results.
+- Admin Panel: configure gamemode, chapter time, border, game rules, custom teams, PVP episode, team episode, and shulker episodes.
+- Teams: solos or teams, optional custom team selector, manual team assignment, and automatic team formation by episode.
+- PVP timing: choose the episode where the gentleman's pact ends and PVP becomes active.
+- Supplies: configurable episode shulkers, golden heads, tracking compasses, and rescue boats for water scatter saves.
+- Combat options: optional 1.8-style combat, offhand/shield lock, sweep attack removal, and legacy-style axe damage.
+- Identity system: fake skin rotation, reveal-on-hit, reconnect resync, and real-skin death heads using SkinsRestorer.
+- Player UI: dynamic sidebar, TAB player-list health, identity-aware tablist/nametags, and team compass updates.
+- Languages: Spanish, English, French, German, and Italian with personal `/lang <language>` preference.
 
 ## Commands
 
