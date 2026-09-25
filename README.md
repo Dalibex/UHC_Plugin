@@ -63,8 +63,8 @@ Version `1.5.4` focuses on smoother hosted matches, clearer administration, and 
 - Java 25.
 - Paper-compatible server for Minecraft (Paper recommended).
 - Hard dependencies declared in `plugin.yml`:
-  - [TAB](https://github.com/NEZNAMY/TAB)
-  - [SkinsRestorer](https://skinsrestorer.net/)
+  - [TAB]([https://github.com/NEZNAMY/TAB](https://github.com/NEZNAMY/TAB/releases))
+  - [SkinsRestorer]([https://skinsrestorer.net/](https://github.com/SkinsRestorer/SkinsRestorer/releases))
 
 Setup:
 
