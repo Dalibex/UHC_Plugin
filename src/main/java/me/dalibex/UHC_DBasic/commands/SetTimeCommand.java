@@ -2,7 +2,7 @@ package me.dalibex.UHC_DBasic.commands;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.managers.GameManager;
-import me.dalibex.UHC_DBasic.managers.GamePhase;
+import me.dalibex.UHC_DBasic.utils.GamePhase;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import me.dalibex.UHC_DBasic.utils.CommandTabs;
 import me.dalibex.UHC_DBasic.utils.TimeUtil;

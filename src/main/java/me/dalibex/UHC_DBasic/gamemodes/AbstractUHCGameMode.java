@@ -31,10 +31,10 @@ import org.bukkit.scoreboard.Scoreboard;
 
 import io.papermc.paper.scoreboard.numbers.NumberFormat;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
-import me.dalibex.UHC_DBasic.managers.AdminPanelManager;
 import me.dalibex.UHC_DBasic.managers.GameManager;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
-import me.dalibex.UHC_DBasic.managers.TeamManager;
+import me.dalibex.UHC_DBasic.managers.MatchSettingsManager;
+import me.dalibex.UHC_DBasic.managers.teams.TeamManager;
 import me.dalibex.UHC_DBasic.utils.ScoreboardHelper;
 
 import static org.bukkit.GameRules.PVP;
@@ -82,14 +82,14 @@ public abstract class AbstractUHCGameMode implements UHCGameMode {
     protected abstract void onChapterChange(int newChapter);
 
     private void deliverConfiguredShulkers(int chapter, boolean allowDelivery) {
-        AdminPanelManager admin = plugin.getAdminPanel();
-        if (allowDelivery && admin.isShulkerOneEnabled() && !shulkerOneDelivered
-                && chapter == admin.getShulkerOneEpisode()) {
+        MatchSettingsManager settings = plugin.getMatchSettings();
+        if (allowDelivery && settings.isShulkerOneEnabled() && !shulkerOneDelivered
+                && chapter == settings.getShulkerOneEpisode()) {
             giveGlobalItem("items.shulker.name", Material.ORANGE_SHULKER_BOX);
             shulkerOneDelivered = true;
         }
-        if (allowDelivery && admin.isShulkerTwoEnabled() && !shulkerTwoDelivered
-                && chapter == admin.getShulkerTwoEpisode()) {
+        if (allowDelivery && settings.isShulkerTwoEnabled() && !shulkerTwoDelivered
+                && chapter == settings.getShulkerTwoEpisode()) {
             giveGlobalItem("items.shulker.name", Material.LIGHT_BLUE_SHULKER_BOX);
             shulkerTwoDelivered = true;
         }

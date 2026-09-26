@@ -1,6 +1,6 @@
 package me.dalibex.UHC_DBasic.commands;
 
-import me.dalibex.UHC_DBasic.managers.GamePhase;
+import me.dalibex.UHC_DBasic.utils.GamePhase;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;

@@ -1,4 +1,4 @@
-package me.dalibex.UHC_DBasic.managers;
+package me.dalibex.UHC_DBasic.managers.teams;
 
 import me.dalibex.UHC_DBasic.utils.ScoreboardHelper;
 import org.junit.jupiter.api.Test;
@@ -6,11 +6,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Pruebas de la normalización del input de color de equipos.
- * El prefijo interno {@code h_} no debe exigirse al usuario: se aceptan
- * "red", "h_red" y "RED" (y el nombre interno) como equivalentes.
- */
+/** Tests user-facing team color input normalization. */
 class TeamManagerTest {
 
     @Test

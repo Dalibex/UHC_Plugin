@@ -12,7 +12,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.gamemodes.UHCGameMode;
 import me.dalibex.UHC_DBasic.managers.GameManager;
-import me.dalibex.UHC_DBasic.managers.GamePhase;
+import me.dalibex.UHC_DBasic.utils.GamePhase;
 
 import me.dalibex.UHC_DBasic.utils.ScoreboardHelper;
 import me.dalibex.UHC_DBasic.utils.TimeUtil;
@@ -47,7 +47,7 @@ public class PlayerConnectionListener implements Listener {
             handleLobbyJoin(p);
         }
 
-        double attackSpeedValue = plugin.getAdminPanel().isCombate18() ? ATTACK_SPEED_1_8 : DEFAULT_ATTACK_SPEED;
+        double attackSpeedValue = plugin.getMatchSettings().isCombat18() ? ATTACK_SPEED_1_8 : DEFAULT_ATTACK_SPEED;
         if (p.getAttribute(Attribute.ATTACK_SPEED) != null) {
             var attackSpeed = p.getAttribute(Attribute.ATTACK_SPEED);
             if (attackSpeed != null) {

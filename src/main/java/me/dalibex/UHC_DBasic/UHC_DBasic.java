@@ -5,12 +5,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import me.dalibex.UHC_DBasic.admin.AdminPanelManager;
 import me.dalibex.UHC_DBasic.commands.AbandonCommand;
 import me.dalibex.UHC_DBasic.commands.AdminPanelCommand;
 import me.dalibex.UHC_DBasic.commands.AssignTeamCommand;
 import me.dalibex.UHC_DBasic.commands.CancelStartCommand;
 import me.dalibex.UHC_DBasic.commands.ConfirmStartCommand;
-import me.dalibex.UHC_DBasic.commands.GCommandsCommand;
+import me.dalibex.UHC_DBasic.commands.HelpCommand;
 import me.dalibex.UHC_DBasic.commands.LangCommand;
 import me.dalibex.UHC_DBasic.commands.PrepareWorldCommand;
 import me.dalibex.UHC_DBasic.commands.SetTeamEpisodeCommand;
@@ -20,18 +21,19 @@ import me.dalibex.UHC_DBasic.commands.StartCommand;
 import me.dalibex.UHC_DBasic.commands.TeamCommand;
 import me.dalibex.UHC_DBasic.listeners.AdminPanelListener;
 import me.dalibex.UHC_DBasic.listeners.GameLogicListener;
+import me.dalibex.UHC_DBasic.listeners.GameplayRestrictionListener;
 import me.dalibex.UHC_DBasic.listeners.ItemsListener;
 import me.dalibex.UHC_DBasic.listeners.PlayerConnectionListener;
 import me.dalibex.UHC_DBasic.listeners.ResourceRushListener;
-import me.dalibex.UHC_DBasic.managers.AdminPanelManager;
 import me.dalibex.UHC_DBasic.managers.ChatManager;
 import me.dalibex.UHC_DBasic.managers.DependencyManager;
 import me.dalibex.UHC_DBasic.managers.GameManager;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
+import me.dalibex.UHC_DBasic.managers.MatchSettingsManager;
 import me.dalibex.UHC_DBasic.managers.SkinsManager;
 import me.dalibex.UHC_DBasic.managers.SpecialCraftsManager;
 import me.dalibex.UHC_DBasic.managers.TABManager;
-import me.dalibex.UHC_DBasic.managers.TeamManager;
+import me.dalibex.UHC_DBasic.managers.teams.TeamManager;
 import me.dalibex.UHC_DBasic.managers.WorldManager;
 import me.dalibex.UHC_DBasic.utils.CommandTabs;
 import me.dalibex.UHC_DBasic.utils.UpdateChecker;
@@ -45,11 +47,13 @@ public final class UHC_DBasic extends JavaPlugin {
     private SkinsManager skinsManager;
     private WorldManager worldManager;
     private TABManager tabManager;
+    private MatchSettingsManager matchSettingsManager;
     private AdminPanelManager adminPanelManager;
     private ChatManager chatManager;
     private PlayerConnectionListener connectionListener;
     private GameLogicListener gameLogicListener;
     private AdminPanelListener adminPanelListener;
+    private GameplayRestrictionListener gameplayRestrictionListener;
     private ItemsListener itemsListener;
     private SpecialCraftsManager specialCraftsManager;
     private LanguageManager languageManager;
@@ -74,6 +78,7 @@ public final class UHC_DBasic extends JavaPlugin {
         skinsManager = new SkinsManager(this);
         worldManager = new WorldManager(this);
         tabManager = new TABManager(this);
+        matchSettingsManager = new MatchSettingsManager();
 
         languageManager = new LanguageManager(this);
 
@@ -83,6 +88,7 @@ public final class UHC_DBasic extends JavaPlugin {
         connectionListener = new PlayerConnectionListener(this);
         gameLogicListener = new GameLogicListener(this);
         adminPanelListener = new AdminPanelListener(this);
+        gameplayRestrictionListener = new GameplayRestrictionListener(this);
         itemsListener = new ItemsListener(this);
         specialCraftsManager = new SpecialCraftsManager(this);
         resourceRushListener = new ResourceRushListener(this);
@@ -90,6 +96,7 @@ public final class UHC_DBasic extends JavaPlugin {
         getServer().getPluginManager().registerEvents(connectionListener, this);
         getServer().getPluginManager().registerEvents(gameLogicListener, this);
         getServer().getPluginManager().registerEvents(adminPanelListener, this);
+        getServer().getPluginManager().registerEvents(gameplayRestrictionListener, this);
         getServer().getPluginManager().registerEvents(itemsListener, this);
         getServer().getPluginManager().registerEvents(resourceRushListener, this);
         getServer().getPluginManager().registerEvents(chatManager, this);
@@ -109,7 +116,7 @@ public final class UHC_DBasic extends JavaPlugin {
         getCommand("uhcadmin").setTabCompleter(CommandTabs.NO_SUGGESTIONS);
         getCommand("reset").setExecutor(new PrepareWorldCommand(this));
         getCommand("reset").setTabCompleter(CommandTabs.NO_SUGGESTIONS);
-        getCommand("uhccommands").setExecutor(new GCommandsCommand(this));
+        getCommand("uhccommands").setExecutor(new HelpCommand(this));
         getCommand("uhccommands").setTabCompleter(CommandTabs.NO_SUGGESTIONS);
 
         TeamCommand teamCmd = new TeamCommand(this);
@@ -179,6 +186,7 @@ public final class UHC_DBasic extends JavaPlugin {
     public SkinsManager getSkinsManager() { return skinsManager; }
     public WorldManager getWorldManager() { return worldManager; }
     public TABManager getTABManager() { return tabManager; }
+    public MatchSettingsManager getMatchSettings() { return matchSettingsManager; }
     public AdminPanelManager getAdminPanel() { return adminPanelManager; }
     public ChatManager getChatManager() { return chatManager; }
     public SpecialCraftsManager getSpecialCraftsManager() { return specialCraftsManager; }

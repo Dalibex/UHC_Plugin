@@ -15,14 +15,14 @@ import java.util.List;
 
 import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
-public class GCommandsCommand implements CommandExecutor {
+public class HelpCommand implements CommandExecutor {
 
     private static final String ADMIN_PAGE = "admin";
     private static final String USER_PAGE = "user";
 
     private final UHC_DBasic plugin;
 
-    public GCommandsCommand(UHC_DBasic plugin) {
+    public HelpCommand(UHC_DBasic plugin) {
         this.plugin = plugin;
     }
 

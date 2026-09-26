@@ -3,6 +3,7 @@ package me.dalibex.UHC_DBasic.commands;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import me.dalibex.UHC_DBasic.utils.CommandTabs;
+import me.dalibex.UHC_DBasic.utils.GamePhase;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -90,8 +91,8 @@ public class StartCommand implements CommandExecutor, TabCompleter {
 
     static boolean isValidBorderSize(int size) { return size >= 20; }
 
-    static boolean isStartablePhase(me.dalibex.UHC_DBasic.managers.GamePhase phase) {
-        return phase == me.dalibex.UHC_DBasic.managers.GamePhase.LOBBY;
+    static boolean isStartablePhase(GamePhase phase) {
+        return phase == GamePhase.LOBBY;
     }
 
     /** Builds and sends the interactive confirmation message. */

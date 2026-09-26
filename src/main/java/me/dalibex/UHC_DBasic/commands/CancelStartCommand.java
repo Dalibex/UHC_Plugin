@@ -7,7 +7,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
-import me.dalibex.UHC_DBasic.managers.GamePhase;
+import me.dalibex.UHC_DBasic.utils.GamePhase;
 
 public class CancelStartCommand implements CommandExecutor {
 

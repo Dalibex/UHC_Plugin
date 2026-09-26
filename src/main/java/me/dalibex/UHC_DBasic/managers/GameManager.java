@@ -27,6 +27,8 @@ import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.gamemodes.AbstractUHCGameMode;
 import me.dalibex.UHC_DBasic.gamemodes.Classic;
 import me.dalibex.UHC_DBasic.gamemodes.UHCGameMode;
+import me.dalibex.UHC_DBasic.managers.teams.TeamManager;
+import me.dalibex.UHC_DBasic.utils.GamePhase;
 import me.dalibex.UHC_DBasic.utils.ScoreboardHelper;
 import me.dalibex.UHC_DBasic.utils.TimeUtil;
 import net.kyori.adventure.text.Component;

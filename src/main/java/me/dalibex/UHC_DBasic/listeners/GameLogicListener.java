@@ -118,7 +118,7 @@ public class GameLogicListener implements Listener {
                 || gm.getEliminatedPlayers().contains(attacker.getName())
                 || gm.getEliminatedPlayers().contains(victim.getName())) return;
 
-        if (plugin.getAdminPanel().isCombate18()) {
+        if (plugin.getMatchSettings().isCombat18()) {
             handleCombat18(event, attacker);
             if (event.isCancelled()) return;
         }

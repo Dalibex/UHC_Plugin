@@ -4,8 +4,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
@@ -19,9 +17,9 @@ import org.bukkit.scoreboard.Team;
 
 import io.papermc.paper.scoreboard.numbers.NumberFormat;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
+import me.dalibex.UHC_DBasic.gamemodes.scoreboard.ClassicScoreboardRenderer;
 import me.dalibex.UHC_DBasic.managers.GameManager;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
-import me.dalibex.UHC_DBasic.managers.TeamManager;
 import me.dalibex.UHC_DBasic.utils.ScoreboardHelper;
 import me.dalibex.UHC_DBasic.utils.TextUtil;
 import net.kyori.adventure.text.Component;
@@ -30,6 +28,8 @@ import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializ
 import net.kyori.adventure.title.Title;
 
 public class Classic extends AbstractUHCGameMode {
+
+    private final ClassicScoreboardRenderer scoreboardRenderer = new ClassicScoreboardRenderer();
 
     public Classic(UHC_DBasic plugin, GameManager gm) {
         super(plugin, gm);
@@ -76,17 +76,7 @@ public class Classic extends AbstractUHCGameMode {
         }
 
         Objective obj = getOrCreateSidebar(board, player, lang);
-        List<String> keys = new ArrayList<>();
-
-        if (!matchActive) {
-            ScoreboardHelper.addLobbyScores(obj, keys, getName(), player, lang);
-        } else {
-            AtomicInteger next = new AtomicInteger(30);
-            ScoreboardHelper.addPhaseInfo(obj, next, keys, player, lang, gm);
-            ScoreboardHelper.addTeamInfo(obj, next, keys, player, lang, plugin.getTeamManager(), gm);
-            ScoreboardHelper.addTimers(obj, next, keys, chapterTime, totalTime, player, lang, gm);
-        }
-
+        List<String> keys = scoreboardRenderer.render(plugin, gm, obj, player, getName(), chapterTime, totalTime, matchActive);
         reconcileSidebarKeys(obj, player, keys);
     }
 

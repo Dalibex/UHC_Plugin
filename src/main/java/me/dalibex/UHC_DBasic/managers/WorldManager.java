@@ -8,6 +8,7 @@ import static org.bukkit.GameRules.SPAWN_MONSTERS;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Difficulty;
+import org.bukkit.GameRule;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -34,6 +35,19 @@ public class WorldManager {
                 .filter(w -> w.getEnvironment() == World.Environment.NORMAL)
                 .findFirst()
                 .orElse(Bukkit.getWorlds().get(0));
+    }
+
+    public void setGameRuleForAllWorlds(GameRule<Boolean> rule, boolean value) {
+        for (World world : Bukkit.getWorlds()) world.setGameRule(rule, value);
+    }
+
+    public void applyFinalMatchRules() {
+        setGameRuleForAllWorlds(ADVANCE_TIME, true);
+        setGameRuleForAllWorlds(PVP, false);
+        setGameRuleForAllWorlds(ADVANCE_WEATHER, true);
+        setGameRuleForAllWorlds(NATURAL_HEALTH_REGENERATION, false);
+        setGameRuleForAllWorlds(SPAWN_MONSTERS, true);
+        for (World world : Bukkit.getWorlds()) world.setDifficulty(Difficulty.HARD);
     }
 
     public void resetWorlds() {

@@ -14,7 +14,7 @@ import org.bukkit.scoreboard.Team;
 
 import me.dalibex.UHC_DBasic.managers.GameManager;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
-import me.dalibex.UHC_DBasic.managers.TeamManager;
+import me.dalibex.UHC_DBasic.managers.teams.TeamManager;
 import net.kyori.adventure.text.Component;
 import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
