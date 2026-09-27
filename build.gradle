@@ -23,14 +23,14 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:26.2.build.126-stable")
+    compileOnly("io.papermc.paper:paper-api:26.3.build.49-alpha")
     compileOnly 'net.skinsrestorer:skinsrestorer-api:15.12.4'
     compileOnly 'com.github.NEZNAMY:TAB-API:6.0.0'
 
     // Tests unitarios (JUnit 5). paper-api y las APIs de terceros (SkinsRestorer
     // y TAB) como testImplementation para que el runtime de tests pueda cargar
     // SkinsManager/TABManager sin estar dentro del servidor.
-    testImplementation("io.papermc.paper:paper-api:26.2.build.126-stable")
+    testImplementation("io.papermc.paper:paper-api:26.3.build.49-alpha")
     testImplementation 'net.skinsrestorer:skinsrestorer-api:15.12.4'
     testImplementation 'com.github.NEZNAMY:TAB-API:6.0.0'
     testImplementation("org.junit.jupiter:junit-jupiter:5.12.2")
@@ -63,7 +63,7 @@ tasks {
         // Configure the Minecraft version for our task.
         // This is the only required configuration besides applying the plugin.
         // Your plugin's jar (or shadowJar if present) will be used automatically.
-        minecraftVersion("26.2")
+        minecraftVersion("26.3")
     }
 }
 
