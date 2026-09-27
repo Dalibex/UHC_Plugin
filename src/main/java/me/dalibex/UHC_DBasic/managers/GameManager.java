@@ -106,7 +106,6 @@ public class GameManager {
             ScoreboardHelper.ensureTabHealthObjective(p.getScoreboard(), p, plugin.getLang());
             applyStartProtection(p);
             scheduleTabHealthRefresh(p);
-            plugin.getSkinsManager().updateVisualIdentity(p);
 
             new BukkitRunnable() {
                 @Override
@@ -122,6 +121,7 @@ public class GameManager {
                 }
             }.runTaskLater(plugin, STARTUP_HEAL_DELAY_TICKS);
         }
+        plugin.getTABManager().refreshAllIdentitiesStaggered(1L);
 
         partidaTask = new BukkitRunnable() {
             @Override
@@ -206,22 +206,8 @@ public class GameManager {
         for (Player p : Bukkit.getOnlinePlayers()) {
             applyLobbySettings(p);
         }
-        scheduleLobbyTabRefresh(1L);
-        scheduleLobbyTabRefresh(20L);
-    }
-
-    private void scheduleLobbyTabRefresh(long delayTicks) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (phase != GamePhase.LOBBY) return;
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    player.playerListName(Component.text(player.getName()));
-                    player.displayName(Component.text(player.getName()));
-                    plugin.getTABManager().updateTabIdentity(player);
-                }
-            }
-        }.runTaskLater(plugin, delayTicks);
+        plugin.getTABManager().refreshAllIdentitiesStaggered(1L);
+        plugin.getTABManager().refreshAllIdentitiesStaggered(20L);
     }
 
     public void applyLobbySettings(Player p) {

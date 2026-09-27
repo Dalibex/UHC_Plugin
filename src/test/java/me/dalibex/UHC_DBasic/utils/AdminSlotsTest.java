@@ -46,6 +46,11 @@ class AdminSlotsTest {
         assertEquals(22, AdminSlots.GENERAL_SKIN_ROTATION);
     }
 
+    @Test void shulkerControlsAreAdjacentToEpisodeSelectors() {
+        assertEquals(AdminSlots.SHULKERS_EPISODE_1 - 1, AdminSlots.SHULKERS_TOGGLE_1);
+        assertEquals(AdminSlots.SHULKERS_EPISODE_2 + 1, AdminSlots.SHULKERS_TOGGLE_2);
+    }
+
     @Test void publicSlotConstantsAreUniqueAndInPanelBounds() throws IllegalAccessException {
         Map<String, Integer> bounds = Map.of(
                 "MAIN_", 9, "GAMEMODE_", 9, "GENERAL_", 27, "SHULKERS_", 27,

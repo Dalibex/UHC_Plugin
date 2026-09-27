@@ -32,10 +32,10 @@ public final class AdminSlots {
     public static final int GENERAL_BACK = 18;
 
     // ---- Episode shulkers panel (27 slots) ----
-    public static final int SHULKERS_TOGGLE_1 = 10;
+    public static final int SHULKERS_TOGGLE_1 = 11;
     public static final int SHULKERS_EPISODE_1 = 12;
     public static final int SHULKERS_EPISODE_2 = 14;
-    public static final int SHULKERS_TOGGLE_2 = 16;
+    public static final int SHULKERS_TOGGLE_2 = 15;
     public static final int SHULKERS_BACK = 18;
 
     public static final int[] EPISODE_BUTTONS = {20, 21, 22, 23, 24, 29, 30, 31, 32, 33};

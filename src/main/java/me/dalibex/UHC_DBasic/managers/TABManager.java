@@ -3,16 +3,18 @@ package me.dalibex.UHC_DBasic.managers;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.utils.GamePhase;
@@ -26,12 +28,19 @@ public class TABManager {
     private static final int PLACEHOLDER_REFRESH_MS = 500;
     private static final long TAB_RELOAD_DELAY_TICKS = 40L;
     private static final int ANIMATION_INTERVAL_TICKS = 100;
+    private static final long IDENTITY_SNAPSHOT_PERIOD_TICKS = 20L;
 
     private final UHC_DBasic plugin;
+    private final Map<UUID, Boolean> appliedMatchIdentity = new HashMap<>();
+    private volatile Map<UUID, Map<UUID, IdentityPair>> identitySnapshot = Map.of();
+    private volatile boolean snapshotMatchActive = false;
+
+    private record IdentityPair(String tabText, String nametagColor) { }
 
     public TABManager(UHC_DBasic plugin) {
         this.plugin = plugin;
         applyTABSetupPolicy();
+        startIdentitySnapshotTask();
     }
 
     private void applyTABSetupPolicy() {
@@ -52,38 +61,19 @@ public class TABManager {
     public void registerPlaceholders() {
         TabAPI.getInstance().getPlaceholderManager().registerRelationalPlaceholder("%rel_uhc_identidad%", PLACEHOLDER_REFRESH_MS, (viewer, target) -> {
             if (viewer == null || target == null) return "";
-            return resolveIdentityPlaceholder(viewer.getUniqueId(), target.getUniqueId(), false);
+            return resolveCachedIdentityPlaceholder(viewer.getUniqueId(), target.getUniqueId(), target.getName(), false);
         });
 
         TabAPI.getInstance().getPlaceholderManager().registerRelationalPlaceholder("%rel_nametag_color%", PLACEHOLDER_REFRESH_MS, (viewer, target) -> {
             if (viewer == null || target == null) return "";
-            return resolveIdentityPlaceholder(viewer.getUniqueId(), target.getUniqueId(), true);
+            return resolveCachedIdentityPlaceholder(viewer.getUniqueId(), target.getUniqueId(), target.getName(), true);
         });
     }
 
-    private String resolveIdentityPlaceholder(UUID viewerId, UUID targetId, boolean colorOnly) {
-        if (Bukkit.isPrimaryThread()) return resolveIdentityPlaceholderOnMain(viewerId, targetId, colorOnly);
-        try {
-            return Bukkit.getScheduler().callSyncMethod(plugin,
-                    () -> resolveIdentityPlaceholderOnMain(viewerId, targetId, colorOnly)).get();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return "";
-        } catch (ExecutionException e) {
-            return "";
-        }
-    }
-
-    private String resolveIdentityPlaceholderOnMain(UUID viewerId, UUID targetId, boolean colorOnly) {
-        Player viewer = Bukkit.getPlayer(viewerId);
-        Player target = Bukkit.getPlayer(targetId);
-        if (viewer == null || target == null) return "";
-
-        return resolveIdentityText(viewer.getName(), target.getName(), colorOnly,
-                plugin.getGameManager().isMatchActive(),
-                plugin.getTeamManager().areInSameTeam(viewer, target),
-                plugin.getSkinsManager().isIdentityRevealed(target.getName()),
-                plugin.getSkinsManager().getAssignedSkin(target.getName()));
+    private String resolveCachedIdentityPlaceholder(UUID viewerId, UUID targetId, String targetName, boolean colorOnly) {
+        IdentityPair pair = identitySnapshot.getOrDefault(viewerId, Map.of()).get(targetId);
+        if (pair == null) return colorOnly ? "§f" : "§f" + targetName;
+        return colorOnly ? pair.nametagColor() : pair.tabText();
     }
 
     static String resolveIdentityText(String viewerName, String targetName, boolean colorOnly,
@@ -111,9 +101,13 @@ public class TABManager {
         if (tabPlayer == null) return;
 
         GamePhase phase = plugin.getGameManager().getPhase();
+        boolean matchIdentity = phase == GamePhase.RUNNING || phase == GamePhase.PAUSED;
+        Boolean previous = appliedMatchIdentity.get(p.getUniqueId());
+        if (previous != null && previous == matchIdentity) return;
+
         TabListFormatManager tfm = tabApi.getTabListFormatManager();
         NameTagManager ntm = tabApi.getNameTagManager();
-        if (phase == GamePhase.RUNNING || phase == GamePhase.PAUSED) {
+        if (matchIdentity) {
             if (tfm != null) {
                 tfm.setName(tabPlayer, "%rel_uhc_identidad%");
             }
@@ -124,6 +118,69 @@ public class TABManager {
             if (tfm != null) tfm.setName(tabPlayer, null);
             if (ntm != null) ntm.setPrefix(tabPlayer, null);
         }
+        appliedMatchIdentity.put(p.getUniqueId(), matchIdentity);
+    }
+
+    public void forceUpdateTabIdentity(Player p) {
+        if (p == null) return;
+        appliedMatchIdentity.remove(p.getUniqueId());
+        updateTabIdentity(p);
+    }
+
+    public void refreshAllIdentitiesStaggered(long initialDelayTicks) {
+        List<Player> players = List.copyOf(Bukkit.getOnlinePlayers());
+        new BukkitRunnable() {
+            private int index = 0;
+
+            @Override
+            public void run() {
+                if (index >= players.size()) {
+                    cancel();
+                    return;
+                }
+                Player player = players.get(index++);
+                if (player.isOnline()) forceUpdateTabIdentity(player);
+            }
+        }.runTaskTimer(plugin, initialDelayTicks, 1L);
+        Bukkit.getScheduler().runTaskLater(plugin, this::rebuildIdentitySnapshot, initialDelayTicks + players.size() + 1L);
+    }
+
+    public void rebuildIdentitySnapshot() {
+        boolean matchActive = plugin.getGameManager().isMatchActive();
+        snapshotMatchActive = matchActive;
+        if (!matchActive) {
+            identitySnapshot = Map.of();
+            return;
+        }
+
+        Map<UUID, Map<UUID, IdentityPair>> next = new HashMap<>();
+        List<Player> players = List.copyOf(Bukkit.getOnlinePlayers());
+        for (Player viewer : players) {
+            Map<UUID, IdentityPair> byTarget = new HashMap<>();
+            for (Player target : players) {
+                String tabText = resolveIdentityText(viewer.getName(), target.getName(), false, true,
+                        plugin.getTeamManager().areInSameTeam(viewer, target),
+                        plugin.getSkinsManager().isIdentityRevealed(target.getName()),
+                        plugin.getSkinsManager().getAssignedSkin(target.getName()));
+                String nametagColor = resolveIdentityText(viewer.getName(), target.getName(), true, true,
+                        plugin.getTeamManager().areInSameTeam(viewer, target),
+                        plugin.getSkinsManager().isIdentityRevealed(target.getName()),
+                        plugin.getSkinsManager().getAssignedSkin(target.getName()));
+                byTarget.put(target.getUniqueId(), new IdentityPair(tabText, nametagColor));
+            }
+            next.put(viewer.getUniqueId(), Map.copyOf(byTarget));
+        }
+        identitySnapshot = Map.copyOf(next);
+    }
+
+    private void startIdentitySnapshotTask() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                boolean matchActive = plugin.getGameManager().isMatchActive();
+                if (matchActive || snapshotMatchActive) rebuildIdentitySnapshot();
+            }
+        }.runTaskTimer(plugin, IDENTITY_SNAPSHOT_PERIOD_TICKS, IDENTITY_SNAPSHOT_PERIOD_TICKS);
     }
 
     private boolean setupTABAutomatically() {
