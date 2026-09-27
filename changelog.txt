@@ -9,18 +9,27 @@ New Features
 - Rescue Boat: if scatter places a player on a glass rescue block over water, the player receives a boat automatically.
 - New Languages: French, German and Italian were added alongside Spanish and English.
 - Interactive Commands Menu: /uhccommands now separates player and admin commands with clickable navigation in chat.
+- Skin Rotation Toggle: fake identity rotation can now be enabled or disabled from the Admin Panel (General Rules -> Skin Rotation). It is enabled by default and can only be changed in the lobby.
+- Fallback Skin Roster: config.yml now includes a configurable list of public account names (skins.fallback-roster) used as extra skin sources when match players do not have enough unique resolvable skins, so fewer players fall back to a default skin.
 
 Adjustments and Improvements
 - Scatter Preparation Note: pregenerating the world up to the selected border is recommended for production UHC matches to reduce live worldgen lag and Paper worldgen warnings during scatter.
 - Skin Rotation Timing: initial identity rotation starts sooner and applies skins faster during episode 1.
 - Start Protection: players now receive short protection and regeneration at match start to reduce accidental spawn/scatter damage.
 - 1.8 Combat Balance: axes now use legacy-style damage when 1.8 combat is enabled. Diamond axes deal 6 damage and netherite axes deal 7.
+- Faster Skin Loading: player skins are preloaded when they join and when the match roster is prepared, so identity rotation and death heads resolve quicker.
+- Preloaded Scatter Chunks: chunks around the scatter points are loaded before players are teleported, reducing lag during match start.
+- Smoother TAB Refresh: tablist names and nametags now refresh one player at a time without stalling TAB's animations, avoiding frozen or stale identities during match start, chapter changes and /reset.
+- Shulkers Panel Layout: the shulker toggles now sit next to their episode selectors for a faster setup flow.
+- Clearer Console Output: dependency checks and the startup banner now print clean, readable status lines for server hosts.
 
 Bugfixes
-- TAB Health: the player-list health display is created when needed and refreshed shortly after the match starts.
+- TAB Health: the player-list health display is created when needed and refreshed shortly after the match starts and whenever a player reconnects.
 - PVP Episode 1: PVP now activates correctly at match start when the configured PVP episode is 1.
-- Live Admin Settings: shulker settings are locked once the match starts, while 1.8 combat and offhand/shield settings can still be adjusted during the game.
+- Live Admin Settings: shulker, PVP episode, team episode and skin rotation settings are locked once the match starts, while 1.8 combat and offhand/shield settings can still be adjusted during the game.
 - Death Heads Under Water: death head placement now searches for a safer replaceable position and drops a fallback player head if the block placement cannot be completed.
+- Rescue Boat Message: the water rescue message now shows the plugin prefix instead of a raw %prefix% placeholder.
+- Real Names After Reset: /reset now restores real names to the tablist and nametags immediately, without leftover fake identities from the previous match.
 
 === ESPAÑOL ===
 
@@ -29,18 +38,27 @@ Nuevas Funciones
 - Barco de Rescate: si el scatter coloca a un jugador sobre un bloque de cristal de rescate encima de agua, recibe un barco automáticamente.
 - Nuevos Idiomas: se añadieron francés, alemán e italiano junto a español e inglés.
 - Menú de Comandos Interactivo: /uhccommands ahora separa comandos de jugador y admin con navegación clicable en el chat.
+- Interruptor de Rotación de Skins: la rotación de identidades falsas ahora se puede activar o desactivar desde el Panel de Admin (Reglas Generales -> Rotación de Skins). Está activada por defecto y solo se puede cambiar en el lobby.
+- Roster de Skins de Reserva: config.yml ahora incluye una lista configurable de cuentas públicas (skins.fallback-roster) que se usan como fuentes extra de skins cuando a los jugadores no les alcanzan skins únicas y resolubles, para que menos jugadores acaben con la skin por defecto.
 
 Ajustes y Mejoras
 - Nota de Scatter: se recomienda pregenerar el mundo hasta el borde elegido para partidas reales, reduciendo lag de generación y warnings de worldgen de Paper durante el scatter.
 - Tiempo de Rotación de Skins: la rotación inicial de identidades empieza antes y aplica skins más rápido durante el episodio 1.
 - Protección Inicial: los jugadores reciben una protección corta y regeneración al iniciar la partida para reducir daño accidental del spawn/scatter.
 - Balance de Combate 1.8: las hachas ahora usan daño estilo legacy cuando el combate 1.8 está activado. La de diamante hace 6 de daño y la de netherita 7.
+- Carga de Skins Más Rápida: las skins de los jugadores se precargan al conectarse y al preparar el roster de la partida, de modo que la rotación de identidades y las cabezas de muerte se resuelven antes.
+- Chunks del Scatter Precargados: los chunks alrededor de los puntos de scatter se cargan antes de teletransportar a los jugadores, reduciendo el lag al empezar la partida.
+- Refresco de TAB Más Suave: los nombres del tabulador y los nametags se actualizan de uno en uno sin frenar las animaciones de TAB, evitando identidades congeladas u obsoletas al empezar la partida, en los cambios de episodio y en /reset.
+- Disposición del Panel de Shulkers: los interruptores de shulkers ahora están junto a sus selectores de episodio para configurar más rápido.
+- Salida de Consola Más Clara: la comprobación de dependencias y el banner de inicio muestran líneas de estado limpias y fáciles de leer para el host del servidor.
 
 Corrección de Errores
-- Vida en TAB: la vida del tabulador se crea cuando hace falta y se refresca poco después de empezar la partida.
+- Vida en TAB: la vida del tabulador se crea cuando hace falta y se refresca poco después de empezar la partida y cada vez que un jugador se reconecta.
 - Episodio 1 de PVP: el PVP ahora se activa correctamente al inicio de la partida cuando el episodio configurado es el 1.
-- Ajustes Admin en Partida: los ajustes de shulkers se bloquean al empezar la partida, mientras que combate 1.8 y mano secundaria/escudos siguen siendo editables durante la partida.
+- Ajustes Admin en Partida: los ajustes de shulkers, episodio de PVP, episodio de equipos y rotación de skins se bloquean al empezar la partida, mientras que combate 1.8 y mano secundaria/escudos siguen siendo editables durante la partida.
 - Cabezas Bajo Agua: la colocación de cabezas de muerte ahora busca una posición reemplazable más segura y suelta una cabeza como fallback si no se puede completar la colocación.
+- Mensaje del Barco de Rescate: el mensaje de rescate acuático ahora muestra el prefijo del plugin en lugar de un marcador %prefix% en crudo.
+- Nombres Reales Tras el Reset: /reset devuelve al tabulador y a los nametags los nombres reales al instante, sin identidades falsas de la partida anterior.
 
 ---
 

@@ -18,14 +18,24 @@ Version `1.5.4` focuses on smoother hosted matches, clearer administration, and 
 - Configurable shulker episodes: both episode shulkers can be configured independently of the Admin Panel, and both can use the same episode if desired.
 - Faster identity setup: episode 1 skin rotation starts sooner and applies identities more quickly.
 - Safer match start: players receive short start protection, and water rescue spawns give a boat automatically.
+- Skin rotation toggle: fake identity rotation can be turned on or off from the Admin Panel (General Rules), only while in the lobby; it is on by default.
+- Fallback skin roster: `config.yml` ships a configurable list of public accounts (`skins.fallback-roster`) used as extra skin sources, so players without a resolvable skin still get a unique identity instead of a default skin.
+- Preloaded skins: player skins are loaded when they join and when the match roster is prepared, so identity rotation and death heads resolve faster.
+- Smoother scatter: chunks around the scatter points are loaded before players are teleported, reducing lag at match start.
+- Smoother TAB refresh: tablist names and nametags refresh one player at a time during match start, chapter changes, and `/reset`, so TAB animations no longer freeze and stale fake names disappear quickly.
+- Clearer shulker setup: the shulker toggles now sit next to their episode selectors in the Shulkers panel.
+- Clearer console output: dependency checks and the startup banner now print clean, readable status lines for server hosts.
 
 ### Fixes
 
 - 1.8 combat balance: axes now use legacy-style damage when the 1.8 combat option is enabled correctly.
-- TAB health: player-list health is created when needed and refreshed shortly after the match starts.
+- TAB health: player-list health is created when needed and refreshed shortly after the match starts and whenever a player reconnects.
 - PVP episode 1: PVP now activates correctly at match start when configured for episode 1.
-- Live admin settings: shulker settings lock once the match starts, while 1.8 combat and offhand/shield settings remain adjustable during the game.
+- Live admin settings: shulker, PVP episode, team episode, and skin rotation settings lock once the match starts, while 1.8 combat and offhand/shield settings remain adjustable during the game.
 - Death heads: death heads are placed more safely and fall back to dropping a player head when placement is impossible.
+- Rescue boat message: the water rescue message now shows the plugin prefix instead of a raw `%prefix%` placeholder.
+- Clean lobby after reset: `/reset` immediately restores real names in the tablist and nametags, with no leftover fake identities from the previous match.
+- Skins fix: Skins are now correctly applied to players when they join the server, match starts and on different parts of the game.
 
 ## Main Features
 
