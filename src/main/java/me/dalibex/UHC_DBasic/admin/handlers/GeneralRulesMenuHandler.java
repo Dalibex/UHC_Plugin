@@ -26,9 +26,17 @@ public class GeneralRulesMenuHandler {
             player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_DIAMOND, 1f, 1f);
             admin.openShulkersPanel(player);
         } else if (slot == AdminSlots.GENERAL_PVP_EPISODE_MENU) {
+            if (plugin.getGameManager().getPhase() != GamePhase.LOBBY) {
+                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
+                return;
+            }
             player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1f, 1f);
             admin.openPvpEpisodePanel(player);
         } else if (slot == AdminSlots.GENERAL_TEAMS_EPISODE_MENU) {
+            if (plugin.getGameManager().getPhase() != GamePhase.LOBBY) {
+                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
+                return;
+            }
             player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1f, 1f);
             admin.openTeamsEpisodePanel(player);
         } else if (slot == AdminSlots.GENERAL_SKIN_ROTATION) {

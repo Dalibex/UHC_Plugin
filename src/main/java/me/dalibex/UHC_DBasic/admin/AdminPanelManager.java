@@ -157,32 +157,47 @@ public class AdminPanelManager {
         }
         inv.setItem(AdminSlots.GENERAL_SHULKERS_MENU, shulkersBtn);
 
-        ItemStack pvpEpBtn = new ItemStack(Material.NETHERITE_SWORD);
-        ItemMeta pMeta = pvpEpBtn.getItemMeta();
-        pMeta.displayName(lang.getComponent("menus.generalrules.settings.pvp-episode-menu.name", player));
-        pMeta.lore(lang.getComponentList("menus.generalrules.settings.pvp-episode-menu.lore", player));
-        pvpEpBtn.setItemMeta(pMeta);
+        ItemStack pvpEpBtn;
+        if (matchStarted) {
+            pvpEpBtn = itemFactory.lockedItem(player, "menus.generalrules.settings.pvp-episode-menu.name");
+        } else {
+            pvpEpBtn = new ItemStack(Material.NETHERITE_SWORD);
+            ItemMeta pMeta = pvpEpBtn.getItemMeta();
+            pMeta.displayName(lang.getComponent("menus.generalrules.settings.pvp-episode-menu.name", player));
+            pMeta.lore(lang.getComponentList("menus.generalrules.settings.pvp-episode-menu.lore", player));
+            pvpEpBtn.setItemMeta(pMeta);
+        }
         inv.setItem(AdminSlots.GENERAL_PVP_EPISODE_MENU, pvpEpBtn);
 
-        ItemStack teamsEpBtn = new ItemStack(Material.BLUE_BANNER);
-        ItemMeta tMeta = teamsEpBtn.getItemMeta();
-        tMeta.displayName(lang.getComponent("menus.generalrules.settings.teams-episode-menu.name", player));
-        tMeta.lore(lang.getComponentList("menus.generalrules.settings.teams-episode-menu.lore", player));
-        teamsEpBtn.setItemMeta(tMeta);
+        ItemStack teamsEpBtn;
+        if (matchStarted) {
+            teamsEpBtn = itemFactory.lockedItem(player, "menus.generalrules.settings.teams-episode-menu.name");
+        } else {
+            teamsEpBtn = new ItemStack(Material.BLUE_BANNER);
+            ItemMeta tMeta = teamsEpBtn.getItemMeta();
+            tMeta.displayName(lang.getComponent("menus.generalrules.settings.teams-episode-menu.name", player));
+            tMeta.lore(lang.getComponentList("menus.generalrules.settings.teams-episode-menu.lore", player));
+            teamsEpBtn.setItemMeta(tMeta);
+        }
         inv.setItem(AdminSlots.GENERAL_TEAMS_EPISODE_MENU, teamsEpBtn);
 
-        ItemStack skinRotationBtn = new ItemStack(Material.NAME_TAG);
-        ItemMeta skinMeta = skinRotationBtn.getItemMeta();
-        skinMeta.displayName(lang.getComponent("menus.generalrules.settings.skin-rotation.name", player));
-        String skinStatus = plugin.getMatchSettings().isSkinRotationEnabled()
-                ? lang.get("menus.common.enabled", player)
-                : lang.get("menus.common.disabled", player);
-        java.util.List<net.kyori.adventure.text.Component> skinLore = new java.util.ArrayList<>();
-        for (String line : lang.getList("menus.generalrules.settings.skin-rotation.lore", player)) {
-            skinLore.add(itemFactory.text(line.replace("%status%", skinStatus)));
+        ItemStack skinRotationBtn;
+        if (matchStarted) {
+            skinRotationBtn = itemFactory.lockedItem(player, "menus.generalrules.settings.skin-rotation.name");
+        } else {
+            skinRotationBtn = new ItemStack(Material.NAME_TAG);
+            ItemMeta skinMeta = skinRotationBtn.getItemMeta();
+            skinMeta.displayName(lang.getComponent("menus.generalrules.settings.skin-rotation.name", player));
+            String skinStatus = plugin.getMatchSettings().isSkinRotationEnabled()
+                    ? lang.get("menus.common.enabled", player)
+                    : lang.get("menus.common.disabled", player);
+            java.util.List<net.kyori.adventure.text.Component> skinLore = new java.util.ArrayList<>();
+            for (String line : lang.getList("menus.generalrules.settings.skin-rotation.lore", player)) {
+                skinLore.add(itemFactory.text(line.replace("%status%", skinStatus)));
+            }
+            skinMeta.lore(skinLore);
+            skinRotationBtn.setItemMeta(skinMeta);
         }
-        skinMeta.lore(skinLore);
-        skinRotationBtn.setItemMeta(skinMeta);
         inv.setItem(AdminSlots.GENERAL_SKIN_ROTATION, skinRotationBtn);
 
         ItemStack back = itemFactory.backButton(player);
