@@ -1,7 +1,7 @@
 # UHC ELOUD
 
 ![Plugin Version](https://img.shields.io/badge/Plugin_Version-1.5.4-orange)
-![Minecraft Version](https://img.shields.io/badge/Minecraft_Version-26.2-gold)
+![Minecraft Version](https://img.shields.io/badge/Minecraft_Version-26.3-gold)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Platform](https://img.shields.io/badge/Platform-Paper%20Recommended-blue)
 
