@@ -287,6 +287,15 @@ menus:
           - "&7vengono date le bussole e annunciata la formazione."
           - ""
           - "&eClicca per aprire"
+      skin-rotation:
+        name: "&dRotazione skin"
+        lore:
+          - "&7Attiva o disattiva le identita nascoste"
+          - "&7e i cambi di skin per episodio."
+          - ""
+          - "&fStato attuale: %status%"
+          - ""
+          - "&eClicca per cambiare"
 
   shulkers:
     title: "&8⚙ Shulker degli episodi"

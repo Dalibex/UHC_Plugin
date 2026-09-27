@@ -176,7 +176,8 @@ public class MatchStartService {
             boat.setItemMeta(meta);
         }
         player.getInventory().addItem(boat).values().forEach(leftover -> player.getWorld().dropItemNaturally(player.getLocation(), leftover));
-        player.sendMessage(plugin.getLang().get("game.water-spawn-boat", player));
+        player.sendMessage(plugin.getLang().get("game.water-spawn-boat", player)
+                .replace("%prefix%", plugin.getLang().get("general.prefix", player)));
     }
 
     private void startCountdown(LanguageManager lang, long generation) {

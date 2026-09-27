@@ -287,6 +287,15 @@ menus:
           - "&7Kompasse werden gegeben und die Auslosung wird angesagt."
           - ""
           - "&eKlicken zum Oeffnen"
+      skin-rotation:
+        name: "&dSkin-Rotation"
+        lore:
+          - "&7Aktiviert oder deaktiviert versteckte Identitaeten"
+          - "&7und Skinwechsel pro Episode."
+          - ""
+          - "&fAktueller Status: %status%"
+          - ""
+          - "&eKlicken zum Umschalten"
 
   shulkers:
     title: "&8⚙ Episoden-Shulker"

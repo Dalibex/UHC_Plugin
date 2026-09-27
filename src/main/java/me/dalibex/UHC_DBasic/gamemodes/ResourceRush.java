@@ -76,7 +76,8 @@ public class ResourceRush extends AbstractUHCGameMode {
             p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1f);
         }
 
-        if (me.dalibex.UHC_DBasic.managers.SkinsManager.isRotationEpisode(nuevoCap)) {
+        if (plugin.getMatchSettings().isSkinRotationEnabled()
+                && me.dalibex.UHC_DBasic.managers.SkinsManager.isRotationEpisode(nuevoCap)) {
             runSkinRotation();
         }
 

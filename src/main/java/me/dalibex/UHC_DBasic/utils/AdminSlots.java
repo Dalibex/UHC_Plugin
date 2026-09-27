@@ -28,6 +28,7 @@ public final class AdminSlots {
     public static final int GENERAL_SHULKERS_MENU = 11;
     public static final int GENERAL_PVP_EPISODE_MENU = 13;
     public static final int GENERAL_TEAMS_EPISODE_MENU = 15;
+    public static final int GENERAL_SKIN_ROTATION = 22;
     public static final int GENERAL_BACK = 18;
 
     // ---- Episode shulkers panel (27 slots) ----

@@ -35,7 +35,7 @@ import net.kyori.adventure.text.Component;
 
 public class GameManager {
 
-    private static final double TAB_HEALTH_REFRESH_DAMAGE = 0.01;
+    private static final double TAB_HEALTH_REFRESH_DAMAGE = 0.000001;
     private static final double DEFAULT_MAX_HEALTH = 20.0;
     private static final long STARTUP_HEAL_DELAY_TICKS = 1L;
     private static final long TAB_HEALTH_REFRESH_DELAY_TICKS = 20L;
@@ -89,9 +89,12 @@ public class GameManager {
         this.modoActual.onReset();
 
         registerParticipants(eligibleRoster);
+        if (plugin.getMatchSettings().isSkinRotationEnabled()) {
+            plugin.getSkinsManager().prepareMatchSkinPool(participantesIniciales);
+        }
 
         // Rotate identities synchronously before gameplay starts.
-        plugin.getSkinsManager().rotateSkins();
+        if (plugin.getMatchSettings().isSkinRotationEnabled()) plugin.getSkinsManager().rotateSkins();
 
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (!eligibleRoster.contains(p.getUniqueId())) {
@@ -152,7 +155,7 @@ public class GameManager {
                 START_PROTECTION_DURATION_TICKS, START_REGENERATION_AMPLIFIER, false, false, false));
     }
 
-    private void scheduleTabHealthRefresh(Player player) {
+    public void scheduleTabHealthRefresh(Player player) {
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -182,11 +185,7 @@ public class GameManager {
         // Reset identity state before players, otherwise revealIdentity would skip restoring real skins.
         plugin.getSkinsManager().reset();
 
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            applyLobbySettings(p);
-        }
-
-        // Reset managers after player state is back to lobby defaults.
+        // Reset managers before player state so TAB and selector visuals use fresh lobby state.
         TeamManager tm = plugin.getTeamManager();
         tm.migrateLegacyTeamsOnce();
         // Preserve custom team choices across /reset.
@@ -203,6 +202,26 @@ public class GameManager {
         if (tabHealthObjective != null) tabHealthObjective.unregister();
 
         this.phase = GamePhase.LOBBY;
+
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            applyLobbySettings(p);
+        }
+        scheduleLobbyTabRefresh(1L);
+        scheduleLobbyTabRefresh(20L);
+    }
+
+    private void scheduleLobbyTabRefresh(long delayTicks) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (phase != GamePhase.LOBBY) return;
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    player.playerListName(Component.text(player.getName()));
+                    player.displayName(Component.text(player.getName()));
+                    plugin.getTABManager().updateTabIdentity(player);
+                }
+            }
+        }.runTaskLater(plugin, delayTicks);
     }
 
     public void applyLobbySettings(Player p) {
@@ -276,6 +295,7 @@ public class GameManager {
                 eligibleRosterNames.put(player.getUniqueId(), player.getName());
             }
         }
+        plugin.getSkinsManager().precacheSkinPoolAsync(List.copyOf(eligibleRosterNames.values()));
         plannedScatterLocations.clear();
         phase = GamePhase.PREPARING;
         return true;

@@ -56,7 +56,8 @@ public class Classic extends AbstractUHCGameMode {
             }
         }
 
-        if (me.dalibex.UHC_DBasic.managers.SkinsManager.isRotationEpisode(newChapter)) {
+        if (plugin.getMatchSettings().isSkinRotationEnabled()
+                && me.dalibex.UHC_DBasic.managers.SkinsManager.isRotationEpisode(newChapter)) {
             runSkinRotation();
         }
 

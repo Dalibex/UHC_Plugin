@@ -298,6 +298,15 @@ menus:
           - "&7compasses are given and the draw is announced."
           - ""
           - "&eClick to open"
+      skin-rotation:
+        name: "&dSkin rotation"
+        lore:
+          - "&7Enable or disable fake identities"
+          - "&7and episode skin changes."
+          - ""
+          - "&fCurrent status: %status%"
+          - ""
+          - "&eClick to toggle"
 
   shulkers:
     title: "&8⚙ Episode Shulkers"

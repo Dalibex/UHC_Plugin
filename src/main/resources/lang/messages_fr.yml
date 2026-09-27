@@ -287,6 +287,15 @@ menus:
           - "&7les boussoles sont donnees et le tirage est annonce."
           - ""
           - "&eCliquez pour ouvrir"
+      skin-rotation:
+        name: "&dRotation des skins"
+        lore:
+          - "&7Active ou desactive les identites cachees"
+          - "&7et les changements de skin par episode."
+          - ""
+          - "&fStatut actuel : %status%"
+          - ""
+          - "&eCliquez pour changer"
 
   shulkers:
     title: "&8⚙ Shulkers d'episode"

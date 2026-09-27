@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import net.skinsrestorer.api.property.SkinProperty;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -55,6 +56,68 @@ class SkinRotationTest {
         List<String> players = List.of("A", "B", "C", "D", "E");
         assertEquals(SkinAssignmentPolicy.assignNewSkins(players, Map.of(), new Random(42)),
                 SkinAssignmentPolicy.assignNewSkins(players, Map.of(), new Random(42)));
+    }
+
+    @Test
+    void assign_withFallbackSources_fillsMissingPlayerSkinsWithoutDuplicates() {
+        List<String> players = List.of("A", "B", "C", "D");
+        List<String> sources = List.of("A", "B", "Angelo", "Notch");
+
+        Map<String, String> assignment = SkinAssignmentPolicy.assignNewSkins(players, sources, Map.of(), new Random(7));
+
+        assertEquals(players.size(), assignment.size());
+        assertEquals(players.size(), new HashSet<>(assignment.values()).size());
+        for (String player : players) assertFalse(assignment.get(player.toLowerCase()).equalsIgnoreCase(player));
+    }
+
+    @Test
+    void pool_usesExactlyOneRosterSkinPerMissingPlayerSkin() {
+        Map<String, SkinProperty> cache = new HashMap<>();
+        cache.put("a", SkinProperty.of("skin-a", "sig-a"));
+        cache.put("b", SkinProperty.of("skin-b", "sig-b"));
+        cache.put("c", SkinProperty.of("skin-c", "sig-c"));
+        cache.put("roster1", SkinProperty.of("skin-r1", "sig-r1"));
+        cache.put("roster2", SkinProperty.of("skin-r2", "sig-r2"));
+        cache.put("roster3", SkinProperty.of("skin-r3", "sig-r3"));
+
+        List<String> pool = SkinsManager.buildFixedSkinSourcePool(
+                List.of("A", "B", "C", "NoSkin1", "NoSkin2"),
+                List.of("Roster1", "Roster2", "Roster3"), cache);
+
+        assertEquals(List.of("A", "B", "C", "Roster1", "Roster2"), pool);
+    }
+
+    @Test
+    void pool_skipsDuplicateTexturesAndAddsRosterForDuplicatePlayers() {
+        Map<String, SkinProperty> cache = new HashMap<>();
+        cache.put("a", SkinProperty.of("same", "sig-a"));
+        cache.put("b", SkinProperty.of("same", "sig-b"));
+        cache.put("c", SkinProperty.of("skin-c", "sig-c"));
+        cache.put("roster1", SkinProperty.of("skin-r1", "sig-r1"));
+
+        List<String> pool = SkinsManager.buildFixedSkinSourcePool(
+                List.of("A", "B", "C"), List.of("Roster1"), cache);
+
+        assertEquals(List.of("A", "C", "Roster1"), pool);
+    }
+
+    @Test
+    void assign_withUncachedFallbackNames_stillBuildsRotation() {
+        List<String> players = List.of("A", "B", "C");
+        List<String> sources = List.of("A", "B", "C", "Angelo", "Notch");
+
+        Map<String, String> assignment = SkinAssignmentPolicy.assignNewSkins(players, sources, Map.of(), new Random(3));
+
+        assertEquals(players.size(), assignment.size());
+        for (String player : players) assertFalse(assignment.get(player.toLowerCase()).equalsIgnoreCase(player));
+    }
+
+    @Test
+    void assign_withTooFewSources_assignsMaximumPossibleWithoutSelfSkins() {
+        Map<String, String> assignment = SkinAssignmentPolicy.assignNewSkins(
+                List.of("A", "B"), List.of("A"), Map.of(), new Random(1));
+
+        assertEquals(Map.of("b", "A"), assignment);
     }
 
     @Test
@@ -172,5 +235,21 @@ class SkinRotationTest {
         assertEquals("steve", SkinAssignmentPolicy.key("Steve"));
         assertEquals("alex", SkinAssignmentPolicy.key("ALEX"));
         assertSame("steve", SkinAssignmentPolicy.key("steve"));
+    }
+
+    @Test
+    void precache_skipsAlreadyCachedNamesIgnoringCase() {
+        Map<String, SkinProperty> cache = new HashMap<>();
+        cache.put("steve", null);
+
+        assertFalse(SkinsManager.shouldPrecacheSkin("Steve", cache));
+        assertTrue(SkinsManager.shouldPrecacheSkin("Alex", cache));
+    }
+
+    @Test
+    void precache_skipsBlankNames() {
+        assertFalse(SkinsManager.shouldPrecacheSkin(null, Map.of()));
+        assertFalse(SkinsManager.shouldPrecacheSkin("", Map.of()));
+        assertFalse(SkinsManager.shouldPrecacheSkin("   ", Map.of()));
     }
 }

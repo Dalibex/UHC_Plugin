@@ -42,6 +42,10 @@ class AdminSlotsTest {
         assertEquals(0, AdminSlots.timeDeltaMinutesForSlot(AdminSlots.TIME_BACK));
     }
 
+    @Test void generalRulesSkinRotationSlot() {
+        assertEquals(22, AdminSlots.GENERAL_SKIN_ROTATION);
+    }
+
     @Test void publicSlotConstantsAreUniqueAndInPanelBounds() throws IllegalAccessException {
         Map<String, Integer> bounds = Map.of(
                 "MAIN_", 9, "GAMEMODE_", 9, "GENERAL_", 27, "SHULKERS_", 27,

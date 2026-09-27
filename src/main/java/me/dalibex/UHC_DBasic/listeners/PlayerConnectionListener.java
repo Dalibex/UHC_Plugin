@@ -47,6 +47,8 @@ public class PlayerConnectionListener implements Listener {
             handleLobbyJoin(p);
         }
 
+        plugin.getSkinsManager().precachePlayerSkinAsync(p.getName());
+
         double attackSpeedValue = plugin.getMatchSettings().isCombat18() ? ATTACK_SPEED_1_8 : DEFAULT_ATTACK_SPEED;
         if (p.getAttribute(Attribute.ATTACK_SPEED) != null) {
             var attackSpeed = p.getAttribute(Attribute.ATTACK_SPEED);
@@ -79,6 +81,8 @@ public class PlayerConnectionListener implements Listener {
             p.setGameMode(GameMode.SURVIVAL);
             // TAB may not be ready during PlayerJoinEvent, so visual identity is synced twice.
             plugin.getSkinsManager().reapplyCurrentSkin(p);
+            ScoreboardHelper.ensureTabHealthObjective(p.getScoreboard(), p, plugin.getLang());
+            gm.scheduleTabHealthRefresh(p);
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 if (p.isOnline()) plugin.getSkinsManager().updateVisualIdentity(p);
             }, FIRST_SKIN_SYNC_DELAY_TICKS);

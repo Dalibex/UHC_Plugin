@@ -31,6 +31,14 @@ public class GeneralRulesMenuHandler {
         } else if (slot == AdminSlots.GENERAL_TEAMS_EPISODE_MENU) {
             player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1f, 1f);
             admin.openTeamsEpisodePanel(player);
+        } else if (slot == AdminSlots.GENERAL_SKIN_ROTATION) {
+            if (plugin.getGameManager().getPhase() != GamePhase.LOBBY) {
+                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
+                return;
+            }
+            plugin.getMatchSettings().toggleSkinRotation();
+            player.playSound(player.getLocation(), Sound.BLOCK_LEVER_CLICK, 1f, 1f);
+            admin.openGeneralRulesPanel(player);
         } else if (slot == AdminSlots.GENERAL_BACK) {
             player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, 1f, 1f);
             admin.openMainAdminPanel(player);

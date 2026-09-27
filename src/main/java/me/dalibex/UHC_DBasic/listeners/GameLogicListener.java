@@ -123,7 +123,6 @@ public class GameLogicListener implements Listener {
             if (event.isCancelled()) return;
         }
 
-        plugin.getSkinsManager().markInCombat(attacker);
         plugin.getSkinsManager().markInCombat(victim);
 
         handleIdentityRevelation(attacker, victim);

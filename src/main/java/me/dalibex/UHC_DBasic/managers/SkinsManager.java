@@ -1,10 +1,13 @@
 package me.dalibex.UHC_DBasic.managers;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -24,6 +27,9 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.skinsrestorer.api.SkinsRestorer;
 import net.skinsrestorer.api.SkinsRestorerProvider;
+import net.skinsrestorer.api.exception.DataRequestException;
+import net.skinsrestorer.api.exception.MineSkinException;
+import net.skinsrestorer.api.property.InputDataResult;
 import net.skinsrestorer.api.property.SkinProperty;
 
 /**
@@ -32,9 +38,12 @@ import net.skinsrestorer.api.property.SkinProperty;
  */
 public class SkinsManager {
 
-    private static final long COMBAT_WINDOW_MS = 30_000L;
+    private static final long COMBAT_WINDOW_MS = 300_000L;
     private static final long ROTATION_INTERVAL_TICKS = 40L;
     private static final long ROTATION_START_TICKS = 40L;
+    private static final List<String> DEFAULT_FALLBACK_SKIN_ROSTER = List.of(
+            "angelo", "Notch", "jeb_", "Dinnerbone", "Grumm", "Technoblade", "Dream",
+            "Grian", "MumboJumbo", "BdoubleO100", "EthosLab", "GoodTimesWithScar", "CaptainSparklez");
     private final UHC_DBasic plugin;
     private final GameManager gm;
     private final SkinsRestorer skinsApi;
@@ -47,6 +56,8 @@ public class SkinsManager {
 
     /** Real skin cache by lower-case name, populated during rotation and kept across matches. */
     private final Map<String, SkinProperty> skinRealPorNombre = new HashMap<>();
+    /** Fixed source pool for the current match: player skins plus the exact needed roster skins. */
+    private final List<String> currentMatchSkinSources = new ArrayList<>();
 
     private BukkitTask rotacionTask;
     /** Identity generation used to invalidate async work from previous rotations. */
@@ -83,6 +94,10 @@ public class SkinsManager {
     /** Normalized key for a player name. */
     static String key(String name) {
         return SkinAssignmentPolicy.key(name);
+    }
+
+    public static boolean shouldPrecacheSkin(String playerName, Map<String, SkinProperty> cache) {
+        return playerName != null && !playerName.isBlank() && !cache.containsKey(key(playerName));
     }
 
     /** Pure combat-window check. */
@@ -135,6 +150,68 @@ public class SkinsManager {
         return isCombatActive(combatTags.get(key(name)), System.currentTimeMillis(), COMBAT_WINDOW_MS);
     }
 
+    public void precachePlayerSkinAsync(String playerName) {
+        if (!shouldPrecacheSkin(playerName, skinRealPorNombre)) return;
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> resolveSkinSource(playerName));
+    }
+
+    public void precacheSkinPoolAsync(List<String> playerNames) {
+        LinkedHashSet<String> sources = new LinkedHashSet<>(playerNames);
+        sources.addAll(getFallbackSkinRoster());
+        for (String source : sources) precachePlayerSkinAsync(source);
+    }
+
+    public void precacheFallbackRosterAsync() {
+        for (String source : getFallbackSkinRoster()) precachePlayerSkinAsync(source);
+    }
+
+    public void prepareMatchSkinPool(List<String> playerNames) {
+        currentMatchSkinSources.clear();
+        currentMatchSkinSources.addAll(buildFixedSkinSourcePool(playerNames, getFallbackSkinRoster(), skinRealPorNombre));
+    }
+
+    public static List<String> buildFixedSkinSourcePool(List<String> playerNames, List<String> fallbackRoster,
+            Map<String, SkinProperty> skinCache) {
+        LinkedHashSet<String> uniquePlayers = new LinkedHashSet<>(playerNames);
+        Set<String> usedTextureValues = new HashSet<>();
+        Set<String> usedNames = new HashSet<>();
+        List<String> result = new ArrayList<>();
+        int missingPlayerSkins = 0;
+
+        for (String playerName : uniquePlayers) {
+            SkinProperty property = skinCache.get(key(playerName));
+            if (property != null && usedTextureValues.add(property.getValue())) {
+                result.add(playerName);
+                usedNames.add(key(playerName));
+            } else {
+                missingPlayerSkins++;
+            }
+        }
+
+        int rosterAdded = 0;
+        for (String rosterName : fallbackRoster) {
+            if (rosterAdded >= missingPlayerSkins) break;
+            if (rosterName == null || rosterName.isBlank()) continue;
+            if (!usedNames.add(key(rosterName))) continue;
+            SkinProperty property = skinCache.get(key(rosterName));
+            if (property == null || !usedTextureValues.add(property.getValue())) continue;
+            result.add(rosterName);
+            rosterAdded++;
+        }
+        return result;
+    }
+
+    private void resolveSkinSource(String sourceName) {
+        try {
+            Optional<InputDataResult> result = skinsApi.getSkinStorage().findOrCreateSkinData(sourceName);
+            if (result.isEmpty()) return;
+            Bukkit.getScheduler().runTask(plugin,
+                    () -> skinRealPorNombre.put(key(sourceName), result.get().getProperty()));
+        } catch (DataRequestException | MineSkinException e) {
+            plugin.getLogger().warning(() -> "Failed to precache skin source " + sourceName + ": " + e.getMessage());
+        }
+    }
+
     /** Shuffles current-match identities and applies them gradually. */
     public void rotateSkins() {
         cancelarRotacion();
@@ -149,7 +226,9 @@ public class SkinsManager {
 
         if (vivosNombres.size() < 2) return;
 
-        Map<String, String> nuevaAsignacion = assignNewSkins(vivosNombres, ultimaSkinAsignada);
+        if (currentMatchSkinSources.isEmpty()) prepareMatchSkinPool(gm.getInitialParticipants());
+        List<String> skinSources = currentMatchSkinSources;
+        Map<String, String> nuevaAsignacion = SkinAssignmentPolicy.assignNewSkins(vivosNombres, skinSources, ultimaSkinAsignada, new java.util.Random());
         if (nuevaAsignacion.isEmpty()) return;
         ultimaSkinAsignada.clear();
         ultimaSkinAsignada.putAll(nuevaAsignacion);
@@ -157,6 +236,7 @@ public class SkinsManager {
         // Apply gradually: initial delay, then one player per interval.
         ArrayDeque<String> cola = new ArrayDeque<>(vivosNombres);
         Map<String, Integer> reintentos = new HashMap<>();
+        Map<String, Integer> applyRetries = new HashMap<>();
         rotacionTask = new BukkitRunnable() {
             @Override
             public void run() {
@@ -178,14 +258,35 @@ public class SkinsManager {
                 if (nombre == null) return;
                 String nombreSkinElegida = ultimaSkinAsignada.get(key(nombre));
                 if (nombreSkinElegida == null) return;
-                skinApplyService().applyByNameAsync(Bukkit.getPlayer(nombre), nombreSkinElegida, true);
+                SkinProperty property = skinRealPorNombre.get(key(nombreSkinElegida));
+                boolean applied = property != null && skinApplyService().applyCachedSkin(Bukkit.getPlayer(nombre), nombreSkinElegida, property, true);
+                if (!applied) {
+                    int attempt = applyRetries.merge(key(nombre), 1, Integer::sum);
+                    if (attempt < 4) cola.addLast(nombre);
+                } else {
+                    applyRetries.remove(key(nombre));
+                }
             }
         }.runTaskTimer(plugin, ROTATION_START_TICKS, ROTATION_INTERVAL_TICKS);
+    }
+
+    private List<String> getFallbackSkinRoster() {
+        List<String> configured = plugin.getConfig().getStringList("skins.fallback-roster");
+        List<String> roster = configured.isEmpty() ? DEFAULT_FALLBACK_SKIN_ROSTER : configured;
+        return roster.stream()
+                .filter(name -> name != null && !name.isBlank())
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     /** Reapplies the correct reconnect skin without notifying the player. */
     public void reapplyCurrentSkin(Player p) {
         if (p == null) return;
+        if (!plugin.getMatchSettings().isSkinRotationEnabled()) {
+            restaurarSkinPropia(p);
+            updateVisualIdentity(p);
+            return;
+        }
         if (jugadoresRevelados.contains(key(p.getName()))) {
             restaurarSkinPropia(p);
         } else {
@@ -276,5 +377,6 @@ public class SkinsManager {
         jugadoresRevelados.clear();
         ultimaSkinAsignada.clear();
         combatTags.clear();
+        currentMatchSkinSources.clear();
     }
 }

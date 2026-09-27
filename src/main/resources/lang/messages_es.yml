@@ -298,6 +298,15 @@ menus:
           - "&7se entregan las brújulas y se anuncia el sorteo."
           - ""
           - "&eClic para abrir"
+      skin-rotation:
+        name: "&dRotación de skins"
+        lore:
+          - "&7Activa o desactiva las identidades falsas"
+          - "&7y los cambios de skin por episodio."
+          - ""
+          - "&fEstado actual: %status%"
+          - ""
+          - "&eClic para cambiar"
 
   shulkers:
     title: "&8⚙ Shulkers de Episodio"

@@ -171,6 +171,20 @@ public class AdminPanelManager {
         teamsEpBtn.setItemMeta(tMeta);
         inv.setItem(AdminSlots.GENERAL_TEAMS_EPISODE_MENU, teamsEpBtn);
 
+        ItemStack skinRotationBtn = new ItemStack(Material.NAME_TAG);
+        ItemMeta skinMeta = skinRotationBtn.getItemMeta();
+        skinMeta.displayName(lang.getComponent("menus.generalrules.settings.skin-rotation.name", player));
+        String skinStatus = plugin.getMatchSettings().isSkinRotationEnabled()
+                ? lang.get("menus.common.enabled", player)
+                : lang.get("menus.common.disabled", player);
+        java.util.List<net.kyori.adventure.text.Component> skinLore = new java.util.ArrayList<>();
+        for (String line : lang.getList("menus.generalrules.settings.skin-rotation.lore", player)) {
+            skinLore.add(itemFactory.text(line.replace("%status%", skinStatus)));
+        }
+        skinMeta.lore(skinLore);
+        skinRotationBtn.setItemMeta(skinMeta);
+        inv.setItem(AdminSlots.GENERAL_SKIN_ROTATION, skinRotationBtn);
+
         ItemStack back = itemFactory.backButton(player);
         inv.setItem(AdminSlots.GENERAL_BACK, back);
 

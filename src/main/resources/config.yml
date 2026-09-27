@@ -6,6 +6,25 @@ tab:
   setup-mode: once
   setup-completed: false
 
+# Extra public account names used only as skin sources when match players do not
+# provide enough unique resolvable skins. Replace or extend this list with known
+# accounts that have distinct skins.
+skins:
+  fallback-roster:
+    - ElRichMC
+    - Notch
+    - jeb_
+    - Dinnerbone
+    - Grumm
+    - Technoblade
+    - Dream
+    - Grian
+    - MumboJumbo
+    - BdoubleO100
+    - EthosLab
+    - GoodTimesWithScar
+    - CaptainSparklez
+
 # Internal one-time data migrations. Do not reset these markers.
 migrations:
   legacy-bare-teams: false

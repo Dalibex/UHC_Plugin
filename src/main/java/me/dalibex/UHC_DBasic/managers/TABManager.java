@@ -79,17 +79,26 @@ public class TABManager {
         Player target = Bukkit.getPlayer(targetId);
         if (viewer == null || target == null) return "";
 
+        return resolveIdentityText(viewer.getName(), target.getName(), colorOnly,
+                plugin.getGameManager().isMatchActive(),
+                plugin.getTeamManager().areInSameTeam(viewer, target),
+                plugin.getSkinsManager().isIdentityRevealed(target.getName()),
+                plugin.getSkinsManager().getAssignedSkin(target.getName()));
+    }
+
+    static String resolveIdentityText(String viewerName, String targetName, boolean colorOnly,
+            boolean matchActive, boolean sameTeam, boolean revealed, String assignedSkinName) {
         String color;
-        String displayName = target.getName();
-        if (!plugin.getGameManager().isMatchActive()) {
+        String displayName = targetName;
+        if (!matchActive) {
             color = "§f";
-        } else if (viewer.equals(target) || plugin.getTeamManager().areInSameTeam(viewer, target)) {
+        } else if (viewerName.equalsIgnoreCase(targetName) || sameTeam) {
             color = "§a";
-        } else if (plugin.getSkinsManager().isIdentityRevealed(target.getName())) {
+        } else if (revealed) {
             color = "§c";
         } else {
             color = colorOnly ? "§c" : "§d";
-            displayName = plugin.getSkinsManager().getAssignedSkin(target.getName());
+            displayName = assignedSkinName;
         }
         return colorOnly ? color : color + displayName;
     }

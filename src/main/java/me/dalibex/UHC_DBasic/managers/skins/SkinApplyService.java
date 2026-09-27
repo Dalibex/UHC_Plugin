@@ -66,6 +66,28 @@ public class SkinApplyService {
         });
     }
 
+    public boolean applyCachedSkin(Player player, String skinName, SkinProperty property, boolean notify) {
+        if (player == null || property == null) return false;
+        UUID playerId = player.getUniqueId();
+        String playerName = player.getName();
+        long requestedGeneration = generation.getAsLong();
+        if (requestedGeneration != generation.getAsLong()) return false;
+        Player current = Bukkit.getPlayer(playerId);
+        if (current == null || !current.isOnline() || !current.getName().equals(playerName)) return false;
+        if (!skinName.equalsIgnoreCase(playerName) && isRevealed.test(playerName)) return false;
+
+        try {
+            realSkinCache.put(SkinAssignmentPolicy.key(skinName), property);
+            skinsApi.getSkinApplier(Player.class).applySkin(current, property);
+        } catch (RuntimeException e) {
+            plugin.getLogger().warning(() -> "Error applying cached skin: " + e.getMessage());
+            return false;
+        }
+        visualRefresh.accept(current);
+        if (notify) notifyChanged.accept(current, skinName);
+        return true;
+    }
+
     private void applyResolvedSkin(UUID playerId, String playerName, String skinName, boolean ownSkin,
                                    boolean notify, long requestedGeneration, InputDataResult result) {
         if (requestedGeneration != generation.getAsLong()) return;
@@ -88,13 +110,45 @@ public class SkinApplyService {
     public void restoreOwnSkin(Player player) {
         SkinProperty ownSkin = realSkinCache.get(SkinAssignmentPolicy.key(player.getName()));
         if (ownSkin == null) {
-            applyByNameAsync(player, player.getName(), false);
+            restoreOwnSkinByNameOrDefault(player);
             return;
         }
 
         realSkinCache.put(SkinAssignmentPolicy.key(player.getName()), ownSkin);
         skinsApi.getPlayerStorage().setSkinIdOfPlayer(player.getUniqueId(), SkinIdentifier.ofPlayer(player.getUniqueId()));
         skinsApi.getSkinApplier(Player.class).applySkin(player, ownSkin);
+        visualRefresh.accept(player);
+    }
+
+    private void restoreOwnSkinByNameOrDefault(Player player) {
+        UUID playerId = player.getUniqueId();
+        String playerName = player.getName();
+        long requestedGeneration = generation.getAsLong();
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                Optional<InputDataResult> result = skinsApi.getSkinStorage().findOrCreateSkinData(playerName);
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (result.isPresent()) {
+                        applyResolvedSkin(playerId, playerName, playerName, true, false, requestedGeneration, result.get());
+                    } else {
+                        restoreDefaultSkin(playerId, playerName);
+                    }
+                });
+            } catch (DataRequestException | MineSkinException e) {
+                Bukkit.getScheduler().runTask(plugin, () -> restoreDefaultSkin(playerId, playerName));
+            }
+        });
+    }
+
+    private void restoreDefaultSkin(UUID playerId, String playerName) {
+        Player player = Bukkit.getPlayer(playerId);
+        if (player == null || !player.isOnline() || !player.getName().equals(playerName)) return;
+        skinsApi.getPlayerStorage().removeSkinIdOfPlayer(playerId);
+        try {
+            skinsApi.getSkinApplier(Player.class).applySkin(player);
+        } catch (DataRequestException e) {
+            plugin.getLogger().warning(() -> "Error restoring default skin: " + e.getMessage());
+        }
         visualRefresh.accept(player);
     }
 

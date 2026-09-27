@@ -9,6 +9,7 @@ public class MatchSettingsManager {
 
     private boolean combat18 = false;
     private boolean offhandLocked = false;
+    private boolean skinRotationEnabled = true;
     private boolean shulkerOneEnabled = true;
     private boolean shulkerTwoEnabled = true;
     private int shulkerOneEpisode = 1;
@@ -27,8 +28,13 @@ public class MatchSettingsManager {
         offhandLocked = !offhandLocked;
     }
 
+    public void toggleSkinRotation() {
+        skinRotationEnabled = !skinRotationEnabled;
+    }
+
     public boolean isCombat18() { return combat18; }
     public boolean isOffhandLocked() { return offhandLocked; }
+    public boolean isSkinRotationEnabled() { return skinRotationEnabled; }
     public boolean isShulkerOneEnabled() { return shulkerOneEnabled; }
     public void setShulkerOneEnabled(boolean enabled) { this.shulkerOneEnabled = enabled; }
     public boolean isShulkerTwoEnabled() { return shulkerTwoEnabled; }

@@ -76,6 +76,7 @@ public final class UHC_DBasic extends JavaPlugin {
         teamManager = new TeamManager(this);
         gameManager = new GameManager(this);
         skinsManager = new SkinsManager(this);
+        skinsManager.precacheFallbackRosterAsync();
         worldManager = new WorldManager(this);
         tabManager = new TABManager(this);
         matchSettingsManager = new MatchSettingsManager();
