@@ -54,6 +54,21 @@ class ResourceIntegrityTest {
         }
     }
 
+    @Test void itemRouletteConfigHasValidTiming() throws IOException {
+        Map<String, Object> config = loadFile("src/main/resources/config.yml");
+        assertTrue(config.get("item-roulette") instanceof Map<?, ?>);
+        Map<?, ?> roulette = (Map<?, ?>) config.get("item-roulette");
+        int steps = ((Number) roulette.get("steps")).intValue();
+        long initial = ((Number) roulette.get("initial-delay-ticks")).longValue();
+        long end = ((Number) roulette.get("final-delay-ticks")).longValue();
+        long hold = ((Number) roulette.get("result-hold-ticks")).longValue();
+
+        assertTrue(steps > 0);
+        assertTrue(initial > 0);
+        assertTrue(end >= initial);
+        assertTrue(hold >= 0);
+    }
+
     private static Map<String, Object> loadFile(String path) throws IOException {
         try (InputStream stream = Files.newInputStream(Path.of(path))) {
             return new Yaml().load(stream);

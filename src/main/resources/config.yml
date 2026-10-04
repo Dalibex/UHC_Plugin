@@ -28,3 +28,10 @@ skins:
 # Internal one-time data migrations. Do not reset these markers.
 migrations:
   legacy-bare-teams: false
+
+# Native item-sprite roulette shown in the action bar.
+item-roulette:
+  steps: 24
+  initial-delay-ticks: 2
+  final-delay-ticks: 10
+  result-hold-ticks: 40

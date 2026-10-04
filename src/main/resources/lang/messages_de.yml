@@ -441,6 +441,7 @@ game-events:
     revealed-victim: "&d&l» &7Deine Identitaet wurde von &f%player% &7aufgedeckt"
 
 resource-rush:
+  roulette-selecting: "&6Resource Rush > &fRoulette-Objekt &e#%index% &fwird ausgewahlt..."
   ruleta-anuncio: "&6Resource Rush > &fNeues Ziel freigeschaltet: "
   objective-global: "&6Resource Rush > %color%%team% &fhat erhalten: &e%item% &7(%done%/12)"
   objective-reached: "&aZiel erreicht: &f%item%!"

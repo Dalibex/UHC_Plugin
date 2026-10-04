@@ -455,6 +455,7 @@ game-events:
 
 # Resource Rush specific messages
 resource-rush:
+  roulette-selecting: "&6Resource Rush > &fSelecting roulette object &e#%index%&f..."
   ruleta-anuncio: "&6Resource Rush > &fNew objective unlocked: "
   objective-global: "&6Resource Rush > %color%%team% &fhas obtained: &e%item% &7(%done%/12)"
   objective-reached: "&aObjective reached: &f%item%!"

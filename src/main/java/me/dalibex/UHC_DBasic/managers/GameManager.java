@@ -171,6 +171,7 @@ public class GameManager {
 
     public void fullReset() {
         cancelStartup();
+        plugin.getItemRoulette().cancelAll();
         this.phase = GamePhase.INITIALIZING;
         stopGameTask();
         this.cronometroSegundos = 0;
@@ -330,6 +331,8 @@ public class GameManager {
 
     public void enterEnding() {
         cancelStartup();
+        modoActual.onEnd();
+        plugin.getItemRoulette().cancelAll();
         stopGameTask();
         phase = GamePhase.ENDING;
     }

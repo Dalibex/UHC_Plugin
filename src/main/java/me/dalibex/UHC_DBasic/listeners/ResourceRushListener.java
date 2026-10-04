@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.Locale;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -22,6 +21,10 @@ import org.bukkit.inventory.ItemStack;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.gamemodes.ResourceRush;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
+import me.dalibex.UHC_DBasic.services.ItemRouletteRenderer;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
 public class ResourceRushListener implements Listener {
@@ -123,9 +126,15 @@ public class ResourceRushListener implements Listener {
             String formatPending = lang.get("resource-rush.summary.item-pending", p);
 
             for (Material mat : activos) {
-                String nombreMat = mat.name().replace("_", " ").toLowerCase(Locale.ROOT);
                 String line = conseguidos.contains(mat) ? formatDone : formatPending;
-                p.sendMessage(legacySection().deserialize(line.replace("%item%", nombreMat)));
+                Component template = legacySection().deserialize(line);
+                if (conseguidos.contains(mat)) {
+                    p.sendMessage(ItemRouletteRenderer.replaceItem(
+                            template, mat, NamedTextColor.GRAY, TextDecoration.STRIKETHROUGH));
+                } else {
+                    p.sendMessage(ItemRouletteRenderer.replaceItem(
+                            template, mat, NamedTextColor.WHITE));
+                }
             }
         }
 

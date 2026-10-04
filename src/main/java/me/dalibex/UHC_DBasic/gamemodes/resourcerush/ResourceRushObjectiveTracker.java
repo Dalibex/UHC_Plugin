@@ -19,6 +19,7 @@ public final class ResourceRushObjectiveTracker {
     private final Map<Integer, List<Material>> poolsByChapter = new HashMap<>();
     private final List<Material> activeObjectives = new ArrayList<>();
     private final Set<Material> activeObjectiveSet = new LinkedHashSet<>();
+    private final Set<Material> reservedObjectiveSet = new LinkedHashSet<>();
     private final Map<String, LinkedHashSet<Material>> progressByKey = new HashMap<>();
     private final List<String> podium = new ArrayList<>();
     private final Set<String> podiumSet = new LinkedHashSet<>();
@@ -31,6 +32,7 @@ public final class ResourceRushObjectiveTracker {
         poolsByChapter.clear();
         activeObjectives.clear();
         activeObjectiveSet.clear();
+        reservedObjectiveSet.clear();
         progressByKey.clear();
         podium.clear();
         podiumSet.clear();
@@ -50,7 +52,7 @@ public final class ResourceRushObjectiveTracker {
         for (List<Material> pool : poolsByChapter.values()) Collections.shuffle(pool);
     }
 
-    public List<Material> addObjectivesForChapter(int chapter) {
+    public List<Material> reserveObjectivesForChapter(int chapter) {
         int objectivesToAdd = (chapter <= 3) ? 2 : (chapter <= 9) ? 1 : 0;
         if (objectivesToAdd == 0) return List.of();
 
@@ -60,12 +62,22 @@ public final class ResourceRushObjectiveTracker {
         List<Material> addedObjectives = new ArrayList<>();
         for (Material material : chapterPool) {
             if (addedObjectives.size() >= objectivesToAdd) break;
-            if (activeObjectiveSet.add(material)) {
-                activeObjectives.add(material);
+            if (!activeObjectiveSet.contains(material) && reservedObjectiveSet.add(material)) {
                 addedObjectives.add(material);
             }
         }
         return addedObjectives;
+    }
+
+    public boolean activateObjective(Material material) {
+        if (!reservedObjectiveSet.remove(material) || !activeObjectiveSet.add(material)) return false;
+        activeObjectives.add(material);
+        return true;
+    }
+
+    public List<Material> candidatesForChapter(int chapter) {
+        List<Material> pool = poolsByChapter.getOrDefault(chapter, poolsByChapter.get(8));
+        return pool == null ? List.of() : List.copyOf(pool);
     }
 
     public ObjectiveCompletion completeObjective(String progressKey, Material material) {

@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.gamemodes.UHCGameMode;
@@ -59,6 +60,11 @@ public class PlayerConnectionListener implements Listener {
 
         updateAllScoreboards(gm, mode);
         handleUpdateNotice(p);
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        plugin.getItemRoulette().cancel(event.getPlayer().getUniqueId());
     }
 
     /** Handles joins while the game has already started. */

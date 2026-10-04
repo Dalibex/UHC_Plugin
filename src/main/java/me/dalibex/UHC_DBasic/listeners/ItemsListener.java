@@ -59,6 +59,7 @@ public class ItemsListener implements Listener {
         
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (plugin.getGameManager().getEliminatedPlayers().contains(p.getName())) continue;
+            if (plugin.getItemRoulette().isActive(p.getUniqueId())) continue;
             if (!hasTrackingCompass(p)) {
                 lastCompassTarget.remove(p.getUniqueId());
                 continue;

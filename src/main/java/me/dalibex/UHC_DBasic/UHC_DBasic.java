@@ -35,6 +35,7 @@ import me.dalibex.UHC_DBasic.managers.SpecialCraftsManager;
 import me.dalibex.UHC_DBasic.managers.TABManager;
 import me.dalibex.UHC_DBasic.managers.teams.TeamManager;
 import me.dalibex.UHC_DBasic.managers.WorldManager;
+import me.dalibex.UHC_DBasic.services.ItemRoulette;
 import me.dalibex.UHC_DBasic.utils.CommandTabs;
 import me.dalibex.UHC_DBasic.utils.UpdateChecker;
 
@@ -59,6 +60,7 @@ public final class UHC_DBasic extends JavaPlugin {
     private LanguageManager languageManager;
     private ResourceRushListener resourceRushListener;
     private DependencyManager dependencyManager;
+    private ItemRoulette itemRoulette;
 
     @Override
     public void onEnable() {
@@ -82,6 +84,7 @@ public final class UHC_DBasic extends JavaPlugin {
         matchSettingsManager = new MatchSettingsManager();
 
         languageManager = new LanguageManager(this);
+        itemRoulette = new ItemRoulette(this);
 
         adminPanelManager = new AdminPanelManager(this);
         chatManager = new ChatManager(this);
@@ -197,6 +200,7 @@ public final class UHC_DBasic extends JavaPlugin {
     public AdminPanelListener getAdminPanelListener() { return adminPanelListener; }
     public ItemsListener getItemsListener() { return itemsListener; }
     public DependencyManager getDependencyManager() { return dependencyManager; }
+    public ItemRoulette getItemRoulette() { return itemRoulette; }
 
     /** Returns true when a sender has plugin admin permissions. */
     public boolean isAdmin(CommandSender sender) {
@@ -207,6 +211,7 @@ public final class UHC_DBasic extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (itemRoulette != null) itemRoulette.shutdown();
         if (gameManager != null) gameManager.cancelStartup();
         getLogger().info("UHC_DBasic Plugin Disabled");
     }

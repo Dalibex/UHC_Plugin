@@ -2,7 +2,9 @@ package me.dalibex.UHC_DBasic.gamemodes;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -25,6 +27,7 @@ import me.dalibex.UHC_DBasic.gamemodes.resourcerush.ResourceRushObjectiveTracker
 import me.dalibex.UHC_DBasic.gamemodes.scoreboard.ResourceRushScoreboardRenderer;
 import me.dalibex.UHC_DBasic.managers.GameManager;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
+import me.dalibex.UHC_DBasic.services.ItemRouletteRenderer;
 import me.dalibex.UHC_DBasic.utils.ScoreboardHelper;
 import me.dalibex.UHC_DBasic.utils.TextUtil;
 import net.kyori.adventure.text.Component;
@@ -39,8 +42,11 @@ public class ResourceRush extends AbstractUHCGameMode {
     private final ResourceRushObjectiveTracker objectiveTracker = new ResourceRushObjectiveTracker();
     private final ResourceRushScoreboardRenderer scoreboardRenderer = new ResourceRushScoreboardRenderer();
     private final List<BukkitTask> delayedTasks = new ArrayList<>();
+    private final Deque<PendingObjective> objectiveRevealQueue = new ArrayDeque<>();
     private int sessionGeneration = 0;
     private boolean terminando = false;
+    private boolean objectiveRevealRunning = false;
+    private int nextObjectiveNumber = 1;
 
     public ResourceRush(UHC_DBasic plugin, GameManager gm) {
         super(plugin, gm);
@@ -109,22 +115,44 @@ public class ResourceRush extends AbstractUHCGameMode {
 
     private void updateActiveObjectives(int capitulo) {
         if (gm.getTotalSeconds() <= 0) return;
+        List<Material> candidates = objectiveTracker.candidatesForChapter(capitulo);
+        List<Material> selected = objectiveTracker.reserveObjectivesForChapter(capitulo);
+        for (Material result : selected) {
+            objectiveRevealQueue.addLast(new PendingObjective(result, candidates, nextObjectiveNumber++));
+        }
+        showNextObjectiveRoulette();
+    }
 
-        for (Material material : objectiveTracker.addObjectivesForChapter(capitulo)) announceObjective(material);
+    private void showNextObjectiveRoulette() {
+        if (objectiveRevealRunning) return;
+        PendingObjective pending = objectiveRevealQueue.peekFirst();
+        if (pending == null) return;
+        objectiveRevealRunning = true;
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.sendMessage(legacySection().deserialize(plugin.getLang()
+                    .get("resource-rush.roulette-selecting", player)
+                    .replace("%index%", String.valueOf(pending.number()))));
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.45f, 0.9f);
+            plugin.getItemRoulette().start(player, pending.candidates(), pending.result(), ignored -> { });
+        }
+
+        scheduleForCurrentSession(() -> {
+            objectiveRevealQueue.removeFirstOccurrence(pending);
+            if (objectiveTracker.activateObjective(pending.result())) announceObjective(pending.result());
+            objectiveRevealRunning = false;
+            showNextObjectiveRoulette();
+        }, plugin.getItemRoulette().totalDurationTicks());
     }
 
     private void announceObjective(Material mat) {
         LanguageManager lang = plugin.getLang();
-        String translationKey = (mat.isBlock() ? "block.minecraft." : "item.minecraft.") + mat.name().toLowerCase();
 
         for (Player p : Bukkit.getOnlinePlayers()) {
             String prefix = lang.get("resource-rush.ruleta-anuncio", p);
-            Component itemComp = Component.text()
-                    .append(Component.translatable(translationKey))
-                    .color(NamedTextColor.GOLD)
-                    .decorate(TextDecoration.BOLD)
+            Component itemComp = ItemRouletteRenderer.render(mat, NamedTextColor.GOLD, TextDecoration.BOLD)
                     .hoverEvent(HoverEvent.showItem(mat.getKey(), 1))
-                    .build();
+                    .decoration(TextDecoration.ITALIC, false);
 
             Component msg = legacySection().deserialize(prefix).decoration(TextDecoration.ITALIC, false)
                     .append(legacySection().deserialize("§e["))
@@ -235,15 +263,14 @@ public class ResourceRush extends AbstractUHCGameMode {
         String teamName = (team != null) ? legacySection().serialize(team.displayName()) : "§f";
         String name = (team != null) ? teamName + "§8[§f" + p.getName() + "§8]" : p.getName();
         String color = (team != null) ? TextUtil.legacyColor(team.color()) : "§f";
-        String itemName = mat.name().replace("_", " ").toLowerCase();
-
         String raw = lang.get("resource-rush.objective-global", null);
         String msg = raw
                 .replace("%color%", color).replace("%team%", name)
-                .replace("%item%", itemName).replace("%done%", String.valueOf(done));
+                .replace("%done%", String.valueOf(done));
 
         for (Player all : Bukkit.getOnlinePlayers()) {
-            all.sendMessage(legacySection().deserialize(msg).decoration(TextDecoration.ITALIC, false));
+            Component template = legacySection().deserialize(msg).decoration(TextDecoration.ITALIC, false);
+            all.sendMessage(ItemRouletteRenderer.replaceItem(template, mat, NamedTextColor.YELLOW));
             all.playSound(all.getLocation(), Sound.ENTITY_ARROW_HIT_PLAYER, 1f, 1f);
         }
     }
@@ -330,13 +357,28 @@ public class ResourceRush extends AbstractUHCGameMode {
 
     @Override
     public void onReset() {
-        sessionGeneration++;
-        delayedTasks.forEach(BukkitTask::cancel);
-        delayedTasks.clear();
+        cancelPendingObjectiveReveals();
         super.onReset();
         this.objectiveTracker.reset();
         this.terminando = false;
         Bukkit.getOnlinePlayers().forEach(p -> p.playerListName(Component.text(p.getName())));
+    }
+
+    @Override
+    public void onEnd() {
+        cancelPendingObjectiveReveals();
+    }
+
+    private void cancelPendingObjectiveReveals() {
+        sessionGeneration++;
+        delayedTasks.forEach(BukkitTask::cancel);
+        delayedTasks.clear();
+        objectiveRevealQueue.clear();
+        objectiveRevealRunning = false;
+        nextObjectiveNumber = 1;
+    }
+
+    private record PendingObjective(Material result, List<Material> candidates, int number) {
     }
 
     public List<Material> getPlayerAchievements(Player p) {

@@ -455,6 +455,7 @@ game-events:
 
 # Mensajes específicos de Resource Rush
 resource-rush:
+  roulette-selecting: "&6Resource Rush > &fSeleccionando el objeto &e#%index% &fde la ruleta..."
   ruleta-anuncio: "&6Resource Rush > &fNuevo objetivo desbloqueado: "
   objective-global: "&6Resource Rush > %color%%team% &fha conseguido: &e%item% &7(%done%/12)"
   objective-reached: "&a¡Has conseguido el objetivo: &f%item%!"

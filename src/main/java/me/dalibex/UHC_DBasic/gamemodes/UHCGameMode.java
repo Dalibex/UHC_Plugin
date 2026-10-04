@@ -18,4 +18,8 @@ public interface UHCGameMode {
 
     /** Runs when the plugin resets to lobby. */
     void onReset();
+
+    /** Cancels mode-owned work when the current match ends. */
+    default void onEnd() {
+    }
 }
