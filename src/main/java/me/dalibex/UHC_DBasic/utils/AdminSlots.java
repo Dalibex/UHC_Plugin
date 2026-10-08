@@ -65,15 +65,17 @@ public final class AdminSlots {
         return -1;
     }
 
-    // ---- Gamerules panel (36 slots) ----
-    public static final int RULES_NATURAL_REGENERATION = 10;
-    public static final int RULES_PVP = 11;
-    public static final int RULES_DAY_NIGHT = 12;
-    public static final int RULES_MONSTERS = 13;
-    public static final int RULES_ADVANCEMENTS = 14;
-    public static final int RULES_TRADER = 15;
-    public static final int RULES_LOCATOR = 16;
-    public static final int RULES_BACK = 27;
+    // ---- Gamerules panel (45 slots) ----
+    public static final int RULES_AUTOMATIC_INFO = 10;
+    public static final int RULES_NATURAL_REGENERATION = 12;
+    public static final int RULES_PVP = 13;
+    public static final int RULES_DAY_NIGHT = 14;
+    public static final int RULES_MONSTERS = 15;
+    public static final int RULES_MANUAL_INFO = 28;
+    public static final int RULES_LOCATOR = 30;
+    public static final int RULES_ADVANCEMENTS = 31;
+    public static final int RULES_TRADER = 32;
+    public static final int RULES_BACK = 40;
 
     // ---- Border panel (36 slots) ----
     public static final int BORDER_INFO = 13;
@@ -109,7 +111,7 @@ public final class AdminSlots {
     public static final int TIME_PLUS_1 = 14;
     public static final int TIME_PLUS_5 = 15;
     public static final int TIME_PLUS_10 = 16;
-    public static final int TIME_PAUSE = 21;
+    public static final int TIME_PAUSE = 22;
     public static final int TIME_BACK = 18;
 
     public static int timeDeltaMinutesForSlot(int slot) {

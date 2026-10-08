@@ -364,6 +364,20 @@ menus:
 
   gamerules:
     title: "&8⚙ GameRules aendern"
+    automatic:
+      name: "&aAutomatisch verwaltete Einstellungen"
+      lore:
+        - "&7Das Plugin passt diese Regeln"
+        - "&7an den Spielverlauf an."
+        - ""
+        - "&eIm laufenden Spiel aenderbar."
+    manual:
+      name: "&eManuelle Einstellungen"
+      lore:
+        - "&7Sie starten deaktiviert und muessen"
+        - "&7vom Host eingestellt werden."
+        - ""
+        - "&eIm laufenden Spiel aenderbar."
 
   barrier:
     title: "&8⚖ Bordergroesse anpassen"

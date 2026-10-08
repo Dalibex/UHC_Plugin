@@ -364,6 +364,20 @@ menus:
 
   gamerules:
     title: "&8⚙ Modifica GameRules"
+    automatic:
+      name: "&aImpostazioni gestite automaticamente"
+      lore:
+        - "&7Il plugin adatta queste regole"
+        - "&7allo svolgimento della partita."
+        - ""
+        - "&eModificabili durante la partita."
+    manual:
+      name: "&eImpostazioni manuali"
+      lore:
+        - "&7Iniziano disattivate e devono"
+        - "&7essere configurate dall'host."
+        - ""
+        - "&eModificabili durante la partita."
 
   barrier:
     title: "&8⚖ Regola dimensione bordo"

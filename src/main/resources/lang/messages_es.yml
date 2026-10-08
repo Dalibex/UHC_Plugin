@@ -375,6 +375,20 @@ menus:
 
   gamerules:
     title: "&8⚙ Cambiar Reglas"
+    automatic:
+      name: "&aAjustes autogestionados"
+      lore:
+        - "&7El plugin adapta estas reglas"
+        - "&7al desarrollo de la partida."
+        - ""
+        - "&eSe pueden cambiar durante la partida."
+    manual:
+      name: "&eAjustes manuales"
+      lore:
+        - "&7Comienzan desactivados y deben"
+        - "&7ser configurados por el host."
+        - ""
+        - "&eSe pueden cambiar durante la partida."
 
   barrier:
     title: "&8⚖ Ajustar tamaño de barrera"

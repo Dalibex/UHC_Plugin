@@ -268,17 +268,22 @@ public class AdminPanelManager {
 
     public void openGameRulesPanel(Player player) {
         LanguageManager lang = plugin.getLang();
-        Inventory rulesGui = Bukkit.createInventory(null, 36, lang.getComponent("menus.gamerules.title", player));
+        Inventory rulesGui = Bukkit.createInventory(null, 45, lang.getComponent("menus.gamerules.title", player));
 
         World w = plugin.getWorldManager().getMainWorld();
 
+        rulesGui.setItem(AdminSlots.RULES_AUTOMATIC_INFO,
+                itemFactory.sectionArrow("menus.gamerules.automatic", player));
         rulesGui.setItem(AdminSlots.RULES_NATURAL_REGENERATION, itemFactory.ruleItem(Material.GOLDEN_APPLE, lang.get("menus.rules.nat-regen", player), w.getGameRuleValue(NATURAL_HEALTH_REGENERATION), player, lang));
         rulesGui.setItem(AdminSlots.RULES_PVP, itemFactory.ruleItem(Material.NETHERITE_SWORD, lang.get("menus.rules.pvp", player), w.getGameRuleValue(PVP), player, lang));
         rulesGui.setItem(AdminSlots.RULES_DAY_NIGHT, itemFactory.ruleItem(Material.PUFFERFISH, lang.get("menus.rules.day-night", player), w.getGameRuleValue(ADVANCE_TIME), player, lang));
         rulesGui.setItem(AdminSlots.RULES_MONSTERS, itemFactory.ruleItem(Material.ZOMBIE_HEAD, lang.get("menus.rules.monsters", player), w.getGameRuleValue(SPAWN_MONSTERS), player, lang));
+
+        rulesGui.setItem(AdminSlots.RULES_MANUAL_INFO,
+                itemFactory.sectionArrow("menus.gamerules.manual", player));
+        rulesGui.setItem(AdminSlots.RULES_LOCATOR, itemFactory.ruleItem(Material.COMPASS, lang.get("menus.rules.locator", player), w.getGameRuleValue(LOCATOR_BAR), player, lang));
         rulesGui.setItem(AdminSlots.RULES_ADVANCEMENTS, itemFactory.ruleItem(Material.CRAFTING_TABLE, lang.get("menus.rules.advancements", player), w.getGameRuleValue(SHOW_ADVANCEMENT_MESSAGES), player, lang));
         rulesGui.setItem(AdminSlots.RULES_TRADER, itemFactory.ruleItem(Material.VILLAGER_SPAWN_EGG, lang.get("menus.rules.trader", player), w.getGameRuleValue(SPAWN_WANDERING_TRADERS), player, lang));
-        rulesGui.setItem(AdminSlots.RULES_LOCATOR, itemFactory.ruleItem(Material.COMPASS, lang.get("menus.rules.locator", player), w.getGameRuleValue(LOCATOR_BAR), player, lang));
 
         ItemStack back = itemFactory.backButton(player);
         rulesGui.setItem(AdminSlots.RULES_BACK, back);

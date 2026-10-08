@@ -30,6 +30,7 @@ public class WorldSettingsMenuHandler {
             player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, 1f, 1f);
             return;
         }
+        if (material == Material.PLAYER_HEAD) return;
         org.bukkit.GameRule<Boolean> rule = null;
         if (material == Material.GOLDEN_APPLE) rule = NATURAL_HEALTH_REGENERATION;
         else if (material == Material.PUFFERFISH) rule = ADVANCE_TIME;

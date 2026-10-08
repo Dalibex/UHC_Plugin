@@ -375,6 +375,20 @@ menus:
 
   gamerules:
     title: "&8⚙ Change GameRules"
+    automatic:
+      name: "&aAutomatically managed settings"
+      lore:
+        - "&7The plugin adapts these rules"
+        - "&7as the match progresses."
+        - ""
+        - "&eThey can be changed during the match."
+    manual:
+      name: "&eManual settings"
+      lore:
+        - "&7They start disabled and must"
+        - "&7be configured by the host."
+        - ""
+        - "&eThey can be changed during the match."
 
   barrier:
     title: "&8⚖ Adjust Border Size"

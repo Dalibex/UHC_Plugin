@@ -1,22 +1,30 @@
 package me.dalibex.UHC_DBasic.admin;
 
+import com.destroystokyo.paper.profile.PlayerProfile;
+import com.destroystokyo.paper.profile.ProfileProperty;
 import me.dalibex.UHC_DBasic.UHC_DBasic;
 import me.dalibex.UHC_DBasic.managers.LanguageManager;
 import me.dalibex.UHC_DBasic.utils.TextUtil;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
+import org.bukkit.Bukkit;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 /** Builds reusable Admin Panel items. */
 class AdminItemFactory {
+
+    private static final UUID RIGHT_ARROW_PROFILE_ID = UUID.fromString("50c8510b-5ea0-4d60-be9a-7d542d6cd156");
+    private static final String RIGHT_ARROW_TEXTURE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHBzOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlL2QzNGVmMDYzODUzNzIyMmIyMGY0ODA2OTRkYWRjMGY4NWZiZTA3NTlkNTgxYWE3ZmNkZjJlNDMxMzkzNzcxNTgifX19";
 
     private final UHC_DBasic plugin;
 
@@ -49,6 +57,19 @@ class AdminItemFactory {
     ItemStack simpleItem(Material material, String langKey, Player player) {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
+        meta.displayName(plugin.getLang().getComponent(langKey + ".name", player));
+        meta.lore(plugin.getLang().getComponentList(langKey + ".lore", player));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    ItemStack sectionArrow(String langKey, Player player) {
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        if (!(item.getItemMeta() instanceof SkullMeta meta)) return item;
+
+        PlayerProfile profile = Bukkit.createProfile(RIGHT_ARROW_PROFILE_ID, "MHF_ArrowRight");
+        profile.setProperty(new ProfileProperty("textures", RIGHT_ARROW_TEXTURE));
+        meta.setPlayerProfile(profile);
         meta.displayName(plugin.getLang().getComponent(langKey + ".name", player));
         meta.lore(plugin.getLang().getComponentList(langKey + ".lore", player));
         item.setItemMeta(meta);

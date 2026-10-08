@@ -4,7 +4,10 @@ import static org.bukkit.GameRules.ADVANCE_TIME;
 import static org.bukkit.GameRules.ADVANCE_WEATHER;
 import static org.bukkit.GameRules.NATURAL_HEALTH_REGENERATION;
 import static org.bukkit.GameRules.PVP;
+import static org.bukkit.GameRules.LOCATOR_BAR;
+import static org.bukkit.GameRules.SHOW_ADVANCEMENT_MESSAGES;
 import static org.bukkit.GameRules.SPAWN_MONSTERS;
+import static org.bukkit.GameRules.SPAWN_WANDERING_TRADERS;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Difficulty;
@@ -64,6 +67,9 @@ public class WorldManager {
             world.setGameRule(NATURAL_HEALTH_REGENERATION, true);
             world.setGameRule(SPAWN_MONSTERS, false);
             world.setGameRule(PVP, false);
+            world.setGameRule(LOCATOR_BAR, false);
+            world.setGameRule(SHOW_ADVANCEMENT_MESSAGES, false);
+            world.setGameRule(SPAWN_WANDERING_TRADERS, false);
         }
         Bukkit.getScheduler().runTask(plugin, () -> {
             for (World world : Bukkit.getWorlds()) {

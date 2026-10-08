@@ -40,6 +40,17 @@ class AdminSlotsTest {
         assertEquals(5, AdminSlots.timeDeltaMinutesForSlot(AdminSlots.TIME_PLUS_5));
         assertEquals(10, AdminSlots.timeDeltaMinutesForSlot(AdminSlots.TIME_PLUS_10));
         assertEquals(0, AdminSlots.timeDeltaMinutesForSlot(AdminSlots.TIME_BACK));
+        assertEquals(22, AdminSlots.TIME_PAUSE);
+    }
+
+    @Test void gamerulesAreSplitIntoAutomaticAndManualRows() {
+        assertEquals(10, AdminSlots.RULES_AUTOMATIC_INFO);
+        assertEquals(12, AdminSlots.RULES_NATURAL_REGENERATION);
+        assertEquals(15, AdminSlots.RULES_MONSTERS);
+        assertEquals(28, AdminSlots.RULES_MANUAL_INFO);
+        assertEquals(30, AdminSlots.RULES_LOCATOR);
+        assertEquals(32, AdminSlots.RULES_TRADER);
+        assertEquals(40, AdminSlots.RULES_BACK);
     }
 
     @Test void generalRulesSkinRotationSlot() {
@@ -55,7 +66,7 @@ class AdminSlotsTest {
         Map<String, Integer> bounds = Map.of(
                 "MAIN_", 9, "GAMEMODE_", 9, "GENERAL_", 27, "SHULKERS_", 27,
                 "SHULKER_EPISODE_", 45, "TEAMS_EPISODE_", 45, "PVP_EPISODE_", 45,
-                "RULES_", 36, "BORDER_", 36, "TIME_", 27);
+                "RULES_", 45, "BORDER_", 36, "TIME_", 27);
         for (Map.Entry<String, Integer> panel : bounds.entrySet()) {
             Set<Integer> occupied = new HashSet<>();
             for (Field field : AdminSlots.class.getFields()) {

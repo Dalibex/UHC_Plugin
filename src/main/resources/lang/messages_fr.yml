@@ -364,6 +364,20 @@ menus:
 
   gamerules:
     title: "&8⚙ Modifier les GameRules"
+    automatic:
+      name: "&aReglages geres automatiquement"
+      lore:
+        - "&7Le plugin adapte ces regles"
+        - "&7au deroulement de la partie."
+        - ""
+        - "&eModifiables pendant la partie."
+    manual:
+      name: "&eReglages manuels"
+      lore:
+        - "&7Ils commencent desactives et"
+        - "&7doivent etre configures par l'hote."
+        - ""
+        - "&eModifiables pendant la partie."
 
   barrier:
     title: "&8⚖ Ajuster la bordure"
